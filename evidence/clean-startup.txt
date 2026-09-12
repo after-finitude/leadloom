@@ -1,0 +1,5 @@
+(node:2848) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Leadloom 1.2.0 · demo · http://localhost:3107
+Providers: LLM=mock, calendar=mock, email=mock
+Local demo credentials are documented in README.md. Mock email appears in the staff Outbox.

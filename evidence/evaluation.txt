@@ -1,0 +1,32 @@
+
+> leadloom@1.2.0 eval
+> node evaluation/run.mjs --mock
+
+(node:861) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS hot-booking
+PASS warm-unknown-budget
+PASS unsupported-service
+PASS outside-service-area
+PASS optional-budget-unknown
+PASS critical-location-unknown
+PASS multi-field-extraction
+PASS budget-correction
+PASS manual-lock-conflict
+PASS human-request
+PASS negative-sentiment
+PASS approved-faq
+PASS outside-faq
+PASS banned-topic
+PASS negative-authority
+PASS unknown-timeline
+PASS no-repeat-known-fields
+PASS stop-after-qualification
+PASS nurture-no-booking
+PASS email-required
+PASS prompt-injection-blocked
+PASS unknown-authority
+PASS service-correction-hard-reject
+PASS budget-crosses-threshold
+
+24/24 scenarios passed. Reports saved in evaluation/.

@@ -1,0 +1,14 @@
+{
+  "date": "2026-09-10T05:09:07.599575+00:00",
+  "mode": "DOM + real local HTTP bridge, navigation simulated; all providers mock",
+  "success": true,
+  "checks": [
+    "Form handler creates a private visitor session through the real HTTP API",
+    "Chat message is persisted and qualified by the running worker",
+    "Availability controls render server-issued slot offers",
+    "Explicit slot click creates and confirms a mock calendar booking",
+    "STOP immediately displays the persisted contact-level opt-out",
+    "Public chat fits a 390px mobile viewport"
+  ],
+  "pageErrors": []
+}

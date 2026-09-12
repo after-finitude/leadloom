@@ -1,0 +1,8 @@
+
+> leadloom@1.2.0 backup
+> node scripts/backup.mjs
+
+(node:2468) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Database snapshot: /mnt/data/leadloom/data/backups/leadloom-2026-09-10T05-13-10-573Z.sqlite
+Keep the encryption key securely with the backup. It is NOT printed or copied by this command.

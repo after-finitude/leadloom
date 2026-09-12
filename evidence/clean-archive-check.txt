@@ -1,0 +1,421 @@
+
+> leadloom@1.2.0 check
+> npm run build && npm test && npm run eval -- --mock
+
+
+> leadloom@1.2.0 build
+> node scripts/build.mjs
+
+Build OK: 28 JavaScript modules checked; deployment files copied to dist/.
+
+> leadloom@1.2.0 test
+> node --test --test-concurrency=1 tests/*.test.mjs
+
+TAP version 13
+# (node:2781) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: contact normalization preserves distinct plus and dotted addresses
+ok 1 - contact normalization preserves distinct plus and dotted addresses
+  ---
+  duration_ms: 1.351691
+  type: 'test'
+  ...
+# Subtest: STOP recognizes explicit refusal, not a substring in a project description
+ok 2 - STOP recognizes explicit refusal, not a substring in a project description
+  ---
+  duration_ms: 0.491154
+  type: 'test'
+  ...
+# Subtest: scoring is deterministic and explains all five factors
+ok 3 - scoring is deterministic and explains all five factors
+  ---
+  duration_ms: 0.319401
+  type: 'test'
+  ...
+# Subtest: unknown and explicitly negative authority are distinct reasons
+ok 4 - unknown and explicitly negative authority are distinct reasons
+  ---
+  duration_ms: 0.135101
+  type: 'test'
+  ...
+# Subtest: unknown budget can produce Warm, not invented budget
+ok 5 - unknown budget can produce Warm, not invented budget
+  ---
+  duration_ms: 0.156101
+  type: 'test'
+  ...
+# Subtest: hard reject defeats a high score
+ok 6 - hard reject defeats a high score
+  ---
+  duration_ms: 0.139107
+  type: 'test'
+  ...
+# Subtest: budget intervals use conservative lower bound
+ok 7 - budget intervals use conservative lower bound
+  ---
+  duration_ms: 0.151183
+  type: 'test'
+  ...
+# Subtest: overlapping buffers are not summed
+ok 8 - overlapping buffers are not summed
+  ---
+  duration_ms: 0.166506
+  type: 'test'
+  ...
+# Subtest: business hours and weekend deferral
+ok 9 - business hours and weekend deferral
+  ---
+  duration_ms: 54.929167
+  type: 'test'
+  ...
+# Subtest: slot generation fits the whole appointment into working hours
+ok 10 - slot generation fits the whole appointment into working hours
+  ---
+  duration_ms: 1.448057
+  type: 'test'
+  ...
+# Subtest: DST fall-back does not duplicate UTC instants and preserves offsets
+ok 11 - DST fall-back does not duplicate UTC instants and preserves offsets
+  ---
+  duration_ms: 8.185702
+  type: 'test'
+  ...
+# Subtest: invalid configuration and scoring weights are rejected
+ok 12 - invalid configuration and scoring weights are rejected
+  ---
+  duration_ms: 1.131659
+  type: 'test'
+  ...
+# Subtest: encrypted payload is authenticated and not plaintext
+ok 13 - encrypted payload is authenticated and not plaintext
+  ---
+  duration_ms: 1.326405
+  type: 'test'
+  ...
+# Subtest: three identical intake deliveries create one lead, contact and first message
+ok 14 - three identical intake deliveries create one lead, contact and first message
+  ---
+  duration_ms: 92.005176
+  type: 'test'
+  ...
+# Subtest: invalid authorized intake remains rejected without creating a contact
+ok 15 - invalid authorized intake remains rejected without creating a contact
+  ---
+  duration_ms: 71.769883
+  type: 'test'
+  ...
+# Subtest: phone-only webhook goes to a human, with no fictitious first response
+ok 16 - phone-only webhook goes to a human, with no fictitious first response
+  ---
+  duration_ms: 73.779494
+  type: 'test'
+  ...
+# Subtest: deduplication does not authorize a new browser to old history
+ok 17 - deduplication does not authorize a new browser to old history
+  ---
+  duration_ms: 74.074551
+  type: 'test'
+  ...
+# Subtest: conflicting email and phone are not silently merged
+ok 18 - conflicting email and phone are not silently merged
+  ---
+  duration_ms: 78.880224
+  type: 'test'
+  ...
+# Subtest: new enquiry after closing a deal preserves the Contact
+ok 19 - new enquiry after closing a deal preserves the Contact
+  ---
+  duration_ms: 75.734487
+  type: 'test'
+  ...
+# Subtest: service-specific policy allows different services for one contact
+ok 20 - service-specific policy allows different services for one contact
+  ---
+  duration_ms: 76.744385
+  type: 'test'
+  ...
+# Subtest: multi-field answer becomes a complete qualified lead with one reply
+ok 21 - multi-field answer becomes a complete qualified lead with one reply
+  ---
+  duration_ms: 108.607155
+  type: 'test'
+  ...
+# Subtest: unknown critical field hands off after exactly two clarifications
+ok 22 - unknown critical field hands off after exactly two clarifications
+  ---
+  duration_ms: 83.089014
+  type: 'test'
+  ...
+# Subtest: optional explicit unknown budget remains null and qualification proceeds
+ok 23 - optional explicit unknown budget remains null and qualification proceeds
+  ---
+  duration_ms: 82.816018
+  type: 'test'
+  ...
+# Subtest: manual field lock keeps value and records a conflicting proposal
+ok 24 - manual field lock keeps value and records a conflicting proposal
+  ---
+  duration_ms: 80.59692
+  type: 'test'
+  ...
+# Subtest: later correction updates an unlocked field and preserves history
+ok 25 - later correction updates an unlocked field and preserves history
+  ---
+  duration_ms: 78.308136
+  type: 'test'
+  ...
+# Subtest: STOP is contact-wide and neither Resume nor new intake restores it
+ok 26 - STOP is contact-wide and neither Resume nor new intake restores it
+  ---
+  duration_ms: 83.651899
+  type: 'test'
+  ...
+# Subtest: human takeover wins against an in-flight LLM response
+ok 27 - human takeover wins against an in-flight LLM response
+  ---
+  duration_ms: 93.971447
+  type: 'test'
+  ...
+# Subtest: reply after handoff never returns ownership to AI
+ok 28 - reply after handoff never returns ownership to AI
+  ---
+  duration_ms: 77.883693
+  type: 'test'
+  ...
+# Subtest: new rules do not retroactively change a pinned lead
+ok 29 - new rules do not retroactively change a pinned lead
+  ---
+  duration_ms: 80.092889
+  type: 'test'
+  ...
+# Subtest: audit events and rule versions cannot be updated or deleted
+ok 30 - audit events and rule versions cannot be updated or deleted
+  ---
+  duration_ms: 73.456568
+  type: 'test'
+  ...
+# Subtest: visitor response excludes score, contact identifiers and internal notes
+ok 31 - visitor response excludes score, contact identifiers and internal notes
+  ---
+  duration_ms: 76.946287
+  type: 'test'
+  ...
+# Subtest: chat link is scoped, single-use and separate from unsubscribe
+ok 32 - chat link is scoped, single-use and separate from unsubscribe
+  ---
+  duration_ms: 76.911096
+  type: 'test'
+  ...
+# (node:2792) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: HTTP form creates an HttpOnly visitor session and a private chat
+ok 33 - HTTP form creates an HttpOnly visitor session and a private chat
+  ---
+  duration_ms: 115.19411
+  type: 'test'
+  ...
+# Subtest: API rejects cross-origin writes, missing CSRF and forged public fields
+ok 34 - API rejects cross-origin writes, missing CSRF and forged public fields
+  ---
+  duration_ms: 92.778962
+  type: 'test'
+  ...
+# Subtest: manager role cannot edit settings or restore contact consent
+ok 35 - manager role cannot edit settings or restore contact consent
+  ---
+  duration_ms: 125.148681
+  type: 'test'
+  ...
+# Subtest: staff login does not bypass CSRF and logout revokes the session
+ok 36 - staff login does not bypass CSRF and logout revokes the session
+  ---
+  duration_ms: 114.697741
+  type: 'test'
+  ...
+# Subtest: webhook authenticates before accepting an intake event
+ok 37 - webhook authenticates before accepting an intake event
+  ---
+  duration_ms: 84.842981
+  type: 'test'
+  ...
+# Subtest: GET chat preview cannot consume an access token
+ok 38 - GET chat preview cannot consume an access token
+  ---
+  duration_ms: 77.303384
+  type: 'test'
+  ...
+# Subtest: server does not serve source files, database files or environment secrets
+ok 39 - server does not serve source files, database files or environment secrets
+  ---
+  duration_ms: 78.604706
+  type: 'test'
+  ...
+# (node:2803) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: same booking request confirms exactly one calendar event
+ok 40 - same booking request confirms exactly one calendar event
+  ---
+  duration_ms: 111.1647
+  type: 'test'
+  ...
+# Subtest: two leads cannot reserve overlapping intervals
+ok 41 - two leads cannot reserve overlapping intervals
+  ---
+  duration_ms: 94.359768
+  type: 'test'
+  ...
+# Subtest: external calendar conflict is checked again just before creation
+ok 42 - external calendar conflict is checked again just before creation
+  ---
+  duration_ms: 86.982616
+  type: 'test'
+  ...
+# Subtest: lost calendar response becomes unknown, then reconciles the same event
+ok 43 - lost calendar response becomes unknown, then reconciles the same event
+  ---
+  duration_ms: 88.659111
+  type: 'test'
+  ...
+# Subtest: STOP before dispatch cancels a pending booking without creating an event
+ok 44 - STOP before dispatch cancels a pending booking without creating an event
+  ---
+  duration_ms: 79.093973
+  type: 'test'
+  ...
+# Subtest: changed settings invalidate previously offered slots
+ok 45 - changed settings invalidate previously offered slots
+  ---
+  duration_ms: 79.176813
+  type: 'test'
+  ...
+# Subtest: unqualified lead cannot get slots or forge a booking
+ok 46 - unqualified lead cannot get slots or forge a booking
+  ---
+  duration_ms: 77.133097
+  type: 'test'
+  ...
+# Subtest: email is required before automatic booking
+ok 47 - email is required before automatic booking
+  ---
+  duration_ms: 78.160073
+  type: 'test'
+  ...
+# Subtest: cancellation retains old state until confirmed and does not restart follow-ups
+ok 48 - cancellation retains old state until confirmed and does not restart follow-ups
+  ---
+  duration_ms: 83.113774
+  type: 'test'
+  ...
+# Subtest: reschedule updates the existing external event instead of duplicating it
+ok 49 - reschedule updates the existing external event instead of duplicating it
+  ---
+  duration_ms: 80.23183
+  type: 'test'
+  ...
+# Subtest: nighttime follow-up waits until working hours, but initial invitation does not
+ok 50 - nighttime follow-up waits until working hours, but initial invitation does not
+  ---
+  duration_ms: 86.868762
+  type: 'test'
+  ...
+# Subtest: reply cancels the current follow-up run and STOP cancels all pending mail
+ok 51 - reply cancels the current follow-up run and STOP cancels all pending mail
+  ---
+  duration_ms: 75.630764
+  type: 'test'
+  ...
+# Subtest: late follow-ups do not send a backlog as a batch
+ok 52 - late follow-ups do not send a backlog as a batch
+  ---
+  duration_ms: 73.010303
+  type: 'test'
+  ...
+# Subtest: unknown email result is reconciled without a second mock delivery
+ok 53 - unknown email result is reconciled without a second mock delivery
+  ---
+  duration_ms: 75.989939
+  type: 'test'
+  ...
+# Subtest: all data and pending work survive a database reopen
+ok 54 - all data and pending work survive a database reopen
+  ---
+  duration_ms: 76.946377
+  type: 'test'
+  ...
+# Subtest: OpenAI adapter sends a strict Responses schema and disables response storage
+ok 55 - OpenAI adapter sends a strict Responses schema and disables response storage
+  ---
+  duration_ms: 16.796749
+  type: 'test'
+  ...
+# Subtest: OpenAI JSON repair is limited to one attempt
+ok 56 - OpenAI JSON repair is limited to one attempt
+  ---
+  duration_ms: 0.879813
+  type: 'test'
+  ...
+# Subtest: OpenAI refusal is not silently turned into a mock answer
+ok 57 - OpenAI refusal is not silently turned into a mock answer
+  ---
+  duration_ms: 0.586679
+  type: 'test'
+  ...
+# Subtest: Google adapter uses a deterministic valid event id without uncontrolled attendee mail
+ok 58 - Google adapter uses a deterministic valid event id without uncontrolled attendee mail
+  ---
+  duration_ms: 1.630249
+  type: 'test'
+  ...
+# Subtest: calendar permission is checked after OAuth refresh, immediately before event request
+ok 59 - calendar permission is checked after OAuth refresh, immediately before event request
+  ---
+  duration_ms: 0.502226
+  type: 'test'
+  ...
+# Subtest: Resend adapter reuses the provided idempotency key and enforces demo allowlist
+ok 60 - Resend adapter reuses the provided idempotency key and enforces demo allowlist
+  ---
+  duration_ms: 0.475708
+  type: 'test'
+  ...
+1..60
+# tests 60
+# suites 0
+# pass 60
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3818.823272
+
+> leadloom@1.2.0 eval
+> node evaluation/run.mjs --mock
+
+PASS hot-booking
+PASS warm-unknown-budget
+PASS unsupported-service
+PASS outside-service-area
+PASS optional-budget-unknown
+PASS critical-location-unknown
+PASS multi-field-extraction
+PASS budget-correction
+PASS manual-lock-conflict
+PASS human-request
+PASS negative-sentiment
+PASS approved-faq
+PASS outside-faq
+PASS banned-topic
+PASS negative-authority
+PASS unknown-timeline
+PASS no-repeat-known-fields
+PASS stop-after-qualification
+PASS nurture-no-booking
+PASS email-required
+PASS prompt-injection-blocked
+PASS unknown-authority
+PASS service-correction-hard-reject
+PASS budget-crosses-threshold
+
+24/24 scenarios passed. Reports saved in evaluation/.
+(node:2837) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

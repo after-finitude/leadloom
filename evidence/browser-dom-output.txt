@@ -1,0 +1,49 @@
+{
+  "date": "2026-09-10T05:09:01.733682+00:00",
+  "mode": "DOM smoke with actual local HTTP bridge; not native browser E2E",
+  "nativeNavigation": "blocked by Chromium administrator URLBlocklist",
+  "success": true,
+  "checks": [
+    {
+      "name": "Desktop Conversations renders actual CRM data, messages and scoring",
+      "passed": true
+    },
+    {
+      "name": "Manager reply composer stays visible inside the viewport",
+      "passed": true
+    },
+    {
+      "name": "Take over button persists HUMAN ownership through actual HTTP",
+      "passed": true
+    },
+    {
+      "name": "Pause button persists independent paused state",
+      "passed": true
+    },
+    {
+      "name": "Resume does not implicitly return HUMAN ownership to AI",
+      "passed": true
+    },
+    {
+      "name": "Lead profile renders via navigation handler and real API",
+      "passed": true
+    },
+    {
+      "name": "Settings screen renders current server configuration",
+      "passed": true
+    },
+    {
+      "name": "Execution Log renders saved operations and intake events",
+      "passed": true
+    },
+    {
+      "name": "390px mobile viewport has no horizontal page overflow",
+      "passed": true
+    },
+    {
+      "name": "No uncaught browser JavaScript errors in the DOM smoke",
+      "passed": true
+    }
+  ],
+  "pageErrors": []
+}

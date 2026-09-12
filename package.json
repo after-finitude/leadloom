@@ -1,0 +1,13 @@
+{
+  "name": "leadloom", "version": "1.2.0", "private": true,
+  "description": "Runnable Leadloom local edition: CRM, qualification, booking and follow-up",
+  "type": "module", "engines": { "node": ">=22.16.0" },
+  "scripts": {
+    "start": "node src/main.mjs", "dev": "node --watch src/main.mjs", "demo": "node src/main.mjs",
+    "worker": "node src/worker.mjs", "build": "node scripts/build.mjs",
+    "test": "node --test --test-concurrency=1 tests/*.test.mjs",
+    "eval": "node evaluation/run.mjs", "check": "npm run build && npm test && npm run eval -- --mock",
+    "seed": "node scripts/seed.mjs", "demo:reset": "node scripts/reset.mjs",
+    "backup": "node scripts/backup.mjs", "live:smoke": "node scripts/live-smoke.mjs"
+  }, "license": "MIT"
+}

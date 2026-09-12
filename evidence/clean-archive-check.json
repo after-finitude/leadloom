@@ -1,0 +1,21 @@
+{
+  "checkedAt": "2026-09-10T05:13:55.855597+00:00",
+  "installation": "Extracted ZIP into an empty directory whose path contains spaces",
+  "npmInstallRequired": false,
+  "npmRunCheckExit": 0,
+  "coldStartup": true,
+  "staticAssetsServed": true,
+  "health": {
+    "ok": true,
+    "version": "1.2.0",
+    "mode": "demo",
+    "database": "SQLite",
+    "providers": {
+      "llm": "mock",
+      "calendar": "mock",
+      "email": "mock"
+    }
+  },
+  "testMode": "direct Node.js + SQLite, all providers mock",
+  "success": true
+}
