@@ -1,340 +1,340 @@
-# Leadloom — техническое задание v1.1
+# Leadloom — technical specification v1.1
 
-**Название для портфолио:** Leadloom — AI Lead Qualification & Booking.  
-**Дата редакции:** 8 сентября 2026 года.  
-**Связанный документ:** [План реализации v1.1](Leadloom-Implementation-Plan-v1.1.md).
+**Portfolio title:** Leadloom — AI Lead Qualification & Booking.  
+**Revision date:** September 8, 2026.  
+**Related document:** [Implementation plan v1.1](Leadloom-Implementation-Plan-v1.1.md).
 
-## 0. Основание и изменения редакции
+## 0. Basis and revision changes
 
-Документ заменяет «ТЗ №2 — AI Revenue Agent» для первой версии продукта. Основание: `TZ-2-Revenue-Agent.md`, `AI-Revenue-Agent-Implementation-Plan.md` и замечания к их согласованности. Сохранены назначение продукта, основной стек, экраны, разделение AI и бизнес-логики, требования к надёжности и состав поставки.
+This document replaces "Specification No. 2 — AI Revenue Agent" for the first product version. It is based on `TZ-2-Revenue-Agent.md`, `AI-Revenue-Agent-Implementation-Plan.md`, and feedback on their consistency. The product purpose, core stack, screens, separation of AI and business logic, reliability requirements, and deliverables are retained.
 
-Изменения ниже внесены явно, а не трактуются как требования, уже присутствовавшие в исходном ТЗ. Числовые настройки, которых не было в исходниках, обозначены как **предлагаемые демо-значения**. Это рабочая редакция; её статус не означает внешнего согласования заказчиком. При начале разработки эти значения фиксируются в seed, тестах и настройках как единая базовая конфигурация.
+The changes below are explicit additions, not interpretations of requirements already present in the original specification. Numerical settings absent from the original sources are labeled as **proposed demo values**. This is a working revision; its status does not imply external client approval. At the start of development, these values are fixed in seed data, tests, and settings as a single baseline configuration.
 
-| Решение | Что принято в v1.1 |
+| Decision | Adopted in v1.1 |
 |---|---|
-| D01. Объём | Одна компания, встроенная CRM, один календарь, один реальный LLM-провайдер и один email-сервис. GoHighLevel и SMS не входят в приёмку. |
-| D02. Первый контакт | Форма открывает защищённый веб-чат. Webhook с email запускает письмо-приглашение в чат. Заявка только с телефоном без активного чата поступает менеджеру без автоматического контакта. |
-| D03. Ночное обращение | Ответы в чате и первое письмо по входящей заявке разрешены круглосуточно. Ограничение рабочих часов действует на инициативные follow-up. |
-| D04. Состояния | Коммерческая категория, стадия сделки, необходимость проверки человеком, владелец, пауза и opt-out хранятся отдельно. |
-| D05. Уточнения | Не более двух уточнений после первоначального вопроса. Неизвестное необязательное поле пропускается; неизвестное обязательное поле вызывает передачу менеджеру. |
-| D06. Запись | Неподходящая услуга или территория всегда запрещают автоматическую запись. Демо-допуск: завершённая квалификация, категория Hot или Warm и остальные проверки из §7.6. |
-| D07. Follow-up | Только незавершённая квалификация и квалифицированный лид без записи; по три настраиваемых касания. Nurture и Unqualified не запускают email-цепочки. |
-| D08. Контроль менеджера | Автоматическая передача реализуется отдельно от ручного Take over. STOP не снимается обычными Resume / Return to AI. |
-| D09. Надёжность | Базовый Execution Log, конфликт слота, повторы и восстановление неопределённых результатов входят в первую версию. Панель расширенной аналитики отложена, evaluation — нет. |
-| D10. Новые настройки | Демо-правила score, критичность полей, задержки follow-up, срок ссылки и пороги evaluation определены ниже как новые проектные значения, а не данные исходников. |
+| D01. Scope | One company, a built-in CRM, one calendar, one real LLM provider, and one email service. GoHighLevel and SMS are outside acceptance scope. |
+| D02. First contact | The form opens a protected web chat. A webhook with email triggers an invitation to chat. A phone-only enquiry without an active chat goes to a manager without automated contact. |
+| D03. Nighttime enquiries | Chat replies and the first email for an incoming enquiry are allowed around the clock. Working-hour restrictions apply to proactive follow-up. |
+| D04. States | Commercial category, deal stage, need for human review, owner, pause, and opt-out are stored separately. |
+| D05. Clarifications | No more than two clarifications after the initial question. An unknown optional field is skipped; an unknown required field triggers manager handoff. |
+| D06. Booking | An unsuitable service or location always prohibits automatic booking. Demo eligibility requires completed qualification, Hot or Warm category, and the remaining checks in §7.6. |
+| D07. Follow-up | Only incomplete qualification and qualified leads without a booking; three configurable touches each. Nurture and Unqualified do not trigger email sequences. |
+| D08. Manager controls | Automatic handoff is implemented separately from manual Take over. Ordinary Resume / Return to AI does not clear STOP. |
+| D09. Reliability | Basic Execution Log, slot conflicts, retries, and recovery of uncertain results are included in the first version. Advanced analytics are deferred; evaluation is not. |
+| D10. New settings | Demo scoring rules, field criticality, follow-up delays, link lifetime, and evaluation thresholds below are new project values, not data from the original sources. |
 
-При расхождении прежних документов с этой редакцией для первой версии применяется эта редакция. Изменение поведения требует одновременно обновить ТЗ, план и связанные тесты.
+Where earlier documents conflict with this revision, this revision applies to the first version. A behavior change requires corresponding updates to the specification, plan, and related tests.
 
-## 1. Назначение
+## 1. Purpose
 
-Система приёма и квалификации входящих лидов для одной сервисной компании с автоматической записью на консультацию и сопровождением менеджером.
+An inbound lead intake and qualification system for one service company, with automatic consultation booking and manager follow-through.
 
-Основной путь: **заявка → защищённый веб-чат → структурированная квалификация → объяснимая оценка → выбор времени → встреча в Google Calendar → сопровождение менеджером**.
+Main flow: **enquiry → protected web chat → structured qualification → explainable scoring → time selection → Google Calendar appointment → manager follow-through**.
 
-Лид приходит из встроенной формы либо через webhook внешнего источника. Агент задаёт по одному вопросу, извлекает сведения из свободного текста, отвечает по небольшому FAQ и сохраняет структуру в CRM. При необходимости он передаёт диалог человеку вместе с контекстом. При молчании система отправляет разрешённый email follow-up со ссылкой в чат.
+A lead arrives through the built-in form or an external source webhook. The agent asks one question at a time, extracts information from free text, answers from a small FAQ, and stores structured data in the CRM. When needed, it hands the conversation to a human with context. If the lead goes silent, the system sends an allowed email follow-up with a link to the chat.
 
-Ключевое свойство: модель понимает ответы и формулирует сообщения; код рассчитывает score, управляет состояниями и решает, какие действия разрешены. LLM не назначает веса, не создаёт встречи напрямую и не является источником фактов о доступности календаря.
+Core principle: the model understands responses and drafts messages; code calculates scores, manages states, and decides which actions are allowed. The LLM does not assign weights, create appointments directly, or serve as a source of facts about calendar availability.
 
-Интерфейс, шаблоны и демонстрационные диалоги — на английском. Техническая документация — на русском; README и описание кейса для портфолио могут иметь английскую версию.
+The interface, templates, demo conversations, technical documentation, README, and portfolio case study are in English.
 
-## 2. Стек
+## 2. Stack
 
-| Слой | Реализация |
+| Layer | Implementation |
 |---|---|
-| Frontend | Next.js 15 + TypeScript + Tailwind; стартовая версия из исходного ТЗ |
+| Frontend | Next.js 15 + TypeScript + Tailwind; starting version from the original specification |
 | Backend | NestJS + TypeScript |
-| База данных | PostgreSQL 16 |
-| Очередь и планировщик | Redis + BullMQ |
-| LLM | Один из провайдеров OpenAI / Anthropic за `LLMProvider`, плюс mock для тестов |
-| CRM | Встроенная CRM в PostgreSQL; без обязательного внешнего CRM-адаптера |
-| Календарь | Один Google Calendar за `CalendarProvider`, плюс mock |
-| Сообщения | Веб-чат и один email-сервис за `EmailProvider`, плюс mock |
-| Развёртывание | Docker Compose |
+| Database | PostgreSQL 16 |
+| Queue and scheduler | Redis + BullMQ |
+| LLM | One OpenAI / Anthropic provider behind `LLMProvider`, plus a mock for tests |
+| CRM | Built-in CRM in PostgreSQL; no mandatory external CRM adapter |
+| Calendar | One Google Calendar behind `CalendarProvider`, plus a mock |
+| Messaging | Web chat and one email service behind `EmailProvider`, plus a mock |
+| Deployment | Docker Compose |
 
-Один репозиторий, один backend и отдельный worker из той же кодовой базы. PostgreSQL — источник истины; очередь не является единственным местом хранения запланированного действия. Микросервисы, отдельная векторная база и универсальный конструктор автоматизаций не требуются.
+One repository, one backend, and a separate worker from the same codebase. PostgreSQL is the source of truth; the queue is not the only place where a scheduled action is stored. Microservices, a separate vector database, and a general-purpose automation builder are not required.
 
-Точные версии зависимостей фиксируются в lockfile до разработки интеграций. Выбор реального LLM и email-сервиса — задача этапа 2, а не повод реализовывать несколько провайдеров одновременно.
+Exact dependency versions are pinned in the lockfile before integration development. Selecting the real LLM and email service is a stage 2 task, not a reason to implement several providers simultaneously.
 
-## 3. Демонстрационная компания
+## 3. Demo company
 
-Сохранена компания **Acme Home Improvements** и услуги: `roofing`, `extensions`, `pool installation`, `concrete works`.
+The company **Acme Home Improvements** and its services are retained: `roofing`, `extensions`, `pool installation`, `concrete works`.
 
-| Настройка | Базовая конфигурация |
+| Setting | Baseline configuration |
 |---|---|
-| Территория | Настраиваемый перечень городов и почтовых индексов; seed использует явно синтетические `Demo City A` и `Demo City B` |
-| Рабочие часы | Пн–пт, 09:00–18:00 по часовому поясу компании |
-| Часовой пояс | Предлагаемое демо-значение `Etc/UTC`; сохраняется IANA-идентификатор, а не только числовое смещение |
-| Консультация | 30 минут; буфер 15 минут до и после встречи, пересекающиеся буферы не суммируются |
-| Валюта бюджета | Предлагаемое демо-значение USD; валюта явно названа в вопросе |
-| Бюджетный ориентир | Предлагаемая тестовая величина 10 000 USD для каждой услуги; это фикстура scoring, не рыночная цена и не обещание клиенту |
+| Service area | Configurable list of cities and postal codes; seed data uses explicitly synthetic `Demo City A` and `Demo City B` |
+| Working hours | Mon–Fri, 09:00–18:00 in the company's timezone |
+| Timezone | Proposed demo value `Etc/UTC`; an IANA identifier is stored, not just a numerical offset |
+| Consultation | 30 minutes; a 15-minute buffer before and after the appointment; overlapping buffers are not added together |
+| Budget currency | Proposed demo value USD; the currency is explicitly named in the question |
+| Budget reference | Proposed test value of USD 10,000 for each service; this is a scoring fixture, not a market price or a promise to the customer |
 | Pipeline | New → Contacted → Qualified → Booked → Proposal → Won/Lost |
 
-Реальные территория, валюта, бюджетные ориентиры и часовой пояс заменяются администратором до использования с настоящими лидами. Агент не выдаёт демо-значения за коммерческое предложение.
+The administrator replaces the service area, currency, budget references, and timezone with real values before use with real leads. The agent does not present demo values as a commercial offer.
 
-## 4. Роли
+## 4. Roles
 
-| Роль | Права |
+| Role | Permissions |
 |---|---|
-| Менеджер продаж | Просмотр CRM и журнала, ручные ответы, Take over, Return to AI, Pause / Resume, редактирование полей, пересчёт score, изменение стадии, отмена и перенос встречи, разрешение конфликтов контактов |
-| Администратор | Всё выше; настройки компании, вопросов, FAQ, правил, расписания и follow-up; управление доступами; отдельное восстановление согласия на автоматизацию с основанием |
-| Лид | Только собственный чат, разрешённые ему слоты и собственная встреча. Не видит score, внутренние поля, комментарии и журнал |
+| Sales manager | View CRM and logs, manual replies, Take over, Return to AI, Pause / Resume, field editing, score recalculation, stage changes, appointment cancellation/rescheduling, and contact-conflict resolution |
+| Administrator | All of the above; company, question, FAQ, rule, schedule, and follow-up settings; access management; separate restoration of automation consent with a reason |
+| Lead | Only their own chat, slots they are eligible for, and their own appointment. Cannot see scores, internal fields, comments, or logs |
 
-Ручная отправка менеджера сначала переводит диалог в человеческое управление. Посетитель не получает сотруднических прав ни через UI, ни через прямой вызов API.
+A manager's manual send first transfers the conversation to human control. A visitor gains no staff permissions through either the UI or direct API calls.
 
-## 5. Объём
+## 5. Scope
 
-### Обязательный объём первой версии
+### Mandatory first-version scope
 
-| Входит | Граница реализации |
+| Included | Implementation boundary |
 |---|---|
-| Веб-форма, webhook, генератор тестовых событий | Без подключения рекламного кабинета и управления рекламой |
-| Веб-чат и email | Email используется для приглашения и двух follow-up; входящие email не превращаются в сообщения чата |
-| Встроенная CRM | Контакты, обращения, сделки, заметки, timeline, встречи и задачи |
-| До 8 типов квалификационных вопросов | Один фиксированный набор полей; настройки текста, порядка и обязательности, без конструктора произвольных схем |
-| AI и FAQ | Один LLM; небольшой редактируемый FAQ, без загрузки и индексации больших баз документов |
-| Объяснимый score и управление диалогом | Версионирование правил, ручные правки, автоматическая передача, пауза, opt-out |
-| Google Calendar | Один календарь; доступность, запись, отмена и перенос менеджером |
-| Две email-последовательности | По три касания; рабочие часы, остановка, отписка и безопасный возврат в чат |
-| Conversations, Lead Profile, Settings, базовый Execution Log | Ошибки, попытки и только безопасные повторы |
-| Проверки, развёртывание, портфолио | Не менее 20 AI-сценариев, отчёт, demo-режим, документация и материалы кейса |
+| Web form, webhook, test-event generator | No advertising account integration or campaign management |
+| Web chat and email | Email is used for invitations and two follow-up sequences; inbound emails do not become chat messages |
+| Built-in CRM | Contacts, enquiries, deals, notes, timeline, appointments, and tasks |
+| Up to 8 qualification question types | One fixed field set; configurable text, order, and required status, without an arbitrary schema builder |
+| AI and FAQ | One LLM; a small editable FAQ, without uploading or indexing large document collections |
+| Explainable scoring and conversation controls | Rule versioning, manual edits, automatic handoff, pause, opt-out |
+| Google Calendar | One calendar; availability, booking, and manager cancellation/rescheduling |
+| Two email sequences | Three touches each; working hours, stopping conditions, unsubscribe, and secure return to chat |
+| Conversations, Lead Profile, Settings, basic Execution Log | Errors, attempts, and safe retries only |
+| Verification, deployment, portfolio | At least 20 AI scenarios, a report, demo mode, documentation, and case-study materials |
 
-### Отложено
+### Deferred
 
-GoHighLevel, SMS, дополнительные LLM-провайдеры, email-диалоги, расширенная аналитика, цепочки после Booked / Proposal, автоматический nurture для Nurture / Unqualified.
+GoHighLevel, SMS, additional LLM providers, email conversations, advanced analytics, sequences after Booked / Proposal, and automatic nurture for Nurture / Unqualified.
 
-### Вне объёма
+### Out of scope
 
-Multi-tenant, голос, массовый outbound и покупка баз, канбан, визуальный конструктор автоматизаций, миграция чужой CRM, маршрутизация по филиалам, отслеживание неявок, самостоятельные отмена и перенос лидом, полноценный экран управления интеграциями. Секреты подключаются через защищённую конфигурацию развёртывания; базовый статус интеграции можно показать в Settings.
+Multi-tenancy, voice, bulk outbound and purchased contact lists, kanban, a visual automation builder, migration of another CRM, branch routing, no-show tracking, lead self-service cancellation/rescheduling, and a full integration-management screen. Secrets are supplied through protected deployment configuration; basic integration status may be shown in Settings.
 
-## 6. Экраны
+## 6. Screens
 
 ### 6.1. Conversations
 
-Основной экран с тремя колонками строится уже на этапе 3.
+The main three-column screen is built starting in stage 3.
 
-**Слева — список диалогов.** Имя или контакт, канал, стадия, владелец (`AI`, менеджер или очередь менеджеров), последнее сообщение и время, коммерческая категория. Отдельные метки: требуется человек, пауза, opt-out. Фильтры: все / требуют внимания / ведёт AI / ведёт человек / записаны / без ответа. Сортировка по последнему событию и score.
+**Left — conversation list.** Name or contact, channel, stage, owner (`AI`, a manager, or the manager queue), last message and time, commercial category. Separate labels: human attention required, paused, opt-out. Filters: all / needs attention / AI-managed / human-managed / booked / no reply. Sorting by latest event and score.
 
-**В центре — переписка.** Сообщения лида, AI и менеджера, системные события с временем. Кнопки **Take over**, **Return to AI**, **Pause automation**, **Resume automation**, **Open lead**. Перед ручной отправкой управление атомарно переходит человеку. Неотправленный AI-черновик после этого не появляется в чате.
+**Center — message history.** Messages from the lead, AI, and manager, and timestamped system events. Buttons: **Take over**, **Return to AI**, **Pause automation**, **Resume automation**, **Open lead**. Before a manual send, control transfers atomically to a human. An unsent AI draft does not appear in the chat afterward.
 
-**Справа — структура.** `service_type`, `location`, `budget_min` / `budget_max`, `timeline`, `decision_maker`, `preferred_contact`; неизвестные значения показываются как неизвестные, а не как отрицательные. Для значения видны источник, время и признак ручной фиксации. Блок оценки показывает число, категорию, предварительный/завершённый результат, вклад каждого фактора, версию правил и отдельную причину human review. Далее — встреча, часовой пояс, следующее действие и измеренное время первого контакта.
+**Right — structured data.** `service_type`, `location`, `budget_min` / `budget_max`, `timeline`, `decision_maker`, `preferred_contact`; unknown values are shown as unknown, not negative. Each value shows its source, timestamp, and manual-lock status. The score block shows the number, category, preliminary/completed status, each factor's contribution, rule version, and a separate human-review reason. Below are the appointment, timezone, next action, and measured first-contact time.
 
-Видимость диалога и извлечённых полей одновременно — обязательное свойство экрана.
+Simultaneous visibility of the conversation and extracted fields is a mandatory screen property.
 
 ### 6.2. Lead Profile
 
-Шапка: имя, телефон, email, источник, дата первого обращения, стадия и владелец.
+Header: name, phone, email, source, first-enquiry date, stage, and owner.
 
-Вкладки:
+Tabs:
 
-- **Данные:** квалификационные поля, ручное редактирование, источник с переходом к сообщению, фиксация/снятие фиксации значения.
-- **Оценка:** score с причинами, версия правил, история пересчётов; явная команда пересчёта по текущей версии.
-- **Timeline:** intake, `re_engaged`, сообщения, изменения данных и стадии, handoff, follow-up, встречи и ошибки; события содержат `correlation_id`.
-- **Встречи:** время, статус, внешний идентификатор, ссылка на событие; отмена и перенос менеджером.
+- **Data:** qualification fields, manual editing, source with a link to the message, and value locking/unlocking.
+- **Score:** score with reasons, rule version, recalculation history; an explicit command to recalculate using the current version.
+- **Timeline:** intake, `re_engaged`, messages, data and stage changes, handoff, follow-up, appointments, and errors; events include `correlation_id`.
+- **Appointments:** time, status, external identifier, link to the event; manager cancellation and rescheduling.
 
-Действия: назначить владельца, изменить стадию, обработать конфликт контактов, остановить или возобновить автоматизацию. Для Lost обязательна причина. Снятие opt-out — отдельное действие администратора с подтверждением согласия; оно не совмещается с Resume.
+Actions: assign an owner, change stage, handle a contact conflict, stop or resume automation. Lost requires a reason. Clearing opt-out is a separate administrator action with confirmation of consent; it is not combined with Resume.
 
 ### 6.3. Execution Log
 
-Входит в первую версию в компактном виде. Процессы: intake, conversation turn, initial email, booking, cancellation, reschedule, follow-up. В таблице: лид, состояние, попытки, длительность, ошибка, `correlation_id`.
+Included in the first version in compact form. Processes: intake, conversation turn, initial email, booking, cancellation, reschedule, follow-up. Table columns: lead, state, attempts, duration, error, `correlation_id`.
 
-Раскрытие показывает безопасно отредактированные входные данные, результат и диагностическое сообщение. Секреты, токены ссылок и немаскированные контакты не выводятся. Действия: открыть лид, передать в ручную обработку, повторить разрешённую операцию. Для неопределённого результата сначала доступна сверка результата, а не слепой повтор отправки.
+Expanding a row shows safely redacted inputs, the result, and a diagnostic message. Secrets, link tokens, and unmasked contacts are not displayed. Actions: open lead, hand off for manual handling, retry an allowed operation. For an uncertain result, reconciliation is available first, not a blind repeat send.
 
 ### 6.4. Settings
 
-Компактные настройки компании и brand voice, FAQ, вопросов и обязательности полей, версий scoring, рабочих часов, часового пояса и двух follow-up. Изменения журналируются. При изменении расписания ожидающие отправки и бронирования используют актуальные ограничения; уже подтверждённые встречи не переносятся автоматически.
+Compact settings for company and brand voice, FAQ, questions and required fields, scoring versions, working hours, timezone, and two follow-up sequences. Changes are logged. When the schedule changes, pending sends and bookings use current restrictions; already confirmed appointments are not rescheduled automatically.
 
-## 7. Функциональные требования
+## 7. Functional requirements
 
-### 7.1. Приём лидов и первый контакт
+### 7.1. Lead intake and first contact
 
-`POST /leads/intake` принимает входящее обращение. Обязательны `source`, устойчивый ключ события и хотя бы один валидный контакт: email или телефон. Для встроенной формы сервер дополнительно создаёт защищённую сессию посетителя и открывает чат. Телефон нормализуется в E.164 с явно заданной страной; неоднозначный номер не исправляется догадкой. Нормализация email не должна объединять разные адреса удалением точек или `+suffix`.
+`POST /leads/intake` accepts an incoming enquiry. It requires `source`, a stable event key, and at least one valid contact channel: email or phone. For the built-in form, the server also creates a protected visitor session and opens the chat. Phone numbers are normalized to E.164 with an explicitly specified country; ambiguous numbers are not corrected by guessing. Email normalization must not merge distinct addresses by removing dots or `+suffix`.
 
-Каждое авторизованное событие получает `correlation_id` и `idempotency_key`. Невалидное событие сохраняется в `IntakeEvent` со статусом `rejected` и причиной, без создания контакта или сделки. Неавторизованные запросы отклоняются на границе API и журналируются без сохранения произвольного сырого payload.
+Each authorized event receives a `correlation_id` and `idempotency_key`. An invalid event is stored in `IntakeEvent` with `rejected` status and a reason, without creating a contact or deal. Unauthorized requests are rejected at the API boundary and logged without storing arbitrary raw payloads.
 
-| Вход | Первый контакт | Исключения |
+| Input | First contact | Exceptions |
 |---|---|---|
-| Форма с защищённой сессией | Первое содержательное сообщение агента в открытом чате | При opt-out, паузе или человеческом владельце AI не включается автоматически |
-| Webhook без сессии, с email | Одно письмо-приглашение с безопасной ссылкой в чат | Отправка только по принятому входящему обращению, не по импортированной холодной базе; учитываются opt-out и владение |
-| Webhook без сессии, только с телефоном | `needs_human_review = true`, причина `no_automated_channel`, очередь менеджеров | SMS и звонок автоматически не выполняются; отсутствие сообщения не считается успешным автоответом |
-| Повторное обращение в существующий процесс | Событие `re_engaged`; маршрут определяется текущим состоянием | Новый webhook не снимает opt-out, паузу и человеческое управление |
+| Form with a protected session | The agent's first substantive message in the open chat | AI is not enabled automatically when opt-out, pause, or human ownership applies |
+| Webhook without a session, with email | One invitation email with a safe link to chat | Send only for an accepted incoming enquiry, not an imported cold list; respect opt-out and ownership |
+| Webhook without a session, phone only | `needs_human_review = true`, reason `no_automated_channel`, manager queue | No automatic SMS or call; the absence of a message is not counted as a successful automatic response |
+| Repeat enquiry within an existing process | A `re_engaged` event; routing depends on current state | A new webhook does not clear opt-out, pause, or human control |
 
-В форме можно оставить телефон без email и продолжить квалификацию в чате. Для email follow-up и автоматической записи нужен email; при его отсутствии email-задачи не создаются. Перед записью агент может отдельно запросить email.
+The form can accept a phone number without email and continue qualification in chat. Email follow-up and automatic booking require email; no email tasks are created when it is missing. Before booking, the agent may request email separately.
 
-Первое сообщение в чате и первое письмо по входящей заявке разрешены круглосуточно. Если работают люди только днём, агент сообщает это при передаче менеджеру и не обещает немедленный ответ человека.
+The first chat message and first email for an incoming enquiry are allowed around the clock. If staff work only during the day, the agent states this during handoff and does not promise an immediate human response.
 
-**Измерение SLA:** от успешного сохранения валидного intake до сохранения и публикации первого содержательного сообщения в чате; для email-входа — до подтверждения приёма письма email-провайдером. Доставка письма во входящие не утверждается по факту API-ответа провайдера. HTTP-ответ, индикатор печати и пустое приветствие без следующего действия не засчитываются.
+**SLA measurement:** from successful persistence of valid intake to persistence and publication of the first substantive chat message; for email intake, until the email provider confirms acceptance. A provider API response is not proof of inbox delivery. An HTTP response, typing indicator, or empty greeting without a next action does not count.
 
-Цель — менее 10 секунд для каждого штатного первого автоматического контакта в приёмочном прогоне. Каналы измеряются раздельно. Для заблокированного автоответа сохраняется причина `not_applicable`; для ошибки или превышения времени — ошибка/нарушение SLA, а не фиктивный успех. Искусственные отказы тестируются отдельно и не скрываются из отчёта.
+The target is under 10 seconds for every normal first automated contact in the acceptance run. Channels are measured separately. A blocked automatic response records `not_applicable` with a reason; an error or timeout records an error/SLA breach rather than fabricated success. Artificial failures are tested separately and are not hidden from the report.
 
-### 7.2. Идемпотентность, контакты и повторные обращения
+### 7.2. Idempotency, contacts, and repeat enquiries
 
-Повтор одного события и новое обращение известного человека — разные операции.
+Repeating one event and receiving a new enquiry from a known person are different operations.
 
-- Одинаковые источник, `idempotency_key` и payload возвращают сохранённый результат без новых сущностей и отправок. Тот же ключ с другим payload возвращает конфликт, а не изменяет прежнее обращение.
-- Контакт ищется по нормализованным телефону, email и внешнему id в пространстве конкретного источника. Один непротиворечивый результат позволяет использовать существующий контакт. История не перезаписывается.
-- Если идентификаторы указывают на разных людей либо соответствие неоднозначно, intake сохраняется как `needs_resolution`. Автоответ, создание сделки и слияние блокируются до решения менеджера. Исходное событие остаётся доступным в CRM/журнале.
-- Базовая политика — `one_active_per_contact`. Новое событие для активного обращения добавляет `re_engaged`, использует прежние Lead, Opportunity и Conversation, но не сбрасывает их управление и лимиты отправок.
-- Поддерживается настройка `one_active_per_contact_service`: разные известные услуги могут иметь отдельные активные сделки. Если услуга неизвестна и выбор существующей сделки неоднозначен, маршрутизация требует менеджера.
-- Активная сделка — стадия, отличная от Won/Lost. После закрытия новое входящее обращение создаёт новый Lead, Opportunity и Conversation при сохранении Contact. Смена услуги, создающая конфликт активных сделок, не приводит к молчаливому слиянию.
+- The same source, `idempotency_key`, and payload return the persisted result without new entities or sends. The same key with a different payload returns a conflict rather than changing the previous enquiry.
+- Contacts are matched by normalized phone, email, and external id within the specific source's namespace. One consistent match allows reuse of an existing contact. History is not overwritten.
+- If identifiers point to different people or the match is ambiguous, intake is stored as `needs_resolution`. Automatic replies, deal creation, and merging are blocked until a manager resolves it. The original event remains available in the CRM/log.
+- The default policy is `one_active_per_contact`. A new event for an active enquiry adds `re_engaged` and reuses the existing Lead, Opportunity, and Conversation without resetting their controls or sending limits.
+- The `one_active_per_contact_service` setting is supported: different known services may have separate active deals. If the service is unknown and the choice of an existing deal is ambiguous, routing requires a manager.
+- An active deal is any stage other than Won/Lost. After closure, a new incoming enquiry creates a new Lead, Opportunity, and Conversation while retaining Contact. A service change that conflicts with active deals does not cause a silent merge.
 
-`IntakeEvent` хранит каждое отдельное поступление. `Lead` — каноническое коммерческое обращение, а не обязательная новая строка на каждый webhook. Защита от дублей подкрепляется ограничениями/транзакциями БД, а не только проверкой перед вставкой.
+`IntakeEvent` stores each separate arrival. `Lead` is the canonical commercial enquiry, not necessarily a new row for every webhook. Duplicate prevention is backed by database constraints/transactions, not only a check before insertion.
 
-**Дедупликация не является авторизацией:** знание телефона/email и совпадение контакта не открывают прежнюю переписку новому браузеру. Возврат к существующему диалогу требует действующей сессии или ссылки, отправленной на ранее подтверждённый канал этого контакта. Новые контактные данные из публичной формы не заменяют доверенный канал до подтверждения прежнего канала или решения менеджера. При отсутствии подтверждённого канала доступ к старой истории требует ручного разрешения. До этого интерфейс не раскрывает историю существующего контакта.
+**Deduplication is not authorization:** knowing a phone/email and matching a contact does not open previous conversations to a new browser. Returning to an existing conversation requires a valid session or a link sent to a previously verified channel for that contact. New contact details from the public form do not replace a trusted channel until the previous channel is confirmed or a manager resolves the change. Without a verified channel, access to old history requires manual approval. Until then, the interface does not expose the existing contact's history.
 
-### 7.3. Диалог и квалификация
+### 7.3. Conversation and qualification
 
-Агент задаёт один вопрос за сообщение; ответ по FAQ может сопровождаться одним следующим вопросом. Он извлекает сразу несколько явно сообщённых полей и не переспрашивает уже известное. Неизвестное сохраняется как `null`, а не как ноль, `false` или предполагаемое значение.
+The agent asks one question per message; an FAQ answer may be accompanied by one next question. It extracts multiple explicitly supplied fields at once and does not ask again for known information. Unknown values are stored as `null`, not zero, `false`, or an assumed value.
 
-**Предлагаемая базовая таблица полей:**
+**Proposed baseline field table:**
 
-| Поле | Представление | Обязательность и поведение |
+| Field | Representation | Required status and behavior |
 |---|---|---|
-| `service_type` | Поддерживаемая услуга / явная другая услуга / `null`; исходный текст сохраняется | Критично для автозаписи. После двух безуспешных уточнений — handoff. Явно неподходящая услуга — Unqualified, а не неизвестное значение |
-| `location` | Город/индекс и вычисленный `location_fit: true / false / null` | Критично для автозаписи. Неоднозначность уточняется; адрес не выводится из часового пояса или IP |
-| `budget_min`, `budget_max` | Диапазон в валюте компании; неизвестные границы — `null` | Один квалификационный атрибут. По умолчанию необязателен; после уточнений остаётся неизвестным и даёт 0 бюджетных баллов |
-| `timeline` | Нормализованный диапазон срока + исходная формулировка | По умолчанию необязателен; неизвестный срок не получает баллы за срочность |
-| `decision_maker` | `true / false / null` | По умолчанию необязателен; неизвестное не считается отрицательным ответом |
-| `preferred_contact` | `chat / email / phone / null` | Необязателен. Предпочтение phone не включает отсутствующий SMS-канал; запрос звонка передаётся менеджеру |
-| `email` | Контактное поле, не отдельный фактор score | Требуется перед автозаписью, если ещё отсутствует. После двух неудачных уточнений — handoff без записи |
+| `service_type` | Supported service / explicitly different service / `null`; original text is retained | Critical for automatic booking. After two unsuccessful clarifications, hand off. An explicitly unsuitable service is Unqualified, not unknown |
+| `location` | City/postal code and derived `location_fit: true / false / null` | Critical for automatic booking. Clarify ambiguity; do not infer an address from timezone or IP |
+| `budget_min`, `budget_max` | Range in the company's currency; unknown bounds are `null` | One qualification attribute. Optional by default; after clarifications it remains unknown and contributes 0 budget points |
+| `timeline` | Normalized time range + original wording | Optional by default; an unknown timeline receives no urgency points |
+| `decision_maker` | `true / false / null` | Optional by default; unknown does not count as a negative answer |
+| `preferred_contact` | `chat / email / phone / null` | Optional. A phone preference does not enable the absent SMS channel; a callback request is handed to a manager |
+| `email` | Contact field, not a separate scoring factor | Required before automatic booking if still missing. After two unsuccessful clarifications, hand off without booking |
 
-Базовая последовательность: услуга → местоположение → бюджет → срок → полномочия; предпочтение связи уточняется при необходимости. Максимум два уточняющих вопроса после первоначального вопроса на одно поле. Счётчик увеличивается по фактически отправленным уточнениям, а не по повторам LLM-запроса. Явное «не знаю» для необязательного поля можно принять без двух бессмысленных повторов.
+Baseline sequence: service → location → budget → timeline → authority; contact preference is clarified when needed. At most two clarification questions follow the initial question for each field. The counter increments for clarifications actually sent, not for repeated LLM requests. An explicit "I don't know" for an optional field can be accepted without two pointless repeats.
 
-Администратор меняет формулировки, порядок, brand voice и обязательность дополнительных полей. Услугу и местоположение нельзя исключить из проверок допуска к записи. Если дополнительное поле сделано обязательным, его неизвестность после двух уточнений вызывает handoff. Квалификация завершена, когда обязательные поля определены, а остальные базовые поля заполнены либо явно отмечены неизвестными/пропущенными; числового score самого по себе недостаточно.
+The administrator can change wording, order, brand voice, and whether additional fields are required. Service and location cannot be excluded from booking eligibility checks. If an additional field is required, an unknown value after two clarifications triggers handoff. Qualification is complete when required fields are known and the remaining baseline fields are populated or explicitly marked unknown/skipped; a numerical score alone is insufficient.
 
-LLM возвращает строго валидируемую JSON-схему: изменения полей, ссылки на сообщения-источники, признаки неоднозначности и предлагаемую причину handoff. Код принимает только разрешённые поля и значения. Порядок следующего вопроса, расчёт score и внешние действия определяет код.
+The LLM returns a strictly validated JSON schema: field changes, references to source messages, ambiguity indicators, and a proposed handoff reason. Code accepts only allowed fields and values. Code determines the next question, scoring, and external actions.
 
-Исправления лида обновляют значение с сохранением истории. Ручная правка менеджера по умолчанию фиксирует поле: LLM не перезаписывает его, а сохраняет предложенное противоречащее значение для проверки. Существенный конфликт квалификационных данных вызывает handoff; до разрешения конфликта автозапись запрещена. Менеджер может явно снять фиксацию. Изменение значимых данных инвалидирует устаревший AI-ответ и ранее предложенный booking intent, но не отменяет подтверждённую встречу автоматически.
+Lead corrections update values while retaining history. A manager's manual edit locks the field by default: the LLM does not overwrite it but stores the conflicting proposal for review. A material qualification-data conflict triggers handoff; automatic booking is prohibited until it is resolved. A manager can explicitly unlock a field. Changes to significant data invalidate a stale AI reply and a previously offered booking intent, but do not automatically cancel a confirmed appointment.
 
-Ответы на вопросы о компании берутся из опубликованного FAQ. При отсутствии подтверждённого ответа, сигнале низкой уверенности/неоднозначности, требующем человека, или запрещённой теме используется §7.8. Числовую «уверенность модели» не выдают за измеренную вероятность правильности.
+Answers about the company come from the published FAQ. When there is no verified answer, an ambiguity/low-confidence signal that requires a human, or a prohibited topic, use §7.8. A numerical "model confidence" value is not presented as a measured probability of correctness.
 
-При невалидном JSON разрешена одна repair-попытка. После повторной ошибки или исчерпания заданного тайм-аута — сохранение сообщения и handoff; бесконечный цикл repair запрещён. Точные тайм-ауты фиксируются в конфигурации этапа 2 и входят в отчёт.
+Invalid JSON allows one repair attempt. After another failure or exhaustion of the configured timeout, persist the message and hand off; an infinite repair loop is prohibited. Exact timeouts are fixed in stage 2 configuration and included in the report.
 
-### 7.4. Оценка лида
+### 7.4. Lead scoring
 
-Score рассчитывается кодом по неизменяемой версии правил. Для каждого фактора сохраняются фактическое значение, баллы, максимальный вклад и причина. Неизвестные значения имеют собственную причину, даже если дают столько же баллов, сколько отрицательный ответ.
+Code calculates the score using an immutable rule version. Each factor records the actual value, points, maximum contribution, and reason. Unknown values have their own reason even if they receive the same points as a negative answer.
 
-**Предлагаемая демо-конфигурация scoring, сумма максимум 100:**
+**Proposed demo scoring configuration, maximum total 100:**
 
-| Фактор | Баллы |
+| Factor | Points |
 |---|---|
-| Service fit | Поддерживаемая услуга — 25; неподходящая или неизвестная — 0 |
-| Location fit | Подтверждённая территория обслуживания — 25; неподходящая или неизвестная — 0 |
-| Budget fit | Нижняя известная граница не ниже ориентира услуги — 25; диапазон допускает подходящий бюджет, но нижняя граница этого не подтверждает — 10; известный максимум ниже ориентира или бюджет неизвестен — 0 |
-| Urgency | В пределах 3 месяцев — 15; свыше 3 и до 6 месяцев — 10; свыше 6 месяцев — 5; неизвестно — 0 |
-| Decision authority | Подтверждённые полномочия — 10; нет или неизвестно — 0 |
+| Service fit | Supported service — 25; unsuitable or unknown — 0 |
+| Location fit | Confirmed service area — 25; unsuitable or unknown — 0 |
+| Budget fit | Known lower bound meets or exceeds the service reference — 25; the range allows a suitable budget but the lower bound does not establish it — 10; known maximum is below the reference or budget is unknown — 0 |
+| Urgency | Within 3 months — 15; over 3 and up to 6 months — 10; over 6 months — 5; unknown — 0 |
+| Decision authority | Confirmed authority — 10; absent or unknown — 0 |
 
-Точная сумма хранится как диапазон с одинаковыми границами. Бюджет другой валюты не конвертируется моделью: требуется уточнение. Некорректный диапазон не используется в score. Для интервала срока, пересекающего несколько категорий, используется наименьший соответствующий вклад; неоднозначная формулировка сначала уточняется.
+An exact amount is stored as a range with equal bounds. The model does not convert a budget in another currency: clarification is required. An invalid range is not used for scoring. For a timeline range spanning several categories, use the lowest applicable contribution; ambiguous wording is clarified first.
 
-| Категория | Правило | Дальнейшее поведение |
+| Category | Rule | Subsequent behavior |
 |---|---|---|
-| Unqualified | Явно неподходящая услуга **или** территория, независимо от суммы | Автозапись запрещена; краткое корректное завершение, сохранение в CRM для ручного решения; автоматического nurture нет |
-| Hot | Нет явного hard reject; score ≥ 80 | При завершённой квалификации и прочих допусках — предложение слотов |
-| Warm | Нет явного hard reject; 60 ≤ score < 80 | В этой демо-конфигурации также допускается консультация после всех проверок |
-| Nurture | Нет явного hard reject; score < 60 | Автоматической записи и email-nurture нет; данные остаются для ручного сопровождения |
+| Unqualified | Explicitly unsuitable service **or** location, regardless of total | Automatic booking prohibited; a brief, polite closing message and CRM persistence for manual resolution; no automatic nurture |
+| Hot | No explicit hard rejection; score ≥ 80 | Offer slots after qualification is complete and other eligibility checks pass |
+| Warm | No explicit hard rejection; 60 ≤ score < 80 | This demo configuration also allows a consultation after all checks pass |
+| Nurture | No explicit hard rejection; score < 60 | No automatic booking or email nurture; data remains available for manual follow-through |
 
-Во время сбора данных оценка предварительная. Коммерческая категория не заменяет `needs_human_review`. Например, Hot может требовать человека; такой лид не получает автоматическую запись до разрешения причины.
+During data collection, scoring is preliminary. Commercial category does not replace `needs_human_review`. For example, a Hot lead may require a human; that lead cannot be booked automatically until the reason is resolved.
 
-Неизвестный бюджет сам по себе не является hard reject: он даёт 0 баллов, и лид может стать Warm по остальным сведениям. Это явное предлагаемое бизнес-решение первой версии; более строгий вариант включается обязательностью бюджета и изменением правил, а не скрытой проверкой в prompt.
+An unknown budget alone is not a hard rejection: it contributes 0 points, and the lead may become Warm based on other information. This is an explicit proposed business decision for the first version; a stricter policy is enabled by making budget required and changing rules, not by a hidden prompt check.
 
-Новая конфигурация создаёт `RulesVersion`; ранее созданные обращения не пересчитываются и не меняют свою закреплённую версию автоматически. Последующие ответы такого лида пересчитывают score по его закреплённой версии. Переход на актуальную версию — явное действие менеджера с историей старого и нового результата. Изменения FAQ не меняют исторический score.
+A new configuration creates a `RulesVersion`; existing enquiries are not recalculated and do not change their pinned version automatically. Subsequent replies from such a lead recalculate the score using its pinned version. Moving to the current version is an explicit manager action with a history of the old and new results. FAQ changes do not alter historical scores.
 
-### 7.5. Встроенная CRM
+### 7.5. Built-in CRM
 
-CRM позволяет создать/обновить Contact, Lead и Opportunity, изменить стадию и владельца, сохранить источник, квалификационные поля, внутреннюю заметку и timeline. Процесс и CRM используют одно внутреннее состояние PostgreSQL; обязательной синхронизации с GoHighLevel нет.
+The CRM supports creating/updating Contact, Lead, and Opportunity, changing stage and owner, and saving source, qualification fields, internal notes, and timeline. The workflow and CRM share the same internal PostgreSQL state; mandatory GoHighLevel synchronization is not required.
 
-Стадии не смешиваются с категорией:
+Stages are not conflated with categories:
 
-| Стадия | Автоматический переход |
+| Stage | Automatic transition |
 |---|---|
-| New | Валидное новое обращение сохранено |
-| Contacted | Первое сообщение опубликовано в чате либо первое письмо принято email-провайдером; канал и способ подтверждения видны |
-| Qualified | Завершена квалификация, есть положительные service/location fit, score ≥ 60 по закреплённой версии и нет незакрытого human review |
-| Booked | Существование встречи в календаре подтверждено и её идентификатор сохранён |
-| Proposal, Won, Lost | Ручное действие менеджера; для Lost обязательна причина |
+| New | A valid new enquiry has been persisted |
+| Contacted | The first chat message has been published or the email provider has accepted the first email; the channel and confirmation method are visible |
+| Qualified | Qualification is complete, service/location fit are positive, score ≥ 60 under the pinned version, and no human review remains unresolved |
+| Booked | The calendar appointment's existence is confirmed and its identifier is persisted |
+| Proposal, Won, Lost | Manual manager action; Lost requires a reason |
 
-Стадия Qualified не гарантирует технический допуск к записи: email, opt-out, управление и доступность проверяются отдельно. Подтверждённая встреча не исчезает при изменении полей; такой конфликт направляется менеджеру. Переходы, включая ручные отклонения от последовательности, журналируются.
+The Qualified stage does not guarantee technical booking eligibility: email, opt-out, controls, and availability are checked separately. A confirmed appointment does not disappear when fields change; such a conflict goes to a manager. Transitions, including manual departures from the sequence, are logged.
 
-При недоступной БД система не сообщает об успешном сохранении сообщения или лида. Возвращается повторяемая ошибка, UI сохраняет неотправленный ввод, повтор использует прежний ключ. Поведение «диалог продолжается при недоступной внешней CRM» для v1.1 неприменимо: внешней CRM в объёме нет.
+If the database is unavailable, the system does not report successful persistence of a message or lead. It returns a retryable error, the UI retains unsent input, and the retry uses the same key. "The conversation continues while the external CRM is unavailable" does not apply to v1.1: no external CRM is in scope.
 
-### 7.6. Календарь и запись
+### 7.6. Calendar and booking
 
-Автоматическая запись разрешена, только если одновременно:
+Automatic booking is allowed only when all of the following hold:
 
-1. Квалификация завершена, категория Hot или Warm, service fit и location fit подтверждены; все настроенные обязательные поля известны.
-2. Есть валидный email; диалог принадлежит AI, не на паузе, нет opt-out и незакрытой причины human review.
-3. Сделка не закрыта и не находится в ручной постпродажной стадии; активной встречи или незавершённой операции записи для неё нет.
-4. Получены реальные слоты календаря и явный выбор лида, связанный с действующим предложением времени.
+1. Qualification is complete, the category is Hot or Warm, service fit and location fit are confirmed, and all configured required fields are known.
+2. A valid email exists; the conversation belongs to AI, is not paused, and has no opt-out or unresolved human-review reason.
+3. The deal is neither closed nor in a manual post-sales stage; it has no active appointment or incomplete booking operation.
+4. Real calendar slots have been retrieved and the lead has made an explicit selection tied to a valid time offer.
 
-Все проверки выполняются кодом повторно перед внешним действием. Score не отменяет hard reject. При изменении действующей территории/перечня услуг несовместимое старое предложение времени инвалидируется, а лид требует проверки; исторический score молча не переписывается.
+Code repeats all checks before the external action. Score does not override hard rejection. When the current service area/service list changes, an incompatible old time offer is invalidated and the lead requires review; the historical score is not silently rewritten.
 
-Свободные интервалы учитывают часовой пояс компании, расписание, занятость календаря, длительность и буфер. Встреча целиком помещается в рабочий интервал; буфер применяется к соседним событиям. Предлагаемое окно поиска — 14 дней. Показывается 3–5 ближайших слотов; если найдено 1–2, показываются доступные; если ни одного — handoff `no_available_slots`. Эти ограничения настраиваются.
+Free intervals account for the company timezone, schedule, calendar availability, duration, and buffer. The entire appointment fits within a working interval; the buffer applies to neighboring events. The proposed search window is 14 days. Show the nearest 3–5 slots; if 1–2 are found, show those available; if none are found, hand off with `no_available_slots`. These limits are configurable.
 
-Время хранится в UTC; посетитель явно видит используемый часовой пояс. Часовой пояс браузера может быть подсказкой, но не молчаливой заменой. Переходы летнего времени и неоднозначные локальные часы покрываются тестами.
+Time is stored in UTC; the visitor explicitly sees the timezone being used. The browser timezone may be a suggestion, but not a silent replacement. Daylight saving transitions and ambiguous local times are covered by tests.
 
-Порядок операции: проверить допуск → показать слоты → получить выбор → создать устойчивый booking intent с ключом → заблокировать конфликтующие операции приложения → повторно проверить занятость → создать событие → сохранить `external_event_id` и результат → перевести в Booked → подтвердить запись и подготовить summary менеджеру.
+Operation sequence: check eligibility → show slots → receive selection → create a durable booking intent with a key → block conflicting application operations → recheck availability → create event → persist `external_event_id` and result → move to Booked → confirm booking and prepare a manager summary.
 
-Уникальный operation key, сохранённое соответствие внешнему событию и сверка результата обязательны. После тайм-аута, когда событие могло быть создано, состояние — `unknown`, а не «не создано». Система сначала ищет результат прежней операции средствами выбранного адаптера; при невозможности однозначной сверки передаёт менеджеру и не создаёт второе событие вслепую. Конкретный механизм Google Calendar реализуется и проверяется на этапе 6.
+A unique operation key, persisted mapping to the external event, and result reconciliation are mandatory. After a timeout when an event may have been created, the state is `unknown`, not "not created." The system first searches for the previous operation's result using the selected adapter's capabilities; if unambiguous reconciliation is impossible, it hands off to a manager and does not blindly create a second event. The specific Google Calendar mechanism is implemented and verified in stage 6.
 
-Блокировка приложения защищает от его собственных конкурирующих запросов, но не от одновременной внешней ручной записи в календарь. Используется выделенный календарь; повторная проверка обязательна. При обнаруженном внешнем конфликте — ручная обработка. Абсолютная атомарность между приложением и независимыми редакторами календаря не обещается.
+The application lock protects against its own concurrent requests, but not simultaneous external manual bookings in the calendar. Use a dedicated calendar; rechecking is mandatory. A detected external conflict requires manual handling. Absolute atomicity between the application and independent calendar editors is not promised.
 
-В v1.1 отключены отдельные календарные email-напоминания лиду, не управляемые общей политикой приложения; подтверждение записи показывается в чате.
+In v1.1, separate calendar email reminders to the lead that are not controlled by the application's shared policy are disabled; booking confirmation appears in chat.
 
-Отмена и перенос выполняются менеджером с отдельным ключом операции и проверкой результата. При переносе старая запись остаётся действующей до подтверждения изменения; успешное действие обновляет существующую встречу, а не создаёт необъяснимый дубль. При отмене Booked возвращается в Qualified либо Contacted согласно текущему состоянию; follow-up не возобновляется автоматически. Ручная запись не используется как обход запретов: для неподходящего лида автозапись недоступна, отдельный override вне v1.1.
+Cancellation and rescheduling are performed by a manager with a separate operation key and result verification. During rescheduling, the old booking remains valid until the change is confirmed; a successful action updates the existing appointment rather than creating an unexplained duplicate. On cancellation, Booked returns to Qualified or Contacted according to current state; follow-up does not resume automatically. Manual booking is not used to bypass restrictions: automatic booking is unavailable for an unsuitable lead, and a separate override is outside v1.1.
 
 ### 7.7. Email follow-up
 
-Email — приглашение/напоминание и возврат в веб-чат, не дополнительный диалоговый канал. Шаблоны не содержат выдуманных цен, сроков и фактов встречи. Получатель ответа на письмо — заданный адрес компании; автоматический разбор таких ответов вне объёма.
+Email provides invitations/reminders and a return path to web chat, not an additional conversation channel. Templates contain no invented prices, timelines, or appointment facts. Replies go to the configured company address; automatic parsing of these replies is out of scope.
 
-| Последовательность | Условие запуска | Предлагаемые задержки от начала ожидания |
+| Sequence | Start condition | Proposed delays from the start of waiting |
 |---|---|---|
-| `qualification_abandoned` | Первое приглашение принято провайдером или отправлен вопрос; квалификация не закончена и лид молчит | 1 час, 24 часа, 72 часа |
-| `qualified_not_booked` | Лид допущен к записи, получил доступные слоты, но не выбрал время и встречи нет | 24 часа, 72 часа, 7 суток |
+| `qualification_abandoned` | The provider accepted the first invitation or a question was sent; qualification is incomplete and the lead is silent | 1 hour, 24 hours, 72 hours |
+| `qualified_not_booked` | The lead is eligible for booking and received available slots, but has not selected a time and has no appointment | 24 hours, 72 hours, 7 days |
 
-Это новые демо-значения, а не расписание из исходного ТЗ. Не более трёх принятых провайдером касаний каждой последовательности на Lead; первая invitation-email в эти три касания не входит. Ответ отменяет текущий запуск. Новое ожидание может использовать оставшийся лимит, но не обнуляет число уже отправленных писем. Две последовательности одновременно не активны; новый Lead после закрытой сделки имеет собственный лимит, но наследует opt-out контакта.
+These are new demo values, not a schedule from the original specification. At most three provider-accepted touches per sequence per Lead; the first invitation email does not count toward these three touches. A reply cancels the current run. A new waiting period may use the remaining allowance but does not reset the number of emails already sent. The two sequences are not active simultaneously; a new Lead after a closed deal has its own allowance but inherits the contact's opt-out.
 
-Зафиксированная версия последовательности содержит шаблоны и задержки. Новые настройки применяются к новым запускам, не добавляя касания в уже запущенную цепочку. Рабочие часы и запреты всегда проверяются по актуальному состоянию.
+The pinned sequence version contains templates and delays. New settings apply to new runs without adding touches to an already running sequence. Working hours and restrictions are always checked against current state.
 
-Перед каждой отправкой worker перечитывает из БД: email, ответ после начала ожидания, завершённость квалификации, booking/booking-in-progress, стадию, владельца, human review, паузу, opt-out, лимит касаний и рабочие часы. При утрате условий задача отменяется с причиной. После Booked, Proposal, Won, Lost, handoff, STOP или ручной остановки follow-up не отправляется.
+Before every send, the worker rereads from the database: email, replies since waiting began, qualification completion, booking/booking-in-progress, stage, owner, human review, pause, opt-out, touch limit, and working hours. If conditions no longer hold, cancel the task with a reason. No follow-up is sent after Booked, Proposal, Won, Lost, handoff, STOP, or a manual stop.
 
-Если запланированное время вне рабочих часов, отправка переносится на ближайший допустимый момент. Запоздавшие задачи не отправляются пачкой: пропущенные касания отмечаются `skipped`, до отправки допускается только актуальное касание. Работа календаря и рабочие часы менеджера не ограничивают ответы AI на входящие сообщения.
+If the scheduled time falls outside working hours, sending is deferred to the next permitted time. Late tasks are not sent as a batch: missed touches are marked `skipped`, and only the current touch is eligible for sending. Calendar operation and manager working hours do not restrict AI replies to incoming messages.
 
-Письмо содержит ссылку на безопасный возврат (§12) и отдельную отписку. Устаревшие варианты слотов не бронируются из письма: ссылка возвращает в чат за актуальным выбором. При неизвестном результате отправки сначала выполняется сверка по сохранённой операции и возможностям провайдера; при отсутствии безопасного механизма — ручная обработка без слепого retry.
+The email contains a secure return link (§12) and a separate unsubscribe link. Stale slot options are not booked from email: the link returns the visitor to chat for a current selection. An unknown send result is first reconciled using the persisted operation and provider capabilities; if no safe mechanism exists, use manual handling without a blind retry.
 
-Для Nurture и Unqualified автоматических email-цепочек нет. Это явное исключение исходного требования отправлять Unqualified в nurture. Менеджер видит категорию и решает дальнейшее действие в CRM.
+Nurture and Unqualified have no automated email sequences. This explicitly excludes the original requirement to send Unqualified leads into nurture. The manager sees the category and decides the next action in the CRM.
 
-### 7.8. Передача менеджеру и управление
+### 7.8. Manager handoff and controls
 
-Автоматические триггеры: прямой запрос человека/звонка, негатив или оскорбления, вопрос вне FAQ, запрещённая тема, неустранимая неоднозначность/низкая уверенность, два безуспешных уточнения обязательного поля, повторная ошибка LLM, отсутствие автоматического канала, неразрешимая ошибка интеграции. У неизвестного необязательного поля исчерпание уточнений само по себе не вызывает handoff.
+Automatic triggers: an explicit request for a human/call, negative responses or insults, a question outside the FAQ, a prohibited topic, unresolved ambiguity/low confidence, two unsuccessful clarifications of a required field, a repeated LLM error, no automated channel, or an unrecoverable integration error. Exhausting clarifications for an unknown optional field does not, by itself, trigger handoff.
 
-Handoff атомарно устанавливает `needs_human_review`, сохраняет код/пояснение причины, переводит владельца в HUMAN и отменяет ожидающие AI-отправки и follow-up. Если менеджер не назначен, обращение попадает в общую очередь «требуют внимания»; это достаточный канал уведомления v1.1, отдельный Slack/email-alert не требуется.
+Handoff atomically sets `needs_human_review`, stores the reason code/explanation, changes ownership to HUMAN, and cancels pending AI sends and follow-up. If no manager is assigned, the enquiry enters the shared "needs attention" queue; this is a sufficient notification channel for v1.1, and no separate Slack/email alert is required.
 
-Карточка передачи содержит summary, последние сообщения/ссылку на полный диалог, все поля, score с причинами и версией, причину и время передачи. Handoff не ждёт успешного LLM-summary: при сбое используется детерминированный контекст из сохранённых данных. Посетитель видит служебный статус передачи; AI не продолжает квалификацию после смены владельца.
+The handoff card contains a summary, recent messages/a link to the full conversation, all fields, score with reasons and version, and the handoff reason and time. Handoff does not wait for a successful LLM summary: on failure, deterministic context from persisted data is used. The visitor sees a system handoff status; AI does not continue qualification after ownership changes.
 
-| Действие | Эффект | Чего не делает |
+| Action | Effect | Does not do |
 |---|---|---|
-| Take over / ручной ответ | HUMAN, отмена ожидающих автоматических действий | Не снимает opt-out |
-| Автоматический handoff | HUMAN + `needs_human_review = true` + причина + контекст | Не возвращает AI при следующем сообщении лида |
-| Return to AI | Менеджер явно разрешает причину review и передаёт владельца AI; решение журналируется | Не снимает паузу или opt-out |
-| Pause automation | `paused = true`, остановка ожидающих автоматических действий | Не меняет владельца и согласие |
-| Resume automation | `paused = false`; условия дальнейших действий проверяются заново | Не меняет HUMAN на AI, не снимает review/opt-out, не оживляет старые задачи вслепую |
-| STOP / unsubscribe | Opt-out контакта, отмена неотправленных автоматических сообщений по всем его обращениям | Не отменяет уже созданную встречу и не удаляет историю |
-| Restore automation consent | Администратор отдельно сохраняет основание и подтверждение нового согласия, снимает opt-out | Не включает AI и рассылку автоматически, не сбрасывает владельца/паузу |
+| Take over / manual reply | HUMAN, cancellation of pending automated actions | Does not clear opt-out |
+| Automatic handoff | HUMAN + `needs_human_review = true` + reason + context | Does not return to AI on the lead's next message |
+| Return to AI | The manager explicitly resolves the review reason and transfers ownership to AI; the decision is logged | Does not clear pause or opt-out |
+| Pause automation | `paused = true`, stops pending automated actions | Does not change owner or consent |
+| Resume automation | `paused = false`; conditions for subsequent actions are checked again | Does not change HUMAN to AI, clear review/opt-out, or blindly revive old tasks |
+| STOP / unsubscribe | Contact-wide opt-out, cancellation of unsent automated messages across all its enquiries | Does not cancel an existing appointment or delete history |
+| Restore automation consent | The administrator separately records the reason and confirmation of new consent, then clears opt-out | Does not automatically enable AI or sending, or reset owner/pause |
 
-STOP и настроенные эквиваленты обрабатываются до обращения к LLM и вне ожидания долгой генерации. Совпадение случайной подстроки не считается командой: распознаются отдельная команда либо явный отказ от дальнейшего контакта. Обычный новый ответ или webhook не трактуется как повторное согласие. Ручная переписка не должна использоваться для обхода явно выраженного отказа от контакта.
+STOP and configured equivalents are processed before calling the LLM and without waiting for lengthy generation. An incidental substring match is not a command: recognize a standalone command or explicit refusal of further contact. An ordinary new reply or webhook is not treated as renewed consent. Manual messaging must not be used to bypass an explicit refusal of contact.
 
-### 7.9. Порядок обработки и восстановление
+### 7.9. Processing order and recovery
 
-Сообщения одного диалога обрабатываются последовательно. Запись нового сообщения, изменение владельца, паузы, opt-out и значимых полей меняют ревизию состояния. Перед публикацией AI-ответа и перед внешним действием сверяются ревизия и разрешения; устаревший черновик отбрасывается, необработанные сообщения остаются для следующего корректного turn.
+Messages within a conversation are processed sequentially. Persisting a new message or changing owner, pause, opt-out, or significant fields increments the state revision. Before publishing an AI reply and before an external action, revision and permissions are checked; stale drafts are discarded, and unprocessed messages remain for the next valid turn.
 
-Фиксация результата и намерения выполнить фоновые действия атомарна в PostgreSQL. После перезапуска worker восстанавливает ожидающие действия из сохранённого состояния; потеря Redis не означает потерю единственной копии follow-up или booking intent. Повторная доставка задачи допустима, повтор бизнес-эффекта — нет.
+Persisting the result and the intent to perform background actions is atomic in PostgreSQL. After restart, the worker restores pending actions from persisted state; losing Redis does not mean losing the only copy of a follow-up or booking intent. Task redelivery is allowed; a repeated business effect is not.
 
-Гарантия остановки: после фиксации STOP, паузы или человеческого владения новый автоматический вызов отправки не начинается. Внешний запрос, уже начатый до фиксации запрета, может завершиться позже; принятое провайдером письмо нельзя гарантированно отозвать. Такая гонка видна в журнале, а не скрывается обещанием абсолютного мгновенного отзыва. Сверка уже начатой операции допустима, создание новой — нет.
+Stopping guarantee: after STOP, pause, or human ownership is committed, no new automatic send call starts. An external request started before the prohibition was committed may finish later; an email accepted by a provider cannot be guaranteed to be revoked. Such a race is visible in the log rather than hidden behind a promise of absolute immediate revocation. Reconciling an already started operation is allowed; creating a new one is not.
 
-Retry разрешён только при сохранённом ключе, актуальных разрешениях и безопасном/установленном результате прежней попытки. `unknown` требует сверки; повтор API-запроса сам по себе не считается механизмом exactly-once.
+Retry is permitted only with a persisted key, current permissions, and a safe/established result of the previous attempt. `unknown` requires reconciliation; repeating an API request is not, by itself, an exactly-once mechanism.
 
-## 8. Модель данных
+## 8. Data model
 
-Ниже — логическая модель, а не обязательное дословное DDL. Имена и типы уточняются в миграциях без потери указанных свойств. Multi-tenant не реализуется; `company_id` обозначает единственную настроенную компанию.
+The following is a logical model, not mandatory verbatim DDL. Names and types are refined in migrations without losing the specified properties. Multi-tenancy is not implemented; `company_id` denotes the single configured company.
 
 ```text
 StaffUser
@@ -411,204 +411,204 @@ AuditEvent
   object_type, object_id, result, created_at
 ```
 
-Опциональные ссылки позволяют сохранить rejected/конфликтный intake до создания лида. Opt-out имеет единственный источник истины в Contact; его отображение у Lead не является независимым флагом. Владелец автоматизации — Conversation; назначенный менеджер сделки не подменяет этот признак.
+Optional references allow rejected/conflicting intake to be stored before creating a lead. Opt-out has a single source of truth in Contact; its display on Lead is not an independent flag. Conversation owns automation; the deal's assigned manager does not replace this property.
 
-Обязательные ограничения: уникальность ключа intake внутри источника; защита активных сделок согласно выбранной политике; уникальность клиентского сообщения внутри диалога; ключа внешней операции; внешнего event id; шага follow-up внутри запуска. Для блокировки пересекающихся записей проверяется весь интервал с буфером, а не только совпадение времени начала.
+Mandatory constraints: uniqueness of the intake key within a source; protection of active deals according to the selected policy; uniqueness of a client message within a conversation, an external operation key, an external event id, and a follow-up step within a run. Blocking overlapping bookings checks the entire interval with its buffer, not just matching start times.
 
 ## 9. API
 
-Сотруднический и публичный контуры разделены. Названия ниже задают необходимый контракт; бизнес-проверки выполняются независимо от маршрута вызова.
+Staff and public access are separated. The names below define the required contract; business checks run regardless of the calling route.
 
 ```text
-POST   /auth/login                         вход сотрудника
-POST   /auth/logout                        завершение сессии
+POST   /auth/login                         staff login
+POST   /auth/logout                        end session
 
-POST   /leads/intake                       webhook с авторизацией источника
-GET    /leads                              список и фильтры
-GET    /leads/{id}                         данные, score, история
-PATCH  /leads/{id}                         ручные поля и фиксация значений
-POST   /leads/{id}/handoff                 ручная передача/назначение
-POST   /leads/{id}/return-to-ai            явный возврат и разрешение review
-POST   /leads/{id}/pause                   пауза
-POST   /leads/{id}/resume                  снять только паузу
-POST   /leads/{id}/recalculate-score       явный переход к выбранной версии
-POST   /leads/{id}/stage                   изменение стадии
-POST   /contacts/{id}/restore-consent      администратор, подтверждение и основание
-POST   /intake-events/{id}/resolve         решение конфликта менеджером
+POST   /leads/intake                       webhook with source authorization
+GET    /leads                              list and filters
+GET    /leads/{id}                         data, score, history
+PATCH  /leads/{id}                         manual fields and value locking
+POST   /leads/{id}/handoff                 manual handoff/assignment
+POST   /leads/{id}/return-to-ai            explicit return and review resolution
+POST   /leads/{id}/pause                   pause
+POST   /leads/{id}/resume                  clear pause only
+POST   /leads/{id}/recalculate-score       explicit switch to the selected version
+POST   /leads/{id}/stage                   stage change
+POST   /contacts/{id}/restore-consent      administrator, confirmation, and reason
+POST   /intake-events/{id}/resolve         manager conflict resolution
 
-GET    /conversations                      список
-GET    /conversations/{id}/messages        история
-POST   /conversations/{id}/messages        ручной ответ с Take over
-GET    /availability                       просмотр сотрудником
-POST   /appointments/{id}/cancel           отмена менеджером
-POST   /appointments/{id}/reschedule       перенос менеджером
-GET    /runs                               журнал
-POST   /runs/{id}/reconcile                сверка неизвестного результата
-POST   /runs/{id}/retry                    только безопасный повтор
-GET/PUT /settings/company                  компания и расписание
-GET/PUT /settings/questions                вопросы
+GET    /conversations                      list
+GET    /conversations/{id}/messages        history
+POST   /conversations/{id}/messages        manual reply with Take over
+GET    /availability                       staff viewing
+POST   /appointments/{id}/cancel           manager cancellation
+POST   /appointments/{id}/reschedule       manager rescheduling
+GET    /runs                               log
+POST   /runs/{id}/reconcile                reconcile an unknown result
+POST   /runs/{id}/retry                    safe retry only
+GET/PUT /settings/company                  company and schedule
+GET/PUT /settings/questions                questions
 GET/PUT /settings/faq                      FAQ
-GET    /settings/rules                     версии правил
-POST   /settings/rules                     публикация новой версии
-GET/PUT /settings/follow-up                 версии двух последовательностей
+GET    /settings/rules                     rule versions
+POST   /settings/rules                     publish a new version
+GET/PUT /settings/follow-up                 versions of the two sequences
 
-POST   /public/intake                      форма; сервер задаёт доверенный source
-POST   /public/chat/access                 обмен токена на ограниченную сессию
-GET    /public/chat                        собственная история без внутренних полей
-POST   /public/chat/messages               сообщение посетителя
-GET    /public/chat/availability           доступные именно этому лиду предложения
-POST   /public/chat/appointments           явный выбор слота, идемпотентная запись
-POST   /public/unsubscribe                 отписка по отдельному scoped-токену
-POST   /public/chat/request-access         ограниченный запрос новой ссылки
+POST   /public/intake                      form; server sets the trusted source
+POST   /public/chat/access                 exchange a token for a restricted session
+GET    /public/chat                        own history without internal fields
+POST   /public/chat/messages               visitor message
+GET    /public/chat/availability           offers available to this specific lead
+POST   /public/chat/appointments           explicit slot selection, idempotent booking
+POST   /public/unsubscribe                 unsubscribe using a separate scoped token
+POST   /public/chat/request-access         rate-limited request for a new link
 ```
 
-Публичный клиент не задаёт доверенные `contact_id`, `lead_id`, owner, score или разрешения. Они выводятся из проверенной сессии/предложения времени. Выбор слота передаёт идентификатор серверного предложения, а не произвольные данные календаря. GET-запросы по ссылкам не создают встречу, не расходуют одноразовый доступ и не возвращают управление AI.
+The public client does not set trusted `contact_id`, `lead_id`, owner, score, or permissions. These are derived from a verified session/time offer. Slot selection submits a server offer identifier, not arbitrary calendar data. GET requests through links do not create appointments, consume single-use access, or return control to AI.
 
-Неверный payload, конфликт ключа, отсутствие прав, неактуальный слот, неизвестный внешний результат и временная недоступность имеют различимые коды ошибок. Повторяемые команды получают operation key; API не отвечает окончательным успехом на `unknown`.
+Invalid payload, key conflict, lack of permission, stale slot, unknown external result, and temporary unavailability have distinguishable error codes. Repeatable commands receive an operation key; the API does not report final success for `unknown`.
 
-## 10. Бизнес-правила и состояния
+## 10. Business rules and states
 
-| Правило | Требование |
+| Rule | Requirement |
 |---|---|
-| Первый контакт | Менее 10 секунд в штатном сценарии; отдельная метрика для чата и принятия email, явная причина отсутствия автоответа |
-| Один вопрос | Один квалификационный вопрос за сообщение; несколько полученных полей извлекаются сразу |
-| Не выдумывать | Неизвестные данные остаются `null`; факт, отрицательный ответ и неизвестность различаются |
-| Критичные поля | Услуга/территория обязательны для допуска; отсутствие обязательного после двух уточнений → handoff |
-| Score | Считается кодом; видны причины и версия; предварительная оценка не разрешает запись |
-| Hard reject | Явно неподходящая услуга/территория запрещает автозапись при любом score |
-| Владелец | HUMAN запрещает AI-ответы и follow-up до явного Return to AI |
-| Пауза | Блокирует автоматизацию независимо от владельца; Resume снимает только паузу |
-| Opt-out | Запрещает автоматические сообщения по всем обращениям контакта; снимается отдельно с основанием |
-| Рабочие часы | Только инициативные follow-up ограничены часами; чат и первое письмо по входящему запросу доступны 24/7 |
-| Дубли | Повтор intake, сообщения, задачи или внешней операции не создаёт повторный бизнес-эффект |
-| Booking | Реальный слот, явный выбор, повторная проверка, подтверждённый внешний результат; только после этого Booked |
-| Остановка | Новые автоматические отправки после зафиксированного запрета не начинаются; уже начатые внешние запросы сверяются |
-| Ручные данные | Исправления менеджера не перезаписываются незаметно; конфликт сохраняется для проверки |
-| Неопределённый результат | Сначала сверка, затем решение; не слепая повторная отправка |
+| First contact | Under 10 seconds in a normal scenario; separate metrics for chat and email acceptance, with an explicit reason when no automatic reply is sent |
+| One question | One qualification question per message; multiple supplied fields are extracted immediately |
+| Do not invent | Unknown data remains `null`; facts, negative answers, and unknown values are distinct |
+| Critical fields | Service/location are required for eligibility; an unknown required field after two clarifications → handoff |
+| Score | Calculated by code; reasons and version are visible; preliminary scoring does not permit booking |
+| Hard rejection | An explicitly unsuitable service/location prohibits automatic booking at any score |
+| Owner | HUMAN prohibits AI replies and follow-up until an explicit Return to AI |
+| Pause | Blocks automation independently of owner; Resume clears pause only |
+| Opt-out | Prohibits automated messages across all of a contact's enquiries; cleared separately with a reason |
+| Working hours | Only proactive follow-up is restricted to working hours; chat and the first email for an incoming request are available 24/7 |
+| Duplicates | Repeated intake, messages, tasks, or external operations do not create repeated business effects |
+| Booking | Real slot, explicit selection, recheck, confirmed external result; only then Booked |
+| Stopping | No new automatic sends start after a prohibition is committed; already started external requests are reconciled |
+| Manual data | Manager corrections are not silently overwritten; conflicts are stored for review |
+| Uncertain result | Reconcile first, then decide; no blind repeat send |
 
-Порядок допуска автоматического действия: **авторизация → opt-out → HUMAN / пауза / human review → закрытая или ручная стадия → актуальность операции и ревизии → специфические условия действия → рабочие часы для follow-up**. Сообщение лида сохраняется и показывается менеджеру даже тогда, когда автоматический ответ запрещён.
+Automatic-action eligibility order: **authorization → opt-out → HUMAN / pause / human review → closed or manual stage → current operation and revision → action-specific conditions → working hours for follow-up**. The lead's message is persisted and shown to the manager even when an automatic reply is prohibited.
 
-`qualification_status` отражает collecting/complete; категория — коммерческую оценку; stage — движение сделки; owner — управление диалогом. Никакое одно из этих полей не заменяет остальные. После завершения квалификации новое уточнение/исправление может снова потребовать collecting или review; Booked при этом не переписывается без обработки встречи.
+`qualification_status` reflects collecting/complete; category reflects commercial assessment; stage reflects deal progression; owner reflects conversation control. None of these fields replaces the others. After qualification is complete, a new clarification/correction may require collecting or review again; Booked is not overwritten without handling the appointment.
 
-## 11. Негативные сценарии
+## 11. Negative scenarios
 
-| Ситуация | Ожидаемое поведение |
+| Situation | Expected behavior |
 |---|---|
-| Невалидный intake | `rejected` с причиной; нет потерянного события или частично созданной сделки |
-| Тот же ключ, другой payload | Конфликт; прежний результат не перезаписан |
-| Только телефон без чата | Очередь менеджера; нет фиктивно отправленного SMS и нет ложного успешного SLA |
-| Телефон и email относятся к разным контактам | Ручное разрешение; нет автоматического слияния и выдачи чужой истории |
-| Известный контакт пишет снова | `re_engaged` либо новое обращение после закрытия; управление и opt-out не сброшены |
-| Неизвестное необязательное поле | `null`, отдельная причина и продолжение после допустимых уточнений |
-| Неизвестное обязательное поле | Handoff после двух уточнений, без booking |
-| Негатив, запрещённая тема, запрос человека, вопрос вне FAQ | Handoff с контекстом, без дальнейшей квалификации AI |
-| Невалидный JSON / LLM недоступен | Ограниченная repair/retry-политика, затем handoff; исходное сообщение сохранено |
-| Менеджер перехватил во время генерации | Устаревший AI-ответ не публикуется |
-| Лид пишет после handoff | Сообщение видит человек; AI не забирает владение |
-| STOP при ожидающем follow-up | Задачи отменены; worker повторно проверяет запрет перед отправкой |
-| Follow-up попал на ночь/выходной | Перенос на рабочее время; после паузы не отправляется пачка старых касаний |
-| Слот занят после показа | Старый выбор отклонён, предложены актуальные варианты; ложного подтверждения нет |
-| Тайм-аут после создания встречи / отправки письма | `unknown`, сверка прежней операции; нет слепого создания дубля |
-| Ошибка отмены/переноса | Старый подтверждённый статус не заменён фиктивным успехом; видна задача ручной обработки |
-| Перезапуск / Redis недоступен | Принятые данные и намерения остаются в PostgreSQL; выполнение восстанавливается без повторного эффекта |
-| PostgreSQL недоступен | Нет подтверждения сохранения; клиент может повторить с прежним ключом |
-| Чужой ID, просроченная ссылка, повтор обмена токена | Доступ запрещён без раскрытия внутренней информации |
-| Prompt injection с просьбой изменить score или записать вне правил | Текст не даёт прав на действие; ограничения проверяет код |
+| Invalid intake | `rejected` with a reason; no lost event or partially created deal |
+| Same key, different payload | Conflict; previous result is not overwritten |
+| Phone only, no chat | Manager queue; no fabricated SMS send or false successful SLA |
+| Phone and email belong to different contacts | Manual resolution; no automatic merge or exposure of someone else's history |
+| Known contact enquires again | `re_engaged` or a new enquiry after closure; controls and opt-out are not reset |
+| Unknown optional field | `null`, a separate reason, and continuation after allowed clarifications |
+| Unknown required field | Handoff after two clarifications, without booking |
+| Negative response, prohibited topic, request for a human, question outside the FAQ | Handoff with context, without further AI qualification |
+| Invalid JSON / LLM unavailable | Bounded repair/retry policy, then handoff; the original message is persisted |
+| Manager takes over during generation | Stale AI reply is not published |
+| Lead replies after handoff | A human sees the message; AI does not reclaim ownership |
+| STOP with pending follow-up | Tasks are cancelled; the worker rechecks the prohibition before sending |
+| Follow-up scheduled at night/on a weekend | Deferred to working hours; no batch of old touches after a pause |
+| Slot becomes occupied after display | Old selection is rejected and current alternatives are offered; no false confirmation |
+| Timeout after appointment creation / email sending | `unknown`, reconciliation of the previous operation; no blind duplicate creation |
+| Cancellation/rescheduling error | Old confirmed status is not replaced with fabricated success; a manual-handling task is visible |
+| Restart / Redis unavailable | Accepted data and intents remain in PostgreSQL; execution recovers without repeated effects |
+| PostgreSQL unavailable | No persistence confirmation; the client can retry with the same key |
+| Another visitor's ID, expired link, repeated token exchange | Access denied without exposing internal information |
+| Prompt injection requesting score changes or booking outside the rules | Text does not grant action permissions; code enforces restrictions |
 
-## 12. Безопасность
+## 12. Security
 
-- Авторизация сотрудников по ролям, защищённые сессии, ограничения частоты запросов и защита изменяющих запросов от CSRF. Webhook требует секрет/подпись источника; публичная форма не получает этот секрет и не может подменять произвольный source.
-- Посетителю возвращается отдельная публичная схема без score, внутренних полей, notes и audit. Проверка принадлежности выполняется на каждом чтении и изменении; скрыть кнопку недостаточно.
-- Ссылка возврата использует криптографически случайный ограниченный токен; в БД хранится хеш. Предлагаемый срок действия — 24 часа. Обмен на защищённую сессию выполняется явным POST, чтобы почтовый предпросмотр не расходовал ссылку. Токен одноразовый для обмена, сессия имеет собственный срок и отзыв. Просроченная ссылка требует безопасного запроса новой; запрос проверяет лимиты, канал и opt-out.
-- Токен отписки имеет отдельное назначение и не открывает чат. Отписка не требует входа сотрудника. Секреты и access-токены не попадают в URL логов, аналитики и внешние Referer; страница обмена не содержит сторонних трекеров.
-- Сохранённые токены интеграций в развёрнутой системе шифруются отдельно от обычных настроек; ключ шифрования не хранится рядом с ciphertext в БД. Локальные секреты и реальные `.env` не коммитятся. В `example.env` только имена переменных и безопасные примеры.
-- Телефон/email маскируются в технических логах. Полный текст переписки доступен только уполномоченным сотрудникам; Execution Log не становится вторым незащищённым архивом PII. LLM получает только необходимые для текущего диалога данные, без секретов интеграций.
-- Роль приложения не имеет UPDATE/DELETE для `AuditEvent`. Пользовательские сообщения, webhook и FAQ не дают возможности выполнять произвольные инструменты/SQL/HTTP-запросы; все действия ограничены кодом и схемами.
-- В публичном демо используются синтетические данные, лимиты запросов/расходов, выделенный календарь и allowlist email-получателей. Посетитель не получает доступ к реальным лидам. Сброс выполняется отдельной служебной командой только в демонстрационной БД, не затрагивая production и его audit.
+- Role-based staff authorization, protected sessions, request rate limits, and CSRF protection for modifying requests. The webhook requires a source secret/signature; the public form does not receive this secret and cannot impersonate an arbitrary source.
+- Visitors receive a separate public schema without scores, internal fields, notes, or audit. Ownership is checked on every read and write; hiding a button is insufficient.
+- The return link uses a cryptographically random scoped token; only its hash is stored in the database. The proposed lifetime is 24 hours. Exchange for a protected session uses an explicit POST so that email previews do not consume the link. The token is single-use for exchange; the session has its own expiry and revocation. An expired link requires a safe request for a new one; the request checks limits, channel, and opt-out.
+- The unsubscribe token has a separate purpose and does not open chat. Unsubscribe requires no staff login. Secrets and access tokens do not appear in logged URLs, analytics, or external Referer headers; the exchange page contains no third-party trackers.
+- Persisted integration tokens in the deployed system are encrypted separately from ordinary settings; the encryption key is not stored alongside ciphertext in the database. Local secrets and real `.env` files are not committed. `example.env` contains only variable names and safe examples.
+- Phone/email are masked in technical logs. Full conversation text is available only to authorized staff; Execution Log must not become a second unprotected PII archive. The LLM receives only data needed for the current conversation, without integration secrets.
+- The application role has no UPDATE/DELETE permission for `AuditEvent`. User messages, webhooks, and FAQ content cannot execute arbitrary tools/SQL/HTTP requests; code and schemas restrict all actions.
+- The public demo uses synthetic data, request/spending limits, a dedicated calendar, and an email-recipient allowlist. Visitors cannot access real leads. Reset is a separate service command operating only on the demo database, without affecting production or its audit.
 
 ## 13. Evaluation
 
-**Набор:** не менее 20 сценариев в репозитории с исходными данными, последовательностью ответов, ожидаемыми полями/неизвестными значениями, категорией, handoff и исходом записи. Фикстуры используют синтетические контакты и закреплённую конфигурацию.
+**Dataset:** at least 20 scenarios in the repository with initial data, response sequences, expected fields/unknown values, category, handoff, and booking outcome. Fixtures use synthetic contacts and a pinned configuration.
 
-Обязательные сценарии: Hot с записью; Warm с записью; неподходящая услуга; неподходящая территория; неизвестный бюджет; неизвестное обязательное местоположение; несколько полей одним ответом; исправление данных; конфликт ручной фиксации; прямой запрос человека; негатив; ответ внутри FAQ; вопрос вне FAQ; запрещённая тема; отрицательные полномочия; неизвестный срок; отсутствие повторных вопросов; STOP; Nurture без записи; отсутствие email перед записью. Prompt injection и неоднозначные ответы также проверяются — набор разрешено расширять.
+Mandatory scenarios: Hot with booking; Warm with booking; unsuitable service; unsuitable location; unknown budget; unknown required location; multiple fields in one reply; data correction; conflict with a manual lock; direct request for a human; negative response; answer within the FAQ; question outside the FAQ; prohibited topic; negative authority; unknown timeline; no repeated questions; STOP; Nurture without booking; missing email before booking. Prompt injection and ambiguous responses are also tested; the dataset may be expanded.
 
-**Команда:** `npm run eval`. Основной AI-прогон использует выбранный реальный LLM и контролируемые календарь/email, чтобы воспроизводимо проверить логику без внешних отправок. Отдельный `npm run eval -- --mock` допустим для CI, но не заменяет оценку реальной модели. При отсутствии LLM-секрета реальный прогон завершается понятной ошибкой, а не незаметно переключается на mock.
+**Command:** `npm run eval`. The main AI run uses the selected real LLM and controlled calendar/email providers to test logic reproducibly without external sends. A separate `npm run eval -- --mock` is allowed for CI but does not replace evaluation of the real model. If the LLM secret is missing, the real run ends with a clear error rather than silently switching to a mock.
 
-**Отчёт:** `/evaluation/last-run.md` и машиночитаемые результаты. Сохраняются дата, commit, провайдер/модель, версия prompt, правил и фикстур, режим каждого адаптера, настройки запуска, числители/знаменатели и результаты отдельных сценариев. Сбой включается в отчёт. Отдельный live smoke с настоящими Google Calendar и email обязателен перед выпуском; его доказательства и внешние идентификаторы без секретов прилагаются. Mock-прогон не доказывает реальную доставку или интеграцию.
+**Report:** `/evaluation/last-run.md` and machine-readable results. Persist the date, commit, provider/model, prompt, rule and fixture versions, each adapter's mode, run settings, numerators/denominators, and individual scenario results. Failures are included in the report. A separate live smoke test with real Google Calendar and email is mandatory before release; include evidence and external identifiers without secrets. A mock run does not prove real delivery or integration.
 
-**Предлагаемые пороги для этой редакции; они фиксируются до прогона и не подгоняются под результат:**
+**Proposed thresholds for this revision; fixed before the run and not adjusted to fit results:**
 
-| Метрика | Определение | Критерий |
+| Metric | Definition | Criterion |
 |---|---|---|
-| Median и p90 first-contact time | Intake → публикация первого содержательного сообщения / приём первого email провайдером, раздельно по каналу | Отчёт median/p90; каждый штатный приёмочный первый контакт < 10 с; пропуски и превышения перечислены |
-| Qualification completion rate | Доля сценариев, где известны 5 базовых атрибутов: услуга, местоположение, бюджет как один атрибут, срок, полномочия | Отчёт по всему набору и отдельно по сценариям, в которых эти данные предоставлены; во второй группе ≥ 90% |
-| Field extraction accuracy | Совпадение итоговых нормализованных полей с эталоном, включая исправления; известные и неизвестные значения дополнительно показаны раздельно | ≥ 95%; выдуманных значений на эталонно неизвестных полях — 0 |
-| Score category match | Совпадение категории после диалога с ожидаемой | ≥ 95%; unit-тесты самого детерминированного scoring — 100% |
-| Booking rate | Подтверждённые записи / квалифицированные сценарии; отдельно подмножество с явным выбором валидного слота | Общая доля — описательная; в штатном подмножестве с выбором слота — 100% |
-| Handoff precision / recall | Precision: правильные передачи / все передачи; recall: обнаруженные обязательные триггеры / все обязательные триггеры | Precision ≥ 95%; recall для обязательных триггеров — 100% |
-| False booking | Создание встречи при невыполненном допуске, отсутствии явного выбора или запрещённой автоматизации на момент начала операции | 0 |
-| Повторные эффекты и утечки доступа | Дубли webhook/встреч/писем и доступ к чужому диалогу в соответствующих тестах | 0 |
+| Median and p90 first-contact time | Intake → publication of the first substantive message / provider acceptance of the first email, separately by channel | Report median/p90; every normal acceptance-run first contact < 10 s; list omissions and overruns |
+| Qualification completion rate | Share of scenarios with all 5 baseline attributes known: service, location, budget as one attribute, timeline, authority | Report the whole dataset and, separately, scenarios where this information is supplied; the latter group must reach ≥ 90% |
+| Field extraction accuracy | Final normalized fields match the reference, including corrections; known and unknown values are also reported separately | ≥ 95%; invented values for reference-unknown fields — 0 |
+| Score category match | Post-conversation category matches the expected category | ≥ 95%; unit tests of deterministic scoring itself — 100% |
+| Booking rate | Confirmed bookings / qualified scenarios; separately, the subset with explicit selection of a valid slot | Overall rate is descriptive; 100% in the normal slot-selection subset |
+| Handoff precision / recall | Precision: correct handoffs / all handoffs; recall: detected mandatory triggers / all mandatory triggers | Precision ≥ 95%; recall for mandatory triggers — 100% |
+| False booking | Appointment creation when eligibility is unmet, explicit selection is absent, or automation is prohibited at operation start | 0 |
+| Repeated effects and access leaks | Duplicate webhooks/appointments/emails and access to someone else's conversation in the relevant tests | 0 |
 
-Это приёмка ограниченного набора, а не статистическая гарантия качества на любых клиентах. `Qualification completion rate` с пятью заполненными полями — аналитическая метрика; она не подменяет бизнес-правило, которое допускает явно неизвестные необязательные поля.
+This is acceptance of a limited dataset, not a statistical guarantee of quality for arbitrary customers. `Qualification completion rate` with five populated fields is an analytical metric; it does not replace the business rule allowing explicitly unknown optional fields.
 
-Критичные нарушения нельзя компенсировать средним процентом: false booking, пропущенный STOP/handoff, дубли и утечки блокируют выпуск. Если порог не достигнут, исправляются логика/prompt и выполняется новый зафиксированный прогон; неудачный отчёт сохраняется в истории.
+Critical violations cannot be offset by an average percentage: false booking, missed STOP/handoff, duplicates, and leaks block release. If a threshold is not met, fix the logic/prompt and perform a new recorded run; retain the failed report in history.
 
-## 14. Критерии приёмки
+## 14. Acceptance criteria
 
-Идентификаторы AC используются в плане реализации и тестах.
+AC identifiers are used in the implementation plan and tests.
 
-| ID | Проверяемый результат |
+| ID | Verifiable outcome |
 |---|---|
-| AC-01 | Три одинаковых webhook дают один Contact, Lead и Opportunity и один первый контакт; изменённый payload с тем же ключом даёт конфликт |
-| AC-02 | Невалидный intake сохранён как rejected; неоднозначные контакты требуют ручного решения; новое обращение обрабатывается по обеим политикам без сброса opt-out/владельца |
-| AC-03 | Форма открывает защищённый чат; email-webhook отправляет приглашение; телефон-only без чата направляется человеку; штатный первый автоответ < 10 с и измерен по правильному каналу |
-| AC-04 | Агент задаёт по одному вопросу, извлекает несколько полей и не повторяет закрытые вопросы; успешный сценарий собирает 5 базовых атрибутов |
-| AC-05 | Неизвестное остаётся null; после максимум двух уточнений необязательное поле пропускается, обязательное вызывает handoff |
-| AC-06 | Исправление лида обновляет поле и историю; ручная фиксация защищена, существенный конфликт направлен на проверку |
-| AC-07 | Score, факторы, причины и версия совпадают с правилами; категория, review, stage, owner и пауза независимы; новая версия не пересчитывает старые лиды автоматически |
-| AC-08 | Неподходящая услуга/территория запрещает booking при любом score; Nurture/Unqualified не запускают несуществующий nurture |
-| AC-09 | Все обязательные триггеры handoff создают причину и контекст; последующий ответ лида остаётся у человека |
-| AC-10 | Take over во время генерации не допускает публикации старого ответа; Return to AI, Pause, Resume и Restore consent имеют разные эффекты |
-| AC-11 | STOP/отписка отменяют ожидающие автоматические отправки для всех обращений контакта; обычное сообщение, новый intake и Resume не снимают запрет |
-| AC-12 | Hot и Warm при полном допуске видят реальные слоты с часовым поясом; 1–2 доступных слота и отсутствие слотов обрабатываются явно |
-| AC-13 | Явный выбор свободного слота создаёт подтверждённое событие, сохраняет внешний id, переводит в Booked и даёт summary менеджеру; без email/выбора/допуска встреча не создаётся |
-| AC-14 | Повтор и конкурирующие операции приложения не создают дубль/пересечение; занятый слот не подтверждается; тайм-аут после создания восстанавливает прежний результат либо требует человека |
-| AC-15 | Отмена/перенос менеджером отражают подтверждённое состояние календаря; ошибка не уничтожает старую запись и не запускает follow-up сама |
-| AC-16 | Обе email-последовательности соблюдают свои условия, три касания и общий счётчик на Lead; две цепочки не активны одновременно |
-| AC-17 | Follow-up не начинается вне рабочих часов, после ответа, booking, handoff, паузы или opt-out; очередь после простоя не рассылает пачку устаревших касаний; входящие ночью обслуживаются |
-| AC-18 | Письмо возвращает только в собственный чат; истёкший/чужой/повторно обмененный токен не открывает историю; GET-предпросмотр не расходует доступ; отписка не требует логина |
-| AC-19 | Повторная доставка сообщения/задачи и перезапуск worker сохраняют единственный бизнес-результат; ожидающие действия восстанавливаются из PostgreSQL |
-| AC-20 | Ошибка LLM, calendar или email не теряет сообщение/операцию; unknown сверяется до retry; отказ PostgreSQL не маскируется успешным сохранением |
-| AC-21 | Conversations и Lead Profile позволяют вести процесс без БД/консоли; видны данные, причины, история, встреча, handoff и следующее действие |
-| AC-22 | Settings меняет разрешённые параметры; журнал показывает попытки и ошибки; ручной retry недоступен для небезопасного неопределённого результата |
-| AC-23 | Роли, публичные схемы, защита чужой истории, секретов и логов проверены; приложение не изменяет/удаляет AuditEvent; prompt injection не обходит бизнес-ограничения |
-| AC-24 | Не менее 20 AI-сценариев выполнены командой npm run eval, отчёт и версии сохранены; пороги §13 достигнуты без сокрытия ошибок |
-| AC-25 | Live smoke подтверждает реальную встречу и email на разрешённом адресе; демо-ограничения не допускают произвольных внешних отправок |
-| AC-26 | Docker Compose, миграции, seed, README, runbook, evaluation, ограничения, опубликованное демо, видео и скриншоты поставлены; demo-reset не затрагивает реальные данные |
+| AC-01 | Three identical webhooks produce one Contact, Lead, and Opportunity and one first contact; a changed payload with the same key causes a conflict |
+| AC-02 | Invalid intake is persisted as rejected; ambiguous contacts require manual resolution; new enquiries are handled under both policies without resetting opt-out/owner |
+| AC-03 | The form opens a protected chat; an email webhook sends an invitation; phone-only intake without chat goes to a human; normal first automatic response < 10 s, measured through the correct channel |
+| AC-04 | The agent asks one question at a time, extracts multiple fields, and does not repeat answered questions; a successful scenario collects 5 baseline attributes |
+| AC-05 | Unknown remains null; after at most two clarifications, an optional field is skipped and a required field triggers handoff |
+| AC-06 | A lead correction updates the field and history; manual locks are protected, and material conflicts are sent for review |
+| AC-07 | Score, factors, reasons, and version match the rules; category, review, stage, owner, and pause are independent; a new version does not automatically recalculate old leads |
+| AC-08 | An unsuitable service/location prohibits booking at any score; Nurture/Unqualified do not trigger a nonexistent nurture sequence |
+| AC-09 | All mandatory handoff triggers create a reason and context; subsequent lead replies remain with a human |
+| AC-10 | Take over during generation prevents publication of the old reply; Return to AI, Pause, Resume, and Restore consent have different effects |
+| AC-11 | STOP/unsubscribe cancel pending automatic sends across all the contact's enquiries; an ordinary message, new intake, and Resume do not clear the prohibition |
+| AC-12 | Fully eligible Hot and Warm leads see real slots with a timezone; 1–2 available slots and no available slots are handled explicitly |
+| AC-13 | Explicit selection of a free slot creates a confirmed event, persists its external id, moves to Booked, and provides a manager summary; no appointment is created without email/selection/eligibility |
+| AC-14 | Repeated and concurrent application operations do not create duplicates/overlaps; occupied slots are not confirmed; a timeout after creation recovers the previous result or requires a human |
+| AC-15 | Manager cancellation/rescheduling reflects confirmed calendar state; an error does not destroy the old booking or start follow-up by itself |
+| AC-16 | Both email sequences respect their conditions, three-touch limit, and shared per-Lead counter; the two sequences are not active simultaneously |
+| AC-17 | Follow-up does not start outside working hours or after a reply, booking, handoff, pause, or opt-out; the queue does not send a batch of stale touches after downtime; nighttime intake is served |
+| AC-18 | Email returns only to the recipient's own chat; an expired/foreign/already exchanged token does not open history; GET preview does not consume access; unsubscribe requires no login |
+| AC-19 | Message/task redelivery and worker restart preserve a single business result; pending actions are restored from PostgreSQL |
+| AC-20 | LLM, calendar, or email errors do not lose messages/operations; unknown is reconciled before retry; PostgreSQL failure is not disguised as successful persistence |
+| AC-21 | Conversations and Lead Profile support the workflow without database/console access; data, reasons, history, appointment, handoff, and next action are visible |
+| AC-22 | Settings changes allowed parameters; the log shows attempts and errors; manual retry is unavailable for an unsafe uncertain result |
+| AC-23 | Roles, public schemas, and protection of others' history, secrets, and logs are tested; the application does not modify/delete AuditEvent; prompt injection does not bypass business restrictions |
+| AC-24 | At least 20 AI scenarios are run with npm run eval, reports and versions are saved, and §13 thresholds are met without hiding errors |
+| AC-25 | Live smoke testing confirms a real appointment and email at an allowed address; demo restrictions prevent arbitrary external sends |
+| AC-26 | Docker Compose, migrations, seed, README, runbook, evaluation, limitations, published demo, video, and screenshots are delivered; demo reset does not affect real data |
 
-## 15. Этапы реализации
+## 15. Implementation stages
 
-Подробные работы, зависимости и проверки описаны в [плане v1.1](Leadloom-Implementation-Plan-v1.1.md). Тесты пишутся вместе с функциями, а не начинаются на этапе 9.
+Detailed work, dependencies, and checks are described in the [v1.1 plan](Leadloom-Implementation-Plan-v1.1.md). Tests are written alongside features, not started in stage 9.
 
-| Этап | Работы | Результат |
+| Stage | Work | Outcome |
 |---|---|---|
-| 1 | Зафиксировать v1.1, демо-значения, состояния и матрицу приёмки | Единый контракт вместо противоречащих документов |
-| 2 | Репозиторий, БД, очередь, роли, сессии, секреты и доступы | Приложение запускается, границы доступа работают |
-| 3 | Intake, дедупликация, встроенная CRM, живой чат и первое email-приглашение | Заявка, история и первый контакт работают сквозным образом |
-| 4 | AI, извлечение, вопросы, FAQ, исправления и базовые handoff-триггеры | Проверяемая квалификация и видимые поля |
-| 5 | Scoring, независимые состояния, handoff, STOP и конкурентный контроль | Объяснимый score и надёжное управление человеком |
-| 6 | Реальная доступность и запись, сверка, отмена/перенос | Полный путь до настоящей встречи |
-| 7 | Две email-последовательности и все условия остановки | Надёжный возврат молчащего лида в чат |
-| 8 | Завершение Conversations, Lead Profile, Settings, Execution Log | Ежедневная работа менеджера без консоли |
-| 9 | Общий прогон AC, AI evaluation, отказоустойчивость и live smoke | Измеренная приёмка и список ограничений |
-| 10 | Развёртывание, безопасное демо и портфолио | Опубликованный продукт и кейс |
+| 1 | Finalize v1.1, demo values, states, and the acceptance matrix | One contract instead of conflicting documents |
+| 2 | Repository, database, queue, roles, sessions, secrets, and access | The application starts and access boundaries work |
+| 3 | Intake, deduplication, built-in CRM, live chat, and first email invitation | Enquiry, history, and first contact work end to end |
+| 4 | AI, extraction, questions, FAQ, corrections, and basic handoff triggers | Testable qualification and visible fields |
+| 5 | Scoring, independent states, handoff, STOP, and concurrency control | Explainable scores and reliable human control |
+| 6 | Real availability and booking, reconciliation, cancellation/rescheduling | Full path to a real appointment |
+| 7 | Two email sequences and all stopping conditions | Reliable return of a silent lead to chat |
+| 8 | Complete Conversations, Lead Profile, Settings, Execution Log | Daily manager work without the console |
+| 9 | Full AC run, AI evaluation, fault tolerance, and live smoke | Measured acceptance and a list of limitations |
+| 10 | Deployment, safe demo, and portfolio | Published product and case study |
 
-## 16. Состав поставки
+## 16. Deliverables
 
-- Один репозиторий, Docker Compose, миграции, `example.env` без секретов и seed: Acme Home Improvements, вопросы, FAQ, версия правил, две последовательности и синтетические лиды. Команды запуска, сборки, тестирования и сброса демо документированы.
-- Unit-тесты нормализации, scoring, переходов, приоритетов, уточнений, рабочего времени и условий handoff/follow-up. Integration-тесты intake, дедупликации, авторизации, конкурентных действий, календаря/email и восстановления. E2E: форма → чат → квалификация → запись → состояние встроенной CRM.
-- `/architecture` — компоненты, состояния и последовательность обработки; `/configuration` — окружение, поля, scoring, расписание и лимиты; `/runbook` — запуск, остановка, диагностика, сверка unknown, безопасный retry, ручное управление и восстановление согласия.
-- `/evaluation` — фикстуры, исполняемый сценарий, текущий отчёт и история прогонов; `/known-limitations` — явное разделение real / mock, исключённые интеграции, ограничения email, ссылок и календарной конкурентности.
-- Опубликованное безопасное демо; видео 60–90 секунд; скриншоты Conversations со структурой, реальной записи и Execution Log/evaluation. Описание кейса использует измеренные результаты прогона, не приписывает продукту недоказанный рост выручки и не выдаёт mock за реальную интеграцию.
+- One repository, Docker Compose, migrations, `example.env` without secrets, and seed data: Acme Home Improvements, questions, FAQ, rule version, two sequences, and synthetic leads. Startup, build, test, and demo-reset commands are documented.
+- Unit tests for normalization, scoring, transitions, priorities, clarifications, working hours, and handoff/follow-up conditions. Integration tests for intake, deduplication, authorization, concurrent actions, calendar/email, and recovery. E2E: form → chat → qualification → booking → built-in CRM state.
+- `/architecture` — components, states, and processing sequence; `/configuration` — environment, fields, scoring, schedule, and limits; `/runbook` — startup, shutdown, diagnostics, unknown reconciliation, safe retry, manual controls, and consent restoration.
+- `/evaluation` — fixtures, runnable scenario, current report, and run history; `/known-limitations` — explicit real/mock distinction, excluded integrations, and limitations of email, links, and calendar concurrency.
+- A published safe demo; a 60–90-second video; screenshots of Conversations with structured data, a real booking, and Execution Log/evaluation. The case study uses measured run results, does not attribute unproven revenue growth to the product, and does not present mocks as real integrations.
 
-**Главный промежуточный результат после этапа 6:** настоящий входящий лид проходит чат, получает объяснимую квалификацию и записывается в настоящий календарь. **Результат первой версии:** этот путь дополнен управлением менеджера, контролируемым follow-up, восстановлением после ошибок и воспроизводимой приёмкой.
+**Main intermediate outcome after stage 6:** a real incoming lead goes through chat, receives explainable qualification, and books into a real calendar. **First-version outcome:** this path is supplemented by manager controls, controlled follow-up, error recovery, and reproducible acceptance.

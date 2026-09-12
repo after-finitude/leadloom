@@ -1,29 +1,29 @@
-# Статус поставки Leadloom 1.2.0
+# Leadloom 1.2.0 delivery status
 
-Дата: 10 сентября 2026. Это НОВАЯ фактически созданная автономная реализация, а не восстановленный ранее обещанный архив.
+Date: September 10, 2026. This is a NEW standalone implementation that was actually built, not a recovered copy of a previously promised archive.
 
-## Реально выполнено
+## Completed work
 
-- Прямой запуск сервера Node.js 22.16.0, SQLite WAL, автоматической схемы и демо-seed.
-- Сборка автономной редакции: проверка синтаксиса JS-модулей и комплектование `dist/`.
-- 60 из 60 автоматических unit/integration/HTTP/provider-contract тестов прошли, без пропусков (`evidence/unit-integration.tap`).
-- 24 из 24 сценариев детерминированного mock-парсера прошли (`evaluation/last-run.md`, `.json`). Это НЕ доказательство качества OpenAI.
-- 10 DOM-проверок менеджерского UI и 6 проверок формы/чата/записи в Chromium. Данные поступали из реально запущенного HTTP-сервера, действия сохранялись в SQLite. См. два `browser-*-smoke.json` в `evidence/`.
-- Отображение трёх колонок, видимость composer, Take over / Pause / Resume, профиль, настройки, журнал, мобильная ширина; клиентская форма → квалификация → выбранный слот → mock-встреча → STOP.
-- Сделаны скриншоты именно этого UI, не макеты и не изображения вымышленного продукта.
+- Direct startup of the Node.js 22.16.0 server, SQLite WAL, automatic schema creation, and demo seed.
+- Standalone edition build: JS module syntax checks and assembly of `dist/`.
+- 60 of 60 automated unit/integration/HTTP/provider-contract tests passed, with no skips (`evidence/unit-integration.tap`).
+- 24 of 24 deterministic mock-parser scenarios passed (`evaluation/last-run.md`, `.json`). This is NOT evidence of OpenAI quality.
+- 10 DOM checks of the manager UI and 6 checks of the form/chat/booking flow in Chromium. Data came from a running HTTP server, and actions were persisted in SQLite. See the two `browser-*-smoke.json` files in `evidence/`.
+- Three-column rendering, composer visibility, Take over / Pause / Resume, profile, settings, log, mobile width; customer form → qualification → selected slot → mock appointment → STOP.
+- Screenshots show this actual UI, not mockups or images of a fictional product.
 
-## Не выполнено / не заявляется
+## Not completed / not claimed
 
-- Next.js, NestJS, PostgreSQL, Redis и BullMQ: в этой редакции не используются. Стек ТЗ не реализован.
-- Нативная навигация браузера и E2E через обычную загрузку страниц: запуск заблокирован административной политикой Chromium. DOM smoke использовал about:blank и HTTP-мост с моделированием навигации; он не доказывает browser cookie/CSP/module-loading поведение. Эти заголовки/сессии отдельно проверены на уровне HTTP; поставлен обычный `tests/browser_e2e.py` для запуска у пользователя.
-- Реальные вызовы OpenAI, Google Calendar и Resend: не запускались. Contract-тесты реальных адаптеров подставляют контролируемые HTTP-ответы.
-- Реальная доставка email, настоящие встречи, SLA внешних сервисов: не подтверждены.
-- Docker build / Docker Compose runtime: не запускались, Docker в среде отсутствовал.
-- Публичный deployment, видео, нагрузочные испытания и независимый security review: не выполнены.
-- Полная приёмка всех требований v1.1: не заявляется. Матрица границ находится в `docs/requirements-coverage.md`.
+- Next.js, NestJS, PostgreSQL, Redis, and BullMQ are not used in this edition. The specification's stack has not been implemented.
+- Native browser navigation and E2E through normal page loading: execution was blocked by Chromium administrative policy. DOM smoke testing used about:blank and an HTTP bridge with simulated navigation; it does not prove browser cookie/CSP/module-loading behavior. These headers/sessions were tested separately at the HTTP level; a standard `tests/browser_e2e.py` is included for the user to run.
+- Real calls to OpenAI, Google Calendar, and Resend were not run. Contract tests of the real adapters substitute controlled HTTP responses.
+- Real email delivery, real appointments, and external service SLAs have not been confirmed.
+- Docker build / Docker Compose runtime were not run because Docker was unavailable in the environment.
+- Public deployment, video, load testing, and an independent security review have not been completed.
+- Full acceptance of all v1.1 requirements is not claimed. The scope matrix is in `docs/requirements-coverage.md`.
 
-## Комплект
+## Package contents
 
-Исходники, SQL-схема, интерфейс, тесты, evaluation, безопасные примеры ENV, Dockerfile/Compose, инструкции и доказательства локальных прогонов. Runtime npm-зависимостей нет; lockfile создан npm в offline-режиме. Пакет запускается без npm install.
+Source code, SQL schema, interface, tests, evaluation, safe ENV examples, Dockerfile/Compose, instructions, and evidence of local runs. There are no runtime npm dependencies; the lockfile was created by npm in offline mode. The package starts without npm install.
 
-Пользовательская база, encryption key, реальные `.env`, пароли аккаунтов интеграций и node_modules в архив не включаются. Стандартные публичные демо-пароли не являются секретами production; не публикуйте демо с ними в интернете.
+The archive excludes the user's database, encryption key, real `.env` files, integration account passwords, and node_modules. Standard public demo passwords are not production secrets; do not publish the demo on the internet with these passwords.

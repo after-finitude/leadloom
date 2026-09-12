@@ -1,22 +1,22 @@
-# Context7 и документация, использованные при создании
+# Context7 and documentation used during implementation
 
-Дата обращения: 10 сентября 2026 года.
+Access date: September 10, 2026.
 
-## Выполненные запросы Context7
+## Context7 queries performed
 
 1. `resolve-library-id`: Next.js → `/vercel/next.js`.
-   `query-docs`: standalone output и rewrites `/api` в отдельный NestJS backend.
-   Документация получена, **но Next.js не вошёл в автономную редакцию** после установления недоступности загрузки npm-пакетов. Этот запрос не выдаётся за аудит или реализацию Next.js.
+   `query-docs`: standalone output and `/api` rewrites to a separate NestJS backend.
+   Documentation was retrieved, **but Next.js was not included in the standalone edition** after npm package downloads were found to be unavailable. This query is not presented as a Next.js audit or implementation.
 2. `resolve-library-id`: Node.js → `/websites/nodejs_latest-v22_x_api`.
-   `query-docs`: `node:sqlite DatabaseSync`, prepared statements `run/get/all` и `exec` для SQL-транзакций.
-   Полученные API реально применены в `src/db.mjs`, `src/schema.sql` и `src/service.mjs`, затем проверены локальным Node.js 22.16.0.
+   `query-docs`: `node:sqlite DatabaseSync`, prepared statements `run/get/all`, and `exec` for SQL transactions.
+   The retrieved APIs were used in `src/db.mjs`, `src/schema.sql`, and `src/service.mjs`, then tested locally with Node.js 22.16.0.
 
-## Первичные источники
+## Primary sources
 
 - Node SQLite: https://nodejs.org/docs/latest-v22.x/api/sqlite.html
 - OpenAI Structured Outputs: https://platform.openai.com/docs/guides/structured-outputs
 - Google Calendar events.insert: https://developers.google.com/workspace/calendar/api/v3/reference/events/insert
 - Resend idempotency keys: https://resend.com/docs/dashboard/emails/idempotency-keys
-- Next.js standalone output, изученный, но не использованный: https://nextjs.org/docs/app/api-reference/config/next-config-js/output
+- Next.js standalone output, researched but not used: https://nextjs.org/docs/app/api-reference/config/next-config-js/output
 
-Чтение документации не заменяет выполнение тестов. Локальные тесты подтверждают перечисленные в отчётах сценарии, а не готовность настоящих аккаунтов Google/Resend/OpenAI. Число «0 vulnerabilities» при создании lockfile без зависимостей не является независимым security audit приложения.
+Reading documentation does not replace running tests. Local tests confirm the scenarios listed in the reports, not the readiness of real Google/Resend/OpenAI accounts. A "0 vulnerabilities" result when creating a lockfile without dependencies is not an independent security audit of the application.

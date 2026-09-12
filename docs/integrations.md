@@ -1,6 +1,6 @@
-# Реальные интеграции
+# Real integrations
 
-По умолчанию все провайдеры mock. Выбор настоящего провайдера требует ключей, отсутствие ключа вызывает ошибку старта. Никогда не кладите реальные `.env` в Git и не присылайте токены в чат.
+All providers default to mocks. Selecting a real provider requires keys; a missing key causes a startup error. Never commit real `.env` files to Git or send tokens in chat.
 
 ## OpenAI
 
@@ -11,9 +11,9 @@ OPENAI_MODEL=gpt-4.1-mini
 LLM_TIMEOUT_MS=15000
 ```
 
-Имя модели — настраиваемое исходное значение, **не утверждение о самой новой/лучшей модели**. У выбранной модели должны поддерживаться Responses API и strict structured output. Адаптер в `src/providers/llm.mjs` вызывает `https://api.openai.com/v1/responses`, запрашивает только извлечение, требует evidence из сообщения, проверяет JSON-схему и допустимые поля. Весов, owner и calendar tools модель не получает. Невалидный ответ допускает одну repair-попытку, затем handoff. FAQ-ответ берётся из конфигурации по ID, а не копируется из произвольного вывода модели.
+The model name is a configurable default, **not a claim that it is the newest or best model**. The selected model must support the Responses API and strict structured output. The adapter in `src/providers/llm.mjs` calls `https://api.openai.com/v1/responses`, requests extraction only, requires evidence from the message, and validates the JSON schema and allowed fields. The model does not receive scoring weights, owner, or calendar tools. An invalid response allows one repair attempt, followed by handoff. FAQ answers are retrieved from configuration by ID rather than copied from arbitrary model output.
 
-`npm run eval` использует настоящий OpenAI при наличии ключа, но mock calendar/email. Прогон может быть платным. Локальный демо-парсер знает ограниченные английские выражения; успешный mock-прогон не переносится автоматически на произвольные реальные ответы.
+`npm run eval` uses real OpenAI when a key is present, but mock calendar/email providers. The run may incur charges. The local demo parser recognizes a limited set of English expressions; a successful mock run does not automatically generalize to arbitrary real responses.
 
 ## Google Calendar
 
@@ -25,11 +25,11 @@ GOOGLE_CLIENT_SECRET=your-oauth-client-secret
 GOOGLE_REFRESH_TOKEN=your-refresh-token
 ```
 
-Создайте выделенный календарь и получите OAuth refresh token для собственного авторизованного аккаунта. Приложению нужны чтение freeBusy и создание/изменение/удаление событий в выбранном календаре; OAuth-авторизация и consent screen выполняются вне этого приложения. Подходящие разрешения должны быть выданы вашему OAuth client согласно документации Google. OAuth callback/UI в этой редакции не реализованы.
+Create a dedicated calendar and obtain an OAuth refresh token for your own authorized account. The application needs freeBusy read access and permission to create/update/delete events in the selected calendar; OAuth authorization and the consent screen are handled outside this application. Your OAuth client must be granted suitable permissions according to Google's documentation. This edition does not implement an OAuth callback/UI.
 
-Адаптер обновляет access token в памяти, берёт реальные busy-интервалы, использует устойчивый event.id и private operation property. После тайм-аута ищет существующее событие. Повторная вставка не является гарантией exactly-once.
+The adapter refreshes the access token in memory, retrieves real busy intervals, and uses a stable event.id and a private operation property. After a timeout, it searches for an existing event. Repeating an insert does not guarantee exactly-once behavior.
 
-Во встречу **не добавляется email лида как attendee**, `sendUpdates=none`, стандартные напоминания отключены. Это предотвращает неуправляемые календарные письма; подтверждение видно в чате. Отмена и перенос доступны менеджеру, не клиенту. Цена и рыночные сроки не формируются.
+The lead's email **is not added as an attendee**, `sendUpdates=none`, and default reminders are disabled. This prevents uncontrolled calendar emails; confirmation appears in the chat. Cancellation and rescheduling are available to managers, not customers. The application does not generate prices or market-based timelines.
 
 ## Resend
 
@@ -41,26 +41,26 @@ EMAIL_REPLY_TO=team@your-domain.example
 EMAIL_ALLOWLIST=your-controlled-inbox@example.com
 ```
 
-Домен/отправитель должны быть подтверждены у провайдера. В `APP_MODE=demo` каждое письмо ограничено точным allowlist адресов. Это касается и исходной invitation, и follow-up. В live адреса допускаются согласно состоянию принятого лида; массовый импорт/холодный outbound не реализован.
+The domain/sender must be verified with the provider. In `APP_MODE=demo`, every email is restricted to an exact address allowlist. This applies to both the initial invitation and follow-up. In live mode, addresses are permitted according to the accepted lead's state; bulk import/cold outbound is not implemented.
 
-В запрос отправки передаются стабильный `Idempotency-Key` и тот же сохранённый payload. Resend документирует срок действия ключа 24 часа; приложение использует консервативный предел replay 23 часа. При неизвестном результате без безопасной сверки включается ручная обработка. Provider API acknowledgement означает принятие письма сервисом, а не доставку во входящие.
+Send requests use a stable `Idempotency-Key` and the same persisted payload. Resend documents a 24-hour key lifetime; the application uses a conservative 23-hour replay limit. An unknown result without safe reconciliation requires manual handling. Provider API acknowledgement means the service accepted the email, not that it reached the inbox.
 
-## Контрольный реальный прогон
+## Live smoke test
 
-Настройте выделенный календарь, проверенный адрес `SMOKE_EMAIL` и внесите этот адрес в `EMAIL_ALLOWLIST`. Затем:
+Configure a dedicated calendar and a verified `SMOKE_EMAIL` address, and add that address to `EMAIL_ALLOWLIST`. Then run:
 
 ```sh
 npm run live:smoke -- --confirm
 ```
 
-**Команда совершает реальные действия:** создаёт синтетическое событие, читает его, отправляет одно настоящее письмо и удаляет событие в cleanup. Неполный cleanup требует ручной проверки event.id из отчёта. Не повторяйте команду вслепую после unknown. Отчёт записывается в `evidence/live-smoke.json`. В поставленной версии такого успешного live-отчёта нет: ключи не были предоставлены и команда не выполнялась.
+**This command performs real actions:** it creates a synthetic event, reads it, sends one real email, and deletes the event during cleanup. Incomplete cleanup requires a manual check of the event.id in the report. Do not blindly repeat the command after an unknown result. The report is written to `evidence/live-smoke.json`. The delivered version has no successful live report: keys were not supplied and the command was not run.
 
-## Ограничения доступа и расходов
+## Access and spending limits
 
-В live используется новый путь БД, HTTPS reverse proxy, изменённые пароли и webhook-secret, 64-hex encryption key. Пример генерации ключа у себя:
+Live mode uses a new database path, an HTTPS reverse proxy, changed passwords and webhook secret, and a 64-character hexadecimal encryption key. To generate a key locally:
 
 ```sh
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 ```
 
-Прикладные лимиты ограничивают число запросов, но не заменяют billing cap у провайдера. Перед публикацией в интернете настройте собственные пределы расходов и внешних получателей. Не размещайте реальные контакты в публичном демо.
+Application limits restrict request counts but do not replace a provider billing cap. Before publishing on the internet, configure your own spending limits and restrictions on external recipients. Do not put real contacts in a public demo.

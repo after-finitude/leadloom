@@ -1,43 +1,43 @@
-# HTTP API автономной версии
+# Standalone edition HTTP API
 
-Все маршруты имеют префикс `/api`. Публичный клиент не передаёт доверенные lead/contact IDs, owner или score. Изменения браузера требуют application/json, точного Origin и CSRF для действий существующей сессии. Cookies HttpOnly/SameSite=Strict; Secure включается при HTTPS. Webhook использует Bearer и не требует browser CSRF.
+All routes use the `/api` prefix. The public client does not supply trusted lead/contact IDs, owner, or score. Browser writes require application/json, an exact Origin match, and CSRF for actions within an existing session. Cookies use HttpOnly/SameSite=Strict; Secure is enabled for HTTPS. The webhook uses Bearer authentication and does not require browser CSRF.
 
-| Метод / путь | Назначение |
+| Method / path | Purpose |
 |---|---|
-| GET /health, /meta | Состояние сервиса и безопасная публичная конфигурация |
-| POST /auth/login, /auth/logout; GET /me | Вход, выход и staff CSRF |
-| POST /leads/intake | Авторизованный webhook: source, event_key, name?, email?, phone?, service_type?, external_id? |
-| POST /public/intake | Форма: event_key, name?, email?, phone?, service_type?; source задаёт сервер |
-| GET /public/chat | Только собственные сообщения, доступная встреча и visitor CSRF |
-| POST /public/chat/messages | body, key; durable обработка |
-| GET /public/chat/availability | Серверные предложения слотов собственного лида |
-| POST /public/chat/appointments | offerId, key; явный выбор, ответ о сохранённой операции, не фиктивное подтверждение |
-| POST /public/chat/access | token → одноразовый обмен на visitor-session |
-| POST /public/chat/request-access | email; нейтральный результат, доверенный канал и лимиты |
-| POST /public/unsubscribe | Отдельный scoped token; без staff-логина |
-| GET /leads, /conversations, /users, /contacts | Защищённые staff-списки |
-| GET/PATCH /leads/:id | Профиль / {fields, locked, unlock?} |
-| POST /leads/:id/messages | Ручной ответ {body,key} с Take over |
-| POST /leads/:id/notes | Внутренняя заметка {body} |
-| POST /leads/:id/takeover, return-to-ai, pause, resume | Независимые действия управления, reason при разрешении review |
-| POST /leads/:id/restore-consent | Только admin: reason, confirmed:true |
-| POST /leads/:id/stage, assign, recalculate | Стадия / менеджер / явный переход к текущей версии score |
-| GET /appointments/:id/availability | Разрешённые интервалы для переноса сотрудником |
-| POST /appointments/:id/cancel, reschedule | key и для переноса offerId |
-| GET /runs | Сохранённые действия, операции, события intake |
-| POST /runs/:id/retry | Только допустимый безопасный повтор |
-| POST /operations/:id/reconcile | Сверка неопределённого внешнего результата |
-| POST /intake-events/:id/resolve | contactId; ручное решение конфликта идентификаторов |
-| GET/PUT /settings | Просмотр сотрудником / admin-only изменение с revision |
-| GET/POST /rules | Просмотр / admin-only публикация неизменяемой версии |
-| GET /outbox | Только admin в demo; локальные mock-письма |
+| GET /health, /meta | Service health and safe public configuration |
+| POST /auth/login, /auth/logout; GET /me | Login, logout, and staff CSRF |
+| POST /leads/intake | Authorized webhook: source, event_key, name?, email?, phone?, service_type?, external_id? |
+| POST /public/intake | Form: event_key, name?, email?, phone?, service_type?; source is set by the server |
+| GET /public/chat | Only the visitor's own messages, available appointment, and visitor CSRF |
+| POST /public/chat/messages | body, key; durable processing |
+| GET /public/chat/availability | Server-provided slot offers for the visitor's own lead |
+| POST /public/chat/appointments | offerId, key; explicit selection, response describes the persisted operation rather than a fabricated confirmation |
+| POST /public/chat/access | token → single-use exchange for a visitor session |
+| POST /public/chat/request-access | email; neutral response, trusted channel, and limits |
+| POST /public/unsubscribe | Separate scoped token; no staff login required |
+| GET /leads, /conversations, /users, /contacts | Protected staff lists |
+| GET/PATCH /leads/:id | Profile / {fields, locked, unlock?} |
+| POST /leads/:id/messages | Manual reply {body,key} with Take over |
+| POST /leads/:id/notes | Internal note {body} |
+| POST /leads/:id/takeover, return-to-ai, pause, resume | Independent controls; reason required when resolving a review |
+| POST /leads/:id/restore-consent | Admin only: reason, confirmed:true |
+| POST /leads/:id/stage, assign, recalculate | Stage / manager / explicit switch to the current scoring version |
+| GET /appointments/:id/availability | Allowed intervals for staff rescheduling |
+| POST /appointments/:id/cancel, reschedule | key and, for rescheduling, offerId |
+| GET /runs | Persisted actions, operations, and intake events |
+| POST /runs/:id/retry | Only an allowed, safe retry |
+| POST /operations/:id/reconcile | Reconciliation of an uncertain external result |
+| POST /intake-events/:id/resolve | contactId; manual resolution of an identifier conflict |
+| GET/PUT /settings | Staff viewing / admin-only update with revision |
+| GET/POST /rules | Viewing / admin-only publication of an immutable version |
+| GET /outbox | Admin only in demo mode; local mock emails |
 
-`GET /leads` и `/conversations` возвращают объект `{items, total, page, pageSize, stats}` вместо массива. Параметры: `q` (поиск подстроки по имени, email, телефону и услуге, до 200 символов), `filter` (`all`, `attention`, `ai`, `human`, `booked`, `waiting`), `page` (от 1), `pageSize` (1–100, по умолчанию 50). `%` и `_` в поиске считаются обычными символами. Результат упорядочен по последнему изменению и ID; страница за пределами результата ограничивается последней доступной.
+`GET /leads` and `/conversations` return an `{items, total, page, pageSize, stats}` object instead of an array. Parameters: `q` (substring search across name, email, phone, and service, up to 200 characters), `filter` (`all`, `attention`, `ai`, `human`, `booked`, `waiting`), `page` (starting at 1), and `pageSize` (1–100, default 50). `%` and `_` are treated as ordinary characters in searches. Results are ordered by the most recent update and ID; a page beyond the result range is clamped to the last available page.
 
-`total` — число записей после поиска и фильтра; `stats` содержит общие для всей базы `total`, `open`, `ai`, `attention`, `booked`, независимо от страницы и поиска. Например, `/api/leads?q=roofing&filter=ai&page=2&pageSize=50` возвращает вторую страницу подходящих лидов и общие счётчики CRM.
+`total` is the record count after search and filtering; `stats` contains database-wide `total`, `open`, `ai`, `attention`, and `booked` counts, independent of the page and search. For example, `/api/leads?q=roofing&filter=ai&page=2&pageSize=50` returns the second page of matching leads and overall CRM counters.
 
-Лимит клиентского чата действует на лид, определённый по проверенной visitor-сессии. Форма, восстановление доступа и другие публичные маршруты сохраняют лимиты по IP; произвольный cookie их не обходит. Настройка доверенных прокси описана в `docs/runbook.md`.
+The customer chat limit applies per lead, identified through a verified visitor session. The form, access recovery, and other public routes retain IP limits; an arbitrary cookie cannot bypass them. Trusted proxy configuration is described in `docs/runbook.md`.
 
-Реальные точные допустимые JSON-ключи определены `allowKeys` в `src/http.mjs`/`service.mjs`; примеры воспроизводимого использования — `tests/http.test.mjs`. Это компактный контракт локальной версии, а не обещание совпадения каждой URL из ТЗ.
+The exact accepted JSON keys are defined by `allowKeys` in `src/http.mjs`/`service.mjs`; reproducible usage examples are in `tests/http.test.mjs`. This is a compact contract for the local edition, not a promise to match every URL in the specification.
 
-Результаты различают rejected (422), conflict (409), forbidden (403), unauthorized (401), accepted/pending (202) и подтверждённый результат. Отдельные команды статуса возвращают данные текущего состояния; клиент не считает 202 фактом созданной встречи.
+Results distinguish rejected (422), conflict (409), forbidden (403), unauthorized (401), accepted/pending (202), and confirmed outcomes. Separate status commands return current state data; the client does not treat 202 as proof that an appointment has been created.

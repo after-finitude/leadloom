@@ -1,260 +1,260 @@
-# Leadloom — план реализации v1.1
+# Leadloom — implementation plan v1.1
 
-**Название для портфолио:** Leadloom — AI Lead Qualification & Booking.  
-**Дата редакции:** 8 сентября 2026 года.  
-**Основание:** [Техническое задание v1.1](Leadloom-TZ-v1.1.md). Критерии `AC-01`–`AC-26` определены в §14 ТЗ.
+**Portfolio title:** Leadloom — AI Lead Qualification & Booking.  
+**Revision date:** September 8, 2026.  
+**Basis:** [Technical specification v1.1](Leadloom-TZ-v1.1.md). Criteria `AC-01`–`AC-26` are defined in §14 of the specification.
 
-## Цель и объём первой версии
+## Goal and scope of the first version
 
-Полноценный продукт для одной сервисной компании: **входящая заявка → веб-чат → AI-квалификация → объяснимый score → запись в Google Calendar → сопровождение менеджером**.
+A complete product for one service company: **incoming enquiry → web chat → AI qualification → explainable score → Google Calendar booking → manager follow-through**.
 
-Разработка ведётся по работающим сценариям. Веб-форма, чат и встроенная CRM соединяются на этапе 3; полный путь до реальной встречи заканчивается на этапе 6. Экран Conversations, журнал и тесты растут вместе с функциональностью, а не появляются только перед выпуском.
+Development proceeds through working scenarios. The web form, chat, and built-in CRM are connected in stage 3; the full path to a real appointment is completed in stage 6. The Conversations screen, log, and tests grow with the functionality rather than appearing only before release.
 
-Входят одна компания, один реальный LLM-провайдер, один календарь, один email-сервис, встроенная CRM, управление человеком, настройки и базовый Execution Log. GoHighLevel, SMS, дополнительные LLM, входящие email-диалоги, расширенная аналитика и дополнительные nurture-последовательности не входят в приёмку этой версии.
+Scope includes one company, one real LLM provider, one calendar, one email service, a built-in CRM, human controls, settings, and a basic Execution Log. GoHighLevel, SMS, additional LLMs, inbound email conversations, advanced analytics, and additional nurture sequences are outside this version's acceptance scope.
 
-План сохраняет десять этапов исходного документа. Уточнения относительно него: первое email-приглашение и защищённый возврат в чат реализуются уже на этапе 3; минимальные ограничения отправки — до первой внешней отправки; полный handoff и приоритеты управления — на этапе 5. Новые числовые значения и продуктовые решения явно перечислены в §0 ТЗ, а не приписываются исходникам.
+The plan retains the original document's ten stages. Clarifications: the initial email invitation and secure return to chat are implemented in stage 3; minimum sending restrictions are in place before the first external send; complete handoff and control priorities are implemented in stage 5. New numerical values and product decisions are explicitly listed in §0 of the specification rather than attributed to the original sources.
 
-## 1. Зафиксировать уточнённый контракт и демо-конфигурацию
+## 1. Finalize the clarified contract and demo configuration
 
-**Зависимости:** нет. Обновлённое ТЗ уже подготовлено; результат этапа — его фиксация в репозитории и тестовых данных, а не ещё один круг написания документа.
+**Dependencies:** none. The updated specification is already prepared; this stage records it in the repository and test data rather than starting another round of document writing.
 
-До основного кода закрепить:
+Before writing the main application code, finalize:
 
-- D01–D10 из ТЗ: каналы первого контакта, круглосуточные входящие, отдельные owner/pause/opt-out/review, судьбу Warm/Nurture/Unqualified, ограничения первой версии.
-- Таблицу полей: обязательные service/location, условно обязательный email перед записью, необязательные бюджет/срок/полномочия, не более двух уточнений после первоначального вопроса.
-- Демо-правила scoring, пороги Hot/Warm, hard reject, фиксированную версию правил для каждого Lead. Бюджетные ориентиры и территория маркируются как синтетические, не реальные коммерческие данные.
-- Две follow-up-последовательности, задержки и лимит по три касания каждой на Lead; запрет автоматического nurture и цепочек после Booked/Proposal.
-- Семантику intake и повторного обращения, обе политики активных сделок, отдельные эффекты Return to AI, Resume и Restore consent.
+- D01–D10 from the specification: first-contact channels, round-the-clock intake, separate owner/pause/opt-out/review states, handling of Warm/Nurture/Unqualified leads, and first-version limitations.
+- The field table: required service/location, conditionally required email before booking, optional budget/timeline/authority, and no more than two clarifications after the initial question.
+- Demo scoring rules, Hot/Warm thresholds, hard rejection, and a pinned rule version for each Lead. Budget references and service areas are labeled as synthetic, not real commercial data.
+- Two follow-up sequences, their delays, and a limit of three touches per sequence per Lead; no automatic nurture or sequences after Booked/Proposal.
+- Intake and repeat-enquiry semantics, both active-deal policies, and the separate effects of Return to AI, Resume, and Restore consent.
 
-Подготовить начальный набор минимум из 20 сценариев и ожидаемых исходов. Для новых параметров записать значения из ТЗ в конфигурационные фикстуры; пороги evaluation закрепить до первого оценочного прогона.
+Prepare an initial set of at least 20 scenarios with expected outcomes. Record the specification's new parameter values in configuration fixtures; lock evaluation thresholds before the first evaluation run.
 
-**Проверка:** у каждой строки AC есть этап и вид теста в матрице в конце плана; нет требования GoHighLevel/SMS или общего запрета ночных входящих, унаследованного из старой приёмки.
+**Verification:** each AC row has a stage and test type in the matrix at the end of the plan; no GoHighLevel/SMS requirement or blanket prohibition on nighttime intake is inherited from the old acceptance criteria.
 
-**Результат:** ТЗ, план, seed-конфигурация и ожидаемые исходы описывают один продукт. Изменение принятого значения дальше сопровождается новой версией и обновлением тестов, а не скрытым условием в prompt.
+**Outcome:** the specification, plan, seed configuration, and expected outcomes describe the same product. Subsequent changes to an accepted value require a new version and updated tests, not a hidden condition in a prompt.
 
-## 2. Подготовить приложение, данные и доступы
+## 2. Set up the application, data, and access
 
-**Зависимости:** этап 1.
+**Dependencies:** stage 1.
 
-| Часть | Реализация |
+| Component | Implementation |
 |---|---|
-| Интерфейс | Next.js, TypeScript, Tailwind |
-| API и бизнес-логика | NestJS |
-| Данные | PostgreSQL 16 |
-| Фоновые задачи | Redis, BullMQ, отдельный worker из общей кодовой базы |
-| Интеграции | `LLMProvider`, `CalendarProvider`, `EmailProvider`: один реальный адаптер каждого типа и mock для тестов |
-| Запуск | Docker Compose, миграции, seed, конфигурация окружения |
+| Interface | Next.js, TypeScript, Tailwind |
+| API and business logic | NestJS |
+| Data | PostgreSQL 16 |
+| Background tasks | Redis, BullMQ, a separate worker from the shared codebase |
+| Integrations | `LLMProvider`, `CalendarProvider`, `EmailProvider`: one real adapter of each type and a mock for tests |
+| Startup | Docker Compose, migrations, seed, environment configuration |
 
-Один репозиторий и один backend. Встроенная CRM работает с той же БД; внешний `CRMProvider` ради отсутствующего GoHighLevel не требуется. Не выделять отдельные микросервисы и не строить универсальную платформу интеграций.
+One repository and one backend. The built-in CRM uses the same database; an external `CRMProvider` is not needed for the excluded GoHighLevel integration. Do not split the application into separate microservices or build a general-purpose integration platform.
 
-Реализовать вход менеджера и администратора, роли, базовую защищённую сессию посетителя, публичные схемы ответа, авторизацию webhook, ограничения запросов и общую обработку ошибок. Подготовить модель токенов возврата/отписки; их пользовательский путь завершится на этапе 3.
+Implement manager and administrator login, roles, a basic protected visitor session, public response schemas, webhook authorization, request limits, and shared error handling. Prepare the return/unsubscribe token model; its user flow is completed in stage 3.
 
-Создать основные миграции и инфраструктуру `correlation_id`, ключей операций, append-only audit и сохранённых фоновых намерений. Данные и намерение поставить задачу должны фиксироваться атомарно. Worker получает состояние из БД и не полагается на Redis как на единственную копию задачи.
+Create the core migrations and infrastructure for `correlation_id`, operation keys, append-only audit, and persisted background intents. Data and the intent to enqueue a task must be committed atomically. The worker retrieves state from the database and does not rely on Redis as the task's only copy.
 
-Получить и проверить реальные доступы к выбранному LLM, выделенному календарю и email-сервису, настроить отправителя. Зафиксировать версии модели/зависимостей, тайм-ауты, ограниченные retry и правила хранения секретов. Проверить возможности провайдеров по идемпотентности и сверке результата: отсутствие такой возможности означает `unknown → manual`, а не обещание безопасного повторного send.
+Obtain and verify real access to the selected LLM, dedicated calendar, and email service; configure the sender. Pin model/dependency versions, timeouts, bounded retries, and secret-storage rules. Check providers' idempotency and reconciliation capabilities: if a capability is unavailable, use `unknown → manual` rather than promising safe repeat sends.
 
-**Проверки вместе с работами:** вход и роли; запрет чужих данных; отсутствие секретов в логах; отсутствие UPDATE/DELETE у роли приложения для AuditEvent; сохранение pending action; повторная обработка задания без второго эффекта на тестовом обработчике.
+**Checks alongside implementation:** login and roles; denial of access to others' data; no secrets in logs; no UPDATE/DELETE permission on AuditEvent for the application role; persistence of pending actions; task reprocessing without a second effect in a test handler.
 
-**Результат:** приложение запускается одной документированной последовательностью; сотрудники входят под своими ролями; API и worker видят сохранённое состояние; интеграционные доступы реально проверены. Основа AC-19, AC-20 и AC-23 готова.
+**Outcome:** the application starts through one documented sequence; staff log in with their roles; the API and worker see persisted state; integration access has actually been verified. The foundation for AC-19, AC-20, and AC-23 is ready.
 
-## 3. Реализовать intake, встроенную CRM и живой чат
+## 3. Implement intake, the built-in CRM, and live chat
 
-**Зависимости:** этап 2.
+**Dependencies:** stage 2.
 
-Добавить форму, webhook и генератор событий. Реализовать Contact, Lead, Opportunity, Conversation, Message, IntakeEvent и timeline. Минимальный UI уже показывает список, карточку и переписку и позволяет посетителю/менеджеру отправлять сообщения.
+Add the form, webhook, and event generator. Implement Contact, Lead, Opportunity, Conversation, Message, IntakeEvent, and the timeline. The minimal UI already shows a list, a profile, and message history, and allows visitors/managers to send messages.
 
-В intake реализовать валидацию, нормализацию телефона/email, сохранение rejected, `correlation_id` и ключ события. Повтор того же payload возвращает прежний результат; изменение payload при том же ключе — конфликт. Повтор сообщения с тем же клиентским ключом не добавляет вторую строку.
+In intake, implement validation, phone/email normalization, rejected-event persistence, `correlation_id`, and an event key. Repeating the same payload returns the previous result; changing the payload under the same key causes a conflict. Repeating a message with the same client key does not add a second row.
 
-Развести дедупликацию и маршрутизацию: однозначный контакт используется повторно; конфликт идентификаторов сохраняется для менеджера без автоматического слияния. Новое событие активного обращения создаёт `re_engaged`; после Won/Lost создаётся новый процесс. Обе политики активных сделок проверяются отдельно; неизвестная услуга при неоднозначности требует ручного решения.
+Separate deduplication from routing: reuse an unambiguously identified contact; preserve identifier conflicts for the manager without automatic merging. A new event for an active enquiry creates `re_engaged`; after Won/Lost, create a new process. Test both active-deal policies separately; an unknown service with ambiguous routing requires manual resolution.
 
-**Закрыть канал первого контакта уже здесь:**
+**Complete the first-contact channel at this stage:**
 
-| Вход | Реализация на этапе 3 |
+| Input | Stage 3 implementation |
 |---|---|
-| Встроенная форма | Защищённый чат и первый содержательный вопрос из конфигурации; свободный AI-диалог подключается на этапе 4 |
-| Webhook с email, без сессии | Реальное одноразовое письмо-приглашение; безопасный обмен ссылки на сессию; измерение времени до приёма письма провайдером |
-| Webhook только с телефоном | Очередь менеджеров с `no_automated_channel`; отсутствие фиктивной отправки |
-| Известный контакт | Существующая история открывается только после авторизации, а не по совпадению введённого email/телефона |
+| Built-in form | Protected chat and the first substantive question from configuration; free-form AI conversation is added in stage 4 |
+| Webhook with email, no session | A real one-time invitation email; safe link exchange for a session; measurement of time until the provider accepts the email |
+| Phone-only webhook | Manager queue with `no_automated_channel`; no fabricated send |
+| Known contact | Existing history opens only after authorization, not merely because the submitted email/phone matches |
 
-Реализовать базовую отписку и проверку opt-out, паузы и владельца до первого внешнего email. Ручное сообщение уже выполняет Take over. Не откладывать эти предохранители до follow-up; полный набор переходов и гонок будет принят на этапе 5.
+Implement basic unsubscribe and checks for opt-out, pause, and owner before the first external email. A manual message already performs Take over. Do not defer these safeguards until follow-up; the full set of transitions and races is accepted in stage 5.
 
-Начать измерять first-contact latency с корректной точкой начала и завершения. Сохранить отдельные статусы для отправки, ошибки и отсутствующего автоматического канала. Таймер ожидания клика по письму не включается в SLA первого письма.
+Start measuring first-contact latency using the correct start and end points. Persist separate statuses for sending, errors, and the absence of an automated channel. Waiting for an email click is not included in the first-email SLA.
 
-**Проверки:** три одинаковых webhook; конфликт ключа; rejected; обе политики активных сделок; телефон/email разных контактов; сохранение истории после обновления страницы; перезагрузка worker; безопасная ссылка и отписка; чужая сессия; публичная форма с email/телефоном существующего контакта не раскрывает его историю и не заменяет доверенный адрес новым; ночной intake.
+**Checks:** three identical webhooks; key conflict; rejected intake; both active-deal policies; phone/email belonging to different contacts; history persistence after page refresh; worker restart; safe link and unsubscribe; another visitor's session; a public form using an existing contact's email/phone does not expose history or replace a trusted address with a new one; nighttime intake.
 
-**Результат:** заявка, встроенная CRM и живой чат работают; webhook с email имеет реальный путь возвращения в чат. AC-01–AC-03, базовые AC-18, AC-19, AC-21 и AC-23 проверяемы. Это первая демонстрируемая контрольная точка.
+**Outcome:** intake, the built-in CRM, and live chat work; an email webhook has a real return path to chat. AC-01–AC-03 and basic AC-18, AC-19, AC-21, and AC-23 can be verified. This is the first demonstrable milestone.
 
-## 4. Подключить AI-квалификацию
+## 4. Connect AI qualification
 
-**Зависимости:** этап 3.
+**Dependencies:** stage 3.
 
-AI извлекает сведения и формулирует текст; код выбирает следующий шаг и разрешённые действия. Начать с одного набора полей из §7.3 ТЗ, без универсального редактора схем.
+AI extracts information and drafts text; code chooses the next step and permitted actions. Start with one field set from §7.3 of the specification, without a general-purpose schema editor.
 
-Реализовать строгую JSON-схему, извлечение нескольких полей одним turn, один вопрос за сообщение, пропуск закрытых вопросов и ограничение уточнений. Неизвестное отличается от `false`, нуля и явного неподходящего значения. Состояние каждого поля хранит источник, время, попытки уточнения и статус неизвестности.
+Implement a strict JSON schema, multi-field extraction in one turn, one question per message, skipping answered questions, and clarification limits. Unknown is distinct from `false`, zero, and an explicitly unsuitable value. Each field's state records its source, timestamp, clarification attempts, and unknown status.
 
-Добавить исправление ранее сообщённых сведений, `FieldRevision` и фиксацию ручных правок менеджера. Противоречащее зафиксированному поле предложение не перезаписывает значение; существенный конфликт передаётся на проверку.
+Add corrections to previously supplied information, `FieldRevision`, and locking of manual manager edits. A proposal that conflicts with a locked field does not overwrite it; a material conflict is handed off for review.
 
-Подключить небольшой FAQ и brand voice. Вопрос вне FAQ, запрос человека, негатив, запрещённая тема, неизвестное обязательное поле и неустранимый сбой модели вызывают общий механизм передачи, а не длинные импровизированные ответы. Передача не зависит от успешного LLM-summary: контекст доступен из сохранённых данных.
+Connect a small FAQ and brand voice. Questions outside the FAQ, requests for a human, negative responses, prohibited topics, unknown required fields, and unrecoverable model failures trigger the shared handoff mechanism rather than long improvised answers. Handoff does not depend on a successful LLM summary: context is available from persisted data.
 
-Настроить одну repair-попытку для невалидного JSON, ограниченный тайм-аут и понятную ошибку. Модель не получает прямого доступа к календарю, базе и отправке email. Проверка предложения модели кодом обязательна даже при корректном JSON.
+Configure one repair attempt for invalid JSON, a bounded timeout, and a clear error. The model has no direct access to the calendar, database, or email sending. Code must validate the model's proposal even when the JSON is valid.
 
-**Проверки:** несколько сведений одним сообщением; необязательное «не знаю»; два уточнения критичного поля; исправление; ручная фиксация; FAQ/вопрос вне FAQ; ошибочный JSON; тайм-аут; prompt injection; отсутствие повторного вопроса после полученного ответа.
+**Checks:** multiple facts in one message; optional "I don't know"; two clarifications for a critical field; corrections; manual locks; FAQ/questions outside the FAQ; invalid JSON; timeout; prompt injection; no repeated question after an answer has been received.
 
-**Результат:** посетитель общается свободно, а менеджер видит переписку и заполняющиеся поля с источниками. Реализованы AC-04–AC-06, существенная часть AC-09, AC-20 и AC-23. Фикстуры AI-набора запускаются по мере появления функций, не только на этапе 9.
+**Outcome:** the visitor can converse freely, while the manager sees the conversation and fields being populated with their sources. AC-04–AC-06 and substantial parts of AC-09, AC-20, and AC-23 are implemented. AI fixtures are run as features appear, not only in stage 9.
 
-## 5. Добавить scoring и завершить управление диалогом
+## 5. Add scoring and complete conversation controls
 
-**Зависимости:** этап 4.
+**Dependencies:** stage 4.
 
-Реализовать детерминированные веса, пороги и hard reject из ТЗ. Для каждого результата сохранять входной снимок, сумму, категорию, причины и закреплённую версию правил. Старый Lead остаётся на прежней версии; явный пересчёт по новой версии доступен менеджеру и журналируется.
+Implement the deterministic weights, thresholds, and hard rejection from the specification. For each result, persist the input snapshot, total, category, reasons, and pinned rule version. An existing Lead retains its previous version; a manager can explicitly recalculate using a new version, and the action is logged.
 
-Отдельно хранить и отображать commercial category, qualification status, opportunity stage, human review, owner, paused и contact-level opt-out. Нельзя использовать категорию «Needs human review» вместо самостоятельного признака или считать высокий score разрешением на booking.
+Store and display commercial category, qualification status, opportunity stage, human review, owner, paused, and contact-level opt-out separately. Do not use a "Needs human review" category in place of an independent flag or treat a high score as booking permission.
 
-Завершить автоматический handoff: причины, очередь, summary с резервным вариантом, контекст и ссылку. Новый ответ лида после передачи не включает AI. Реализовать точную семантику Take over, Return to AI, Pause, Resume и отдельного Restore consent; последнее доступно администратору и требует подтверждения/основания.
+Complete automatic handoff: reasons, queue, summary with a fallback, context, and link. A new lead reply after handoff does not enable AI. Implement the exact semantics of Take over, Return to AI, Pause, Resume, and separate Restore consent; the latter is administrator-only and requires confirmation/a reason.
 
-Сделать обработку одного диалога последовательной; любые изменения, влияющие на ответ, меняют ревизию. Перед публикацией/отправкой повторно проверяются ревизия и разрешения. STOP применяется до LLM и не ждёт завершения генерации. Отмена ожидающих задач подкрепляется проверкой в worker, а не только удалением задания из очереди.
+Process each conversation sequentially; any change affecting a reply increments its revision. Recheck revision and permissions immediately before publishing/sending. STOP is applied before the LLM and does not wait for generation to finish. Cancellation of pending tasks is backed by a worker check, not only by removing a job from the queue.
 
-Проверить различие «не начать новую отправку после запрета» и «отозвать уже принятый внешний запрос». Второе не обещается; уже начатая операция сверяется и журналируется.
+Verify the distinction between "do not start a new send after a prohibition" and "revoke an external request that has already been accepted." The latter is not promised; an operation that has already started is reconciled and logged.
 
-**Проверки:** все границы score; неизвестные значения; hard reject при высокой сумме; новая версия правил; два обращения одного opt-out контакта; STOP во время генерации; ручной ответ во время генерации; человеческий владелец после нового intake; различие Resume/Return to AI/Restore consent; отсутствие автоматического nurture.
+**Checks:** all score boundaries; unknown values; hard rejection despite a high total; new rule version; two enquiries from one opted-out contact; STOP during generation; manual reply during generation; human ownership after new intake; differences between Resume/Return to AI/Restore consent; no automatic nurture.
 
-**Результат:** score объясним, автоматизация управляема, а handoff действительно останавливает дальнейшие действия. AC-07–AC-11 и соответствующие части AC-19/AC-23 закрыты. Это вторая контрольная точка.
+**Outcome:** scores are explainable, automation is controllable, and handoff actually stops subsequent actions. AC-07–AC-11 and the relevant parts of AC-19/AC-23 are complete. This is the second milestone.
 
-## 6. Реализовать запись в Google Calendar
+## 6. Implement Google Calendar booking
 
-**Зависимости:** этап 5; доступы и проверка возможностей адаптера из этапа 2.
+**Dependencies:** stage 5; access and adapter capability checks from stage 2.
 
-Получать реальную доступность с учётом расписания, часового пояса, длительности, буфера и окна поиска. Показывать 3–5 слотов либо все 1–2 найденных; при отсутствии — передавать человеку. В интерфейсе всегда указан часовой пояс, а в БД время хранится в UTC.
+Retrieve real availability, accounting for the schedule, timezone, duration, buffer, and search window. Show 3–5 slots, or all 1–2 slots found; hand off to a human if there are none. The interface always shows the timezone, and database timestamps are stored in UTC.
 
-Политика booking — отдельная проверяемая функция: завершённость квалификации, Hot/Warm, service/location fit, обязательные поля, email, владелец, review, пауза, opt-out, стадия, отсутствие активной встречи/операции и действительный выбор. Нельзя заменить эту функцию одним сравнением score или указанием модели.
+Booking policy is a separate testable function: qualification completion, Hot/Warm, service/location fit, required fields, email, owner, review, pause, opt-out, stage, no active appointment/operation, and a valid selection. A score comparison or model instruction cannot replace this function.
 
-Порядок записи:
+Booking sequence:
 
-1. Сформировать серверное предложение слотов и получить явный выбор посетителя.
-2. Создать сохраняемый booking intent и устойчивый ключ операции.
-3. Защитить пересекающиеся операции приложения, перечитать состояние и повторно проверить занятость.
-4. Создать событие и сохранить внешний идентификатор/подтверждённый результат.
-5. Только после подтверждения перевести сделку в Booked, показать результат и подготовить контекст менеджеру.
+1. Generate server-provided slot offers and receive the visitor's explicit selection.
+2. Create a persisted booking intent and stable operation key.
+3. Guard against overlapping application operations, reread state, and recheck availability.
+4. Create the event and persist the external identifier/confirmed result.
+5. Only after confirmation, move the deal to Booked, display the result, and prepare context for the manager.
 
-Добавить сверку при потере ответа после создания события. `unknown` не повторяется как новая запись; при невозможности установить результат — очередь менеджера. Сохранённый идентификатор связывает retry с прежней операцией. Повторная доступность не означает атомарную блокировку независимых редакторов календаря; использовать выделенный календарь и явно документировать эту границу.
+Add reconciliation when a response is lost after event creation. `unknown` is not retried as a new booking; if the result cannot be established, use the manager queue. The persisted identifier ties a retry to the original operation. Rechecking availability is not an atomic lock against independent calendar editors; use a dedicated calendar and document this boundary explicitly.
 
-Добавить отмену/перенос менеджером с ключами, проверкой результата и сохранением старого подтверждённого состояния при ошибке. Отмена не возобновляет follow-up автоматически. Не включать независимые календарные email-напоминания, которые обходят общие запреты приложения.
+Add manager cancellation/rescheduling with keys, result verification, and preservation of the old confirmed state on failure. Cancellation does not automatically resume follow-up. Do not enable independent calendar email reminders that bypass the application's shared restrictions.
 
-**Проверки:** Hot/Warm; неизвестный email; выбор чужого/устаревшего слота; часовые пояса и переход времени; 1–2/0 слотов; конкурентные перекрывающиеся интервалы; повтор запроса; отказ до создания и тайм-аут после реального создания; отмена и перенос; отсутствие ложного Booked. Для live smoke использовать выделенный календарь и синтетические данные.
+**Checks:** Hot/Warm; unknown email; selection of another lead's/stale slot; timezones and daylight saving transitions; 1–2/0 slots; concurrent overlapping intervals; repeated request; failure before creation and timeout after actual creation; cancellation and rescheduling; no false Booked state. Use a dedicated calendar and synthetic data for live smoke testing.
 
-**Результат:** весь путь от заявки до настоящей встречи работает. AC-12–AC-15, календарная часть AC-19/AC-20 и часть AC-25 закрыты. Это главный промежуточный рубеж продукта.
+**Outcome:** the full path from enquiry to a real appointment works. AC-12–AC-15, the calendar parts of AC-19/AC-20, and part of AC-25 are complete. This is the product's main intermediate milestone.
 
-## 7. Добавить две email-последовательности
+## 7. Add two email sequences
 
-**Зависимости:** этап 6; отправитель, ссылка и отписка уже работают с этапа 3.
+**Dependencies:** stage 6; sender, return link, and unsubscribe have worked since stage 3.
 
-Реализовать только `qualification_abandoned` и `qualified_not_booked`, используя условия и демо-задержки §7.7 ТЗ. Версия последовательности фиксирует шаблоны и задержки; актуальные запреты и рабочие часы проверяются отдельно.
+Implement only `qualification_abandoned` and `qualified_not_booked`, using the conditions and demo delays in §7.7 of the specification. The sequence version pins templates and delays; current restrictions and working hours are checked separately.
 
-Не более трёх принятых провайдером касаний каждой последовательности на Lead. Ответ отменяет текущий запуск, новый запуск не обнуляет счётчик. Две цепочки не активны одновременно; Unqualified/Nurture и Booked/Proposal/Won/Lost не получают дополнительную автоматическую последовательность.
+No more than three provider-accepted touches per sequence per Lead. A reply cancels the current run; starting another run does not reset the counter. The two sequences are not active simultaneously; Unqualified/Nurture and Booked/Proposal/Won/Lost do not receive an additional automated sequence.
 
-Worker перед отправкой перечитывает состояние: email, ответ, квалификацию, booking и незавершённую booking-операцию, стадию, владельца, review, паузу, opt-out, лимит касаний и допустимое время. Изменение состояния отменяет устаревшую задачу с причиной. Вне часов отправка переносится; накопившиеся касания после простоя не рассылаются пачкой.
+Before sending, the worker rereads state: email, reply, qualification, booking and any incomplete booking operation, stage, owner, review, pause, opt-out, touch limit, and permitted time. A state change cancels a stale task with a reason. Sending outside working hours is deferred; touches accumulated during downtime are not sent as a batch.
 
-Письмо возвращает в собственный чат; слоты после возврата актуализируются, а не берутся из старого текста письма. Отписка общая для контакта и не требует сотруднического входа. Ответ на email направляется компании; автоматический разбор писем не добавляется в объём.
+The email returns the visitor to their own chat; slots are refreshed on return rather than taken from old email text. Unsubscribe applies to the whole contact and requires no staff login. Email replies go to the company; automatic email parsing is not added to scope.
 
-Обработать известный отказ и неизвестный результат отправки раздельно. Retry не создаёт вторую отправку, если предыдущая уже подтверждена; неопределённая операция требует поддерживаемой провайдером сверки либо ручного решения.
+Handle known rejection and unknown send results separately. Retry does not create a second send if the previous one is already confirmed; an uncertain operation requires provider-supported reconciliation or manual resolution.
 
-**Проверки:** обе цепочки с управляемыми тестовыми часами; перенос ночи/выходного; STOP/ответ/Take over/booking перед отправкой; отсутствие email; истёкшая ссылка; лимиты после нескольких ответов; повторная доставка задания; тайм-аут после принятия письма; восстановление задач после перезапуска; отсутствие пачки просроченных касаний.
+**Checks:** both sequences with controlled test clocks; nighttime/weekend deferral; STOP/reply/Take over/booking before sending; missing email; expired link; limits after multiple replies; job redelivery; timeout after email acceptance; task recovery after restart; no batch of overdue touches.
 
-**Результат:** follow-up действительно уходит вне сайта и прекращается при изменении состояния. AC-16–AC-18 и email-части AC-19/AC-20 закрыты; реальные письма проверены на разрешённых адресах.
+**Outcome:** follow-up actually reaches users outside the website and stops when state changes. AC-16–AC-18 and the email parts of AC-19/AC-20 are complete; real emails have been tested on allowed addresses.
 
-## 8. Завершить рабочий интерфейс и настройки
+## 8. Complete the working interface and settings
 
-**Зависимости:** этап 7; основа интерфейса создаётся начиная с этапа 3.
+**Dependencies:** stage 7; the interface foundation has been built since stage 3.
 
-Довести Conversations до трёхколоночного рабочего экрана: фильтры, переписка, системные события, поля с источниками, score с причинами/версией, отдельный review, встреча и следующее действие. Отобразить паузу, opt-out и владельца так, чтобы запреты не выглядели как ошибка отсутствующего ответа.
+Complete Conversations as a three-column workspace: filters, message history, system events, fields with sources, score with reasons/version, separate review status, appointment, and next action. Display pause, opt-out, and owner so that restrictions do not look like a missing-response error.
 
-Завершить Lead Profile: история данных и пересчётов, ручная фиксация, заметки, назначения, стадии, причины Lost, встречи и обработка конфликтного intake. Доступ к исходному сообщению не должен требовать поиска в консоли.
+Complete Lead Profile: data and recalculation history, manual locks, notes, assignments, stages, Lost reasons, appointments, and conflicting-intake handling. Access to a source message must not require searching the console.
 
-Добавить компактные Settings для компании, FAQ, вопросов, scoring, расписания и follow-up. Новая версия правил не пересчитывает существующие обращения; изменение часов влияет на будущую отправку. Секреты интеграций не выводятся как обычные поля настроек.
+Add compact Settings for company, FAQ, questions, scoring, schedule, and follow-up. A new rule version does not recalculate existing enquiries; changing working hours affects future sends. Integration secrets are not displayed as ordinary settings fields.
 
-Завершить Execution Log: процесс, статус, попытки, длительность, ошибка, correlation id, безопасно отредактированные входы/результаты. Для `unknown` сначала сверка; unsafe retry не показывается как доступная кнопка. Ручное решение и повтор учитывают текущие запреты, а не только старое состояние запуска.
+Complete Execution Log: process, status, attempts, duration, error, correlation id, and safely redacted inputs/results. For `unknown`, reconcile first; unsafe retry must not appear as an available button. Manual resolution and retries respect current restrictions, not just the run's old state.
 
-**Проверки:** менеджер проходит весь сценарий без БД/консоли; кнопки не смешивают разные переходы; прямой API-вызов не обходит роль; настройки изменяют ожидаемое поведение; причины и следующее действие соответствуют реальному состоянию worker.
+**Checks:** a manager completes the entire flow without database/console access; buttons do not conflate different transitions; direct API calls cannot bypass roles; settings change the expected behavior; reasons and next actions reflect the worker's actual state.
 
-**Результат:** готов рабочий интерфейс менеджера, включая follow-up и диагностику. AC-21/AC-22 закрыты; пользовательские части AC-07, AC-10 и AC-23 повторно проверены.
+**Outcome:** the manager interface is ready, including follow-up and diagnostics. AC-21/AC-22 are complete; user-facing parts of AC-07, AC-10, and AC-23 are rechecked.
 
-## 9. Выполнить общую приёмку и evaluation
+## 9. Run overall acceptance and evaluation
 
-**Зависимости:** этап 8. Это общий прогон уже написанных тестов, а не начало тестирования.
+**Dependencies:** stage 8. This is a full run of tests already written, not the start of testing.
 
-Прогнать unit/integration/E2E и всю матрицу AC-01–AC-26 в применимой части. Отдельно проверить гонки STOP/Take over/booking, повторную доставку, перезапуск worker, недоступность Redis/PostgreSQL, LLM и внешних сервисов. Ошибка не должна исчезать из журнала из-за повторного успешного запуска.
+Run unit/integration/E2E tests and the full AC-01–AC-26 matrix where applicable. Separately test STOP/Take over/booking races, redelivery, worker restart, and Redis/PostgreSQL, LLM, and external service outages. An error must not disappear from the log because a later run succeeds.
 
-Запустить `npm run eval` на выбранном реальном LLM с контролируемыми внешними адаптерами. Прогон `--mock` нужен для воспроизводимого CI и помечается отдельно. Сохранить `/evaluation/last-run.md`, машиночитаемый результат, commit, модели, prompt, версии правил/фикстур, режимы адаптеров и детали ошибок.
+Run `npm run eval` against the selected real LLM with controlled external adapters. The `--mock` run supports reproducible CI and is labeled separately. Save `/evaluation/last-run.md`, a machine-readable result, commit, models, prompt, rule/fixture versions, adapter modes, and error details.
 
-Применить заранее закреплённые пороги §13: ≥95% extraction/category match, отсутствие выдуманных неизвестных полей, 100% обнаружения обязательных handoff, 0 false booking/дублей/утечек и остальные критерии. Не превращать долю booking или заполнения пяти полей в требование записывать неподходящих или придумывать неизвестное.
+Apply the thresholds fixed in advance in §13: ≥95% extraction/category match, no invented unknown fields, 100% detection of mandatory handoff, 0 false bookings/duplicates/leaks, and the remaining criteria. Do not turn booking or five-field completion rates into a requirement to book unsuitable leads or invent unknown information.
 
-Измерить первый контакт отдельно для web и email. API-приём письма не называть фактической доставкой во входящие. Проверить и зафиксировать live smoke с настоящей встречей и полученным письмом на allowlist-адресе. Mock-процент не выдавать за качество реальной интеграции или боевую конверсию.
+Measure first contact separately for web and email. Do not describe API email acceptance as actual inbox delivery. Verify and record live smoke testing with a real appointment and an email received at an allowlisted address. Do not present a mock percentage as real integration quality or production conversion.
 
-**Проверка результата:** каждый AC имеет тест/артефакт и статус; исключений из обязательного объёма без изменения версии ТЗ нет. При провале критичного сценария выпуск блокируется до исправления и повторного прогона. Прежний неудачный результат остаётся в истории.
+**Result verification:** each AC has a test/artifact and status; there are no exceptions to mandatory scope without a specification version change. A critical scenario failure blocks release until it is fixed and rerun. The earlier failed result remains in history.
 
-**Результат:** выполнены AC-24/AC-25, подготовлены воспроизводимые доказательства остальных критериев и честный список ограничений.
+**Outcome:** AC-24/AC-25 are complete, with reproducible evidence for the remaining criteria and an accurate list of limitations.
 
-## 10. Развернуть и подготовить портфолио
+## 10. Deploy and prepare the portfolio
 
-**Зависимости:** этап 9.
+**Dependencies:** stage 9.
 
-Развернуть web, API, worker, PostgreSQL и Redis по документированному процессу. Проверить переменные окружения, миграции, сохранность данных при рестарте, защищённые доступы и выделенные интеграционные ресурсы.
+Deploy web, API, worker, PostgreSQL, and Redis through the documented process. Verify environment variables, migrations, data persistence after restart, protected access, and dedicated integration resources.
 
-Подготовить опубликованное демо с синтетическими контактами, лимитами расходов/запросов, ограничением внешних email и безопасным календарём. Публичный режим с mock или allowlist явно обозначается; отдельно показать реальные интеграционные доказательства. Сброс работает только с изолированными demo-данными и не получает путь к production audit.
+Prepare a published demo with synthetic contacts, spending/request limits, external-email restrictions, and a safe calendar. Public mock or allowlist mode is clearly labeled; real integration evidence is shown separately. Reset works only on isolated demo data and has no path to production audit records.
 
-Подготовить README, `/architecture`, `/configuration`, `/runbook`, `/evaluation` и `/known-limitations`. Runbook объясняет различие retry/reconcile, восстановление worker, ручной handoff, Resume/Return to AI и отдельное снятие opt-out с основанием.
+Prepare README, `/architecture`, `/configuration`, `/runbook`, `/evaluation`, and `/known-limitations`. The runbook explains retry/reconcile, worker recovery, manual handoff, Resume/Return to AI, and separate removal of opt-out with a reason.
 
-Материалы портфолио: видео 60–90 секунд; сценарии «успешная запись», «передача менеджеру», «ошибка интеграции и восстановление»; скриншоты Conversations с заполненной структурой, встречи и журнала/evaluation; английское описание кейса с измеренными результатами. Нельзя приписывать демо реальный прирост выручки или выдавать sandbox за боевой канал.
+Portfolio materials: a 60–90-second video; scenarios for "successful booking," "manager handoff," and "integration failure and recovery"; screenshots of Conversations with populated fields, the appointment, and the log/evaluation; an English case study with measured results. Do not attribute real revenue growth to a demo or present a sandbox as a production channel.
 
-**Проверки:** чистый запуск по README; новый посетитель проходит путь с корректными ограничениями демо; менеджер открывает историю и обрабатывает ошибку; demo-reset не затрагивает реальные данные; все ссылки и материалы доступны.
+**Checks:** clean startup following README; a new visitor completes the flow with the correct demo restrictions; a manager opens history and handles an error; demo reset does not affect real data; all links and materials are accessible.
 
-**Результат:** AC-26 закрыт. Опубликованный продукт и кейс готовы; исключённые интеграции остаются в backlog, не скрываются в описании возможностей.
+**Outcome:** AC-26 is complete. The published product and case study are ready; excluded integrations remain in the backlog and are not hidden in feature descriptions.
 
-## Матрица требований и проверок
+## Requirements and verification matrix
 
-Номер этапа — место реализации/основной проверки; этап 9 повторяет обязательные сценарии целиком.
+The stage number indicates implementation/primary verification; stage 9 repeats all mandatory scenarios in full.
 
-| Приёмка | Основание в ТЗ | Этапы | Основное доказательство |
+| Acceptance | Specification basis | Stages | Main evidence |
 |---|---|---|---|
-| AC-01 | §7.1–7.2 | 3 | Integration: одинаковые ключи, конфликт payload, единственный первый контакт |
-| AC-02 | §7.1–7.2 | 3 | Integration/UI: rejected, конфликт контактов, re_engaged, обе политики |
-| AC-03 | §7.1 | 3, 9 | E2E + измерение web/email + маршрут телефон-only |
-| AC-04 | §7.3 | 4 | AI fixtures + E2E извлечения пяти атрибутов |
-| AC-05 | §7.3 | 4 | Unit/AI: null, лимит уточнений, обязательность |
-| AC-06 | §7.3 | 4, 5 | Integration/AI: исправления, история, ручная фиксация |
-| AC-07 | §7.4–7.5, §10 | 5, 8 | Unit scoring + integration версий/состояний + UI |
-| AC-08 | §7.4, §7.6–7.7 | 5, 6, 7 | Негативный booking и отсутствие запрещённых цепочек |
-| AC-09 | §7.8 | 4, 5 | AI/integration: каждый триггер, контекст, последующий ответ |
-| AC-10 | §7.8–7.9 | 5 | Конкурентный integration-тест и проверка кнопок |
-| AC-11 | §7.8–7.9 | 3, 5, 7 | STOP/отписка, несколько обращений, состояние очереди |
-| AC-12 | §7.6 | 6 | Calendar contract tests, часовые пояса, live availability |
-| AC-13 | §7.6 | 6 | E2E записи, внешний event id, отрицательные допуски |
-| AC-14 | §7.6, §7.9 | 6 | Конкурентные запросы и fault injection после создания |
-| AC-15 | §7.6 | 6 | Отмена/перенос, повтор, неизвестный результат |
-| AC-16 | §7.7 | 7 | Тестовые часы, лимит и взаимоисключение цепочек |
-| AC-17 | §7.1, §7.7–7.9 | 3, 5, 7 | Рабочие часы и гонки с остановкой/ответом/booking |
-| AC-18 | §9, §12 | 3, 7 | Авторизация ссылки, GET-предпросмотр, истечение, отписка |
-| AC-19 | §7.9, §8 | 2, 3, 5, 6, 7 | Перезапуск, повторная доставка, сохранённые намерения |
-| AC-20 | §7.3, §7.5–7.9 | 2, 4, 6, 7 | Отказы БД/LLM/calendar/email, сверка unknown |
-| AC-21 | §6.1–6.2 | 3, 8 | Пользовательский E2E без обращения к БД |
-| AC-22 | §6.3–6.4 | 5, 7, 8 | Изменение версий/часов и разрешённые действия журнала |
-| AC-23 | §9, §12 | 2–8 | RBAC, публичные схемы, чужие ID, секреты, audit, injection |
-| AC-24 | §13 | 4–9 | Реальный AI-прогон, отчёт, версии, пороги |
-| AC-25 | §12–13 | 3, 6, 7, 9 | Реальные email/calendar на разрешённых ресурсах |
-| AC-26 | §16 | 10 | Чистый запуск, опубликованное демо и материалы |
+| AC-01 | §7.1–7.2 | 3 | Integration: identical keys, payload conflict, a single first contact |
+| AC-02 | §7.1–7.2 | 3 | Integration/UI: rejected intake, contact conflict, re_engaged, both policies |
+| AC-03 | §7.1 | 3, 9 | E2E + web/email measurement + phone-only route |
+| AC-04 | §7.3 | 4 | AI fixtures + E2E extraction of five attributes |
+| AC-05 | §7.3 | 4 | Unit/AI: null, clarification limit, required fields |
+| AC-06 | §7.3 | 4, 5 | Integration/AI: corrections, history, manual locks |
+| AC-07 | §7.4–7.5, §10 | 5, 8 | Unit scoring + version/state integration + UI |
+| AC-08 | §7.4, §7.6–7.7 | 5, 6, 7 | Negative booking tests and absence of prohibited sequences |
+| AC-09 | §7.8 | 4, 5 | AI/integration: every trigger, context, subsequent reply |
+| AC-10 | §7.8–7.9 | 5 | Concurrent integration test and button checks |
+| AC-11 | §7.8–7.9 | 3, 5, 7 | STOP/unsubscribe, multiple enquiries, queue state |
+| AC-12 | §7.6 | 6 | Calendar contract tests, timezones, live availability |
+| AC-13 | §7.6 | 6 | Booking E2E, external event id, negative eligibility tests |
+| AC-14 | §7.6, §7.9 | 6 | Concurrent requests and fault injection after creation |
+| AC-15 | §7.6 | 6 | Cancellation/rescheduling, repeat requests, unknown results |
+| AC-16 | §7.7 | 7 | Test clocks, limits, and mutually exclusive sequences |
+| AC-17 | §7.1, §7.7–7.9 | 3, 5, 7 | Working hours and races with stop/reply/booking |
+| AC-18 | §9, §12 | 3, 7 | Link authorization, GET preview, expiry, unsubscribe |
+| AC-19 | §7.9, §8 | 2, 3, 5, 6, 7 | Restart, redelivery, persisted intents |
+| AC-20 | §7.3, §7.5–7.9 | 2, 4, 6, 7 | Database/LLM/calendar/email failures, unknown reconciliation |
+| AC-21 | §6.1–6.2 | 3, 8 | User E2E without database access |
+| AC-22 | §6.3–6.4 | 5, 7, 8 | Version/hour changes and allowed log actions |
+| AC-23 | §9, §12 | 2–8 | RBAC, public schemas, others' IDs, secrets, audit, injection |
+| AC-24 | §13 | 4–9 | Real AI run, report, versions, thresholds |
+| AC-25 | §12–13 | 3, 6, 7, 9 | Real email/calendar on allowed resources |
+| AC-26 | §16 | 10 | Clean startup, published demo, and materials |
 
-## Контрольные точки разработки
+## Development milestones
 
-| После этапа | Что уже можно показать |
+| After stage | What can already be demonstrated |
 |---|---|
-| 3 | Заявка, CRM, живой чат, email-приглашение и безопасный возврат |
-| 5 | AI-квалификация, объяснимый score, автоматический handoff, STOP и перехват менеджером |
-| 6 | Полный путь до реальной встречи с обработкой конфликта и повторной попытки |
-| 8 | Законченная работа менеджера, обе follow-up-последовательности и диагностика |
-| 10 | Опубликованный продукт, измеренная приёмка и готовый кейс Upwork |
+| 3 | Intake, CRM, live chat, email invitation, and secure return |
+| 5 | AI qualification, explainable score, automatic handoff, STOP, and manager takeover |
+| 6 | Full path to a real appointment with conflict and retry handling |
+| 8 | Complete manager workflow, both follow-up sequences, and diagnostics |
+| 10 | Published product, measured acceptance, and a finished Upwork case study |
 
-## Правило завершения этапа
+## Stage completion rule
 
-Этап завершён, когда его сценарий работает через приложение, данные переживают перезапуск, относящиеся к нему отрицательные случаи проверены, а результат и ограничения отражены в документации. Наличие endpoint или красивого экрана без связанного поведения не считается завершённой функцией.
+A stage is complete when its scenario works through the application, data survives restart, relevant negative cases are tested, and the result and limitations are documented. An endpoint or attractive screen without connected behavior is not a completed feature.
 
-Добавлять GoHighLevel, SMS, новые последовательности и расширенную аналитику следует отдельной следующей версией после приёмки этой, а не незаметно возвращать их в текущий объём.
+Add GoHighLevel, SMS, new sequences, and advanced analytics in a separate subsequent version after this one is accepted, rather than silently reintroducing them into the current scope.

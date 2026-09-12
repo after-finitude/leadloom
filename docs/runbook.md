@@ -1,39 +1,39 @@
 # Runbook
 
-## Запуск и данные
+## Startup and data
 
-`npm start` из корня. БД создаётся автоматически. Процесс worker включён по умолчанию, опрашивает durable actions примерно каждые 300 мс. `Ctrl+C` завершает сервер и ждёт текущую итерацию. При проблеме запуска сначала проверьте Node >=22.16.0, занятость порта, возможность записи в каталог данных и точное соответствие APP_ORIGIN адресу браузера.
+Run `npm start` from the repository root. The database is created automatically. The worker is enabled by default and polls durable actions approximately every 300 ms. `Ctrl+C` shuts down the server and waits for the current iteration. If startup fails, first check Node >=22.16.0, port availability, write access to the data directory, and that APP_ORIGIN exactly matches the browser address.
 
-HTTP health: `GET /api/health`. Ошибки процесса не печатают тела сообщений, секреты или access-токены. Техническая диагностика — в Execution Log. Полная переписка сохраняется в защищённой CRM, а не в stdout.
+HTTP health: `GET /api/health`. Process errors do not print message bodies, secrets, or access tokens. Technical diagnostics are in the Execution Log. Full conversations are stored in the protected CRM, not stdout.
 
-Если приложение работает, но запись/письмо не завершается: проверьте Activity, состояние operation, выбранный provider, email allowlist и credentials. Не меняйте запись из unknown на confirmed напрямую в БД.
+If the application runs but a booking/email does not complete, check Activity, the operation state, the selected provider, the email allowlist, and credentials. Do not change a record from unknown to confirmed directly in the database.
 
-## Reverse proxy и лимиты
+## Reverse proxy and limits
 
-По умолчанию `TRUSTED_PROXIES` пуст: приложение использует адрес TCP-соединения и игнорирует `X-Forwarded-For`. Для прокси на том же хосте можно указать `TRUSTED_PROXIES=127.0.0.1,::1`; в Docker укажите адрес прокси именно так, как его видит контейнер приложения. Допускаются точные IPv4/IPv6-адреса, без CIDR и имён хостов. Пример ENV и Compose передают эту настройку серверу.
+`TRUSTED_PROXIES` is empty by default: the application uses the TCP connection address and ignores `X-Forwarded-For`. For a proxy on the same host, you can set `TRUSTED_PROXIES=127.0.0.1,::1`; in Docker, specify the proxy address as seen by the application container. Only exact IPv4/IPv6 addresses are accepted, without CIDR ranges or hostnames. The ENV example and Compose pass this setting to the server.
 
-Доверенный прокси должен добавлять фактический адрес своего клиента в `X-Forwarded-For`, например в Nginx: `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`. Приложение разбирает цепочку справа налево до первого недоверенного адреса; переданные клиентом значения левее него не учитываются. Указывайте только прокси, которым доверено формирование этого заголовка.
+A trusted proxy must append its client's actual address to `X-Forwarded-For`, for example in Nginx: `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`. The application parses the chain from right to left until it reaches the first untrusted address; client-supplied values to its left are ignored. List only proxies trusted to construct this header.
 
-Запросы подтверждённой visitor-сессии к чату ограничиваются по лиду: несколько чатов за одним IP не расходуют общий лимит polling. Вход сотрудников, форма, обмен ссылок и восстановление доступа сохраняют отдельные ограничения по IP или email.
+Chat requests from a verified visitor session are limited per lead: multiple chats behind one IP do not share a polling limit. Staff login, the form, link exchange, and access recovery retain separate IP or email limits.
 
-## Неопределённый результат
+## Uncertain results
 
-`unknown` не означает провал внешнего действия. В Activity используйте **Reconcile**, чтобы искать уже состоявшийся результат. Прямой Retry unknown запрещён. Подтверждённый существующий результат сохраняется без нового эффекта. Если провайдер не позволяет подтвердить результат, оставьте HUMAN и разберите ситуацию вручную в выделенном календаре/почтовом кабинете.
+`unknown` does not mean the external action failed. In Activity, use **Reconcile** to look for an existing result. Direct Retry of unknown is prohibited. A confirmed existing result is persisted without creating another effect. If the provider cannot confirm the result, keep HUMAN ownership and investigate manually in the dedicated calendar/email dashboard.
 
-После потери процесса pending actions сохраняются. Просроченный lease для LLM-turn допускает повторную обработку исходных сообщений; для внешней отправки восстановление не предполагает, что запроса не было, а переходит к сверке.
+Pending actions survive process loss. An expired lease for an LLM turn allows reprocessing of the original messages; recovery of an external send does not assume that no request occurred and moves to reconciliation instead.
 
-## Управление диалогом
+## Conversation controls
 
-Take over или ручной ответ → HUMAN. Pause → пауза независимо от владельца. Resume снимает только паузу. Return to AI — явный возврат, для review требует причины решения. STOP останавливает все автоматические обращения контакта; обычное сообщение и новый intake не восстанавливают согласие. Restore consent доступно только администратору с подтверждением и основанием; не возвращает HUMAN в AI автоматически.
+Take over or a manual reply → HUMAN. Pause → paused, independently of ownership. Resume only clears the pause. Return to AI is an explicit return and requires a resolution reason for a review. STOP stops all automated outreach to the contact; an ordinary message or new intake does not restore consent. Restore consent is available only to an administrator with confirmation and a reason; it does not automatically change HUMAN to AI.
 
-Ручное редактирование по умолчанию блокирует поле от перезаписи LLM. Конфликт виден в истории/передаче менеджеру. Изменение правил создаёт версию; существующий лид сохраняет прежнюю до явного пересчёта.
+Manual editing locks the field against LLM overwrites by default. A conflict appears in history/handoff. Changing rules creates a version; an existing lead retains its previous version until an explicit recalculation.
 
 ## Backup / restore
 
-`npm run backup` создаёт консистентную SQLite-копию через VACUUM INTO. Снимок содержит персональные данные и должен храниться защищённо. Encryption key сохраняйте отдельно от БД. Для восстановления остановите оба процесса, замените БД копией и используйте тот же ключ; не копируйте поверх открытого файла и не удаляйте WAL работающей базы.
+`npm run backup` creates a consistent SQLite copy using VACUUM INTO. The snapshot contains personal data and must be stored securely. Keep the encryption key separate from the database. To restore, stop both processes, replace the database with the copy, and use the same key; do not overwrite an open file or delete the WAL of a running database.
 
-`npm run demo:reset -- --confirm-stopped` требует остановленного сервера/worker, demo-режима, всех mock-адаптеров и demo-маркера в БД. Команда удаляет только настроенный demo SQLite-файл и его WAL/SHM; на других путях данные не трогает. Полный demo-reset намеренно удаляет и audit синтетического демо.
+`npm run demo:reset -- --confirm-stopped` requires the server/worker to be stopped, demo mode, all mock adapters, and a demo marker in the database. The command deletes only the configured demo SQLite file and its WAL/SHM files; it leaves data at other paths untouched. A full demo reset intentionally deletes the synthetic demo's audit records as well.
 
-## Перед реальной эксплуатацией
+## Before real operation
 
-Новая live-база, HTTPS, отдельный календарь, собственные пароли, encryption key, webhook-secret, verified email sender, контроль расходов, live-model evaluation, live smoke и нативный браузерный E2E. Нужны стратегия backup, мониторинг диска и проверка восстановления. Архитектура из исходного ТЗ (Postgres/Redis/Nest/Next) в эту поставку не входит.
+Use a new live database, HTTPS, a dedicated calendar, your own passwords, an encryption key, a webhook secret, a verified email sender, spending controls, live-model evaluation, live smoke testing, and native browser E2E. A backup strategy, disk monitoring, and a restore test are required. The original specification's architecture (Postgres/Redis/Nest/Next) is not included in this delivery.

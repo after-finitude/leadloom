@@ -1,33 +1,33 @@
-# Архитектура автономной редакции
+# Standalone edition architecture
 
-Браузер → Node HTTP API → сервис Leadloom → SQLite. Фоновый poller выбирает долговечные `actions`; для календаря и email вызывает интерфейсы провайдеров. Источник истины — SQLite, не память и не внешний календарь. Отдельный `worker.mjs` использует ту же базу; стандартный запуск включает worker в сервер.
+Browser → Node HTTP API → Leadloom service → SQLite. A background poller selects durable `actions` and calls provider interfaces for calendar and email operations. SQLite is the source of truth, not memory or the external calendar. A separate `worker.mjs` uses the same database; the default startup runs the worker inside the server.
 
-## Компоненты
+## Components
 
-`config.mjs` читает ENV, проверяет режимы и секреты; `db.mjs` содержит подготовленные SQL statements и синхронные BEGIN IMMEDIATE-транзакции; `schema.sql` создаёт схему идемпотентно. Версионного migration-framework нет: это начальная схема этой версии.
+`config.mjs` reads ENV and validates modes and secrets; `db.mjs` contains prepared SQL statements and synchronous BEGIN IMMEDIATE transactions; `schema.sql` creates the schema idempotently. There is no versioned migration framework: this is the initial schema for this version.
 
-`service.mjs` управляет intake, CRM, диалогом, ревизиями и очередью действий. Его методы сохраняют единый интерфейс `Leadloom` для HTTP API и worker. `operations.mjs` содержит доступность слотов, резервирование, запись, перенос, отмену и жизненный цикл внешних операций календаря и email: выполнение, подтверждение, ошибки, сверку неопределённых результатов и повтор. `followups.mjs` планирует и отправляет follow-up с проверкой условий, рабочего времени и лимита касаний. Оба модуля получают экземпляр сервиса аргументом и используют его хранилище, провайдеры и часы.
+`service.mjs` manages intake, CRM, conversations, revisions, and the action queue. Its methods preserve a single `Leadloom` interface for the HTTP API and worker. `operations.mjs` contains slot availability, reservations, booking, rescheduling, cancellation, and the lifecycle of external calendar and email operations: execution, confirmation, errors, reconciliation of uncertain results, and retries. `followups.mjs` schedules and sends follow-ups while checking eligibility, working hours, and touch limits. Both modules receive the service instance as an argument and use its store, providers, and clock.
 
-`rules.mjs` считает score без LLM и содержит общие условия допуска к автоматизации, записи и восстановлению доступа. `time.mjs` перебирает UTC-интервалы и проверяет локальное расписание через IANA timezone, учитывая DST. `auth.mjs` содержит staff/visitor sessions, CSRF и scoped access tokens. `http.mjs` разделяет публичные и сотруднические маршруты.
+`rules.mjs` calculates scores without an LLM and contains shared eligibility rules for automation, booking, and access recovery. `time.mjs` iterates over UTC intervals and checks the local schedule using an IANA timezone, accounting for DST. `auth.mjs` contains staff/visitor sessions, CSRF, and scoped access tokens. `http.mjs` separates public and staff routes.
 
-## Границы состояния
+## State boundaries
 
-`contacts.opt_out` действует на все обращения контакта; `leads.owner`, `paused`, `review_reason`, `qualification`, `stage`, `category` независимы. Conversation связана с Lead один-к-одному. Opportunity в этой редакции не отдельная SQL-таблица: стадия/назначенный менеджер хранятся у Lead. Это явно упрощённая физическая модель, а не дословное DDL ТЗ.
+`contacts.opt_out` applies to all enquiries from a contact; `leads.owner`, `paused`, `review_reason`, `qualification`, `stage`, and `category` are independent. Conversation has a one-to-one relationship with Lead. Opportunity is not a separate SQL table in this edition: the stage and assigned manager are stored on Lead. This is an explicitly simplified physical model, not a verbatim implementation of the specification's DDL.
 
-Каждое сообщение и изменение управления увеличивает ревизию. Генерация выполняется вне write-транзакции. При сохранении ответа ревизия и разрешения проверяются снова; устаревший черновик не публикуется. Ручные поля фиксируются и сохраняют конфликт как предложение для менеджера.
+Each message and control change increments the revision. Generation runs outside the write transaction. Before saving a reply, the revision and permissions are checked again; a stale draft is not published. Manual fields are locked, and conflicting updates are saved as proposals for the manager.
 
-## Долговечные действия
+## Durable actions
 
-Intake и enqueue фиксируются транзакционно. Внешний payload шифруется AES-256-GCM, сохраняется operation key. Worker захватывает due action с lease. Внешний запрос не выполняется внутри SQLite write-транзакции. Повторная доставка action не равна повторному бизнес-эффекту: внешний результат и ключ операции имеют отдельное состояние.
+Intake and enqueue are committed transactionally. The external payload is encrypted with AES-256-GCM, and the operation key is persisted. The worker claims a due action with a lease. External requests do not run inside SQLite write transactions. Redelivery of an action does not imply a repeated business effect: the external result and operation key have separate state.
 
-После неопределённого ответа действие становится unknown. Повтор не предполагает, что письмо/событие не было создано. Для Google используется заранее вычисленный допустимый event.id; для email — стабильный payload и idempotency key с ограниченным временем безопасного replay. Если уверенно сверить результат нельзя, требуется человек.
+After an uncertain response, the action becomes unknown. A retry does not assume that the email/event was never created. Google uses a precomputed valid event.id; email uses a stable payload and idempotency key with a limited safe replay window. If the result cannot be reconciled reliably, a human must intervene.
 
-Бронь сначала создаёт локальную reservation всего временного интервала. Непосредственно перед API calendar выполняются повторный допуск и проверка busy. Эта защита покрывает конкуренцию собственного приложения, но не обеспечивает общую транзакцию с независимым редактором Google Calendar.
+Booking first creates a local reservation for the entire time interval. Immediately before calling the calendar API, eligibility and availability are checked again. This protects against concurrent operations within the application, but does not provide a shared transaction with an independent Google Calendar editor.
 
-## Безопасность и ограничения
+## Security and limitations
 
-SQL-параметры связаны, вывод пользовательских строк HTML-экранируется; API имеет отдельную публичную схему. Staff passwords хешируются scrypt. Сессии и access tokens хранятся хешированными. CSRF и точный Origin обязательны для браузерных изменений. Доверенный source webhook защищён Bearer-секретом; публичная форма задаёт source на сервере.
+SQL parameters are bound, user strings are HTML-escaped, and the API has a separate public schema. Staff passwords are hashed with scrypt. Sessions and access tokens are stored as hashes. Browser writes require CSRF and an exact Origin match. The trusted source webhook is protected by a Bearer secret; the public form has its source set by the server.
 
-SQLite-триггеры запрещают UPDATE/DELETE audit через обычные запросы приложения. Это **не** эквивалент PostgreSQL-роли без прав: владелец файла может изменить схему. Удаление демо-БД сервисной командой является явным сбросом всей синтетической базы.
+SQLite triggers prohibit audit UPDATE/DELETE through ordinary application queries. This is **not** equivalent to a restricted PostgreSQL role: the file owner can modify the schema. Deleting the demo database through the service command explicitly resets the entire synthetic database.
 
-Оптимально для локальной демонстрации, одного рабочего хоста и небольшого потока. SQLite синхронный: вычислительно тяжёлые SQL-запросы могут блокировать event loop. Нет распределённого кластерного SLA, резервного хоста и поддержки NFS. При реальной эксплуатации требуется соответствующая требованиям архитектура/нагрузочная проверка.
+This edition is best suited to local demonstrations, a single operating host, and low traffic. SQLite is synchronous: expensive SQL queries can block the event loop. There is no distributed cluster SLA, standby host, or NFS support. Real operation requires an architecture and load testing appropriate to the requirements.

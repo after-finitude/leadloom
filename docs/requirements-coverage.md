@@ -1,44 +1,44 @@
-# Соответствие ТЗ v1.1 и границы локальной редакции
+# Specification v1.1 coverage and local edition boundaries
 
-Это не акт полной приёмки. «Локально» означает выполнение на альтернативном Node/SQLite-стеке с mock-провайдерами. Live-проверки и инфраструктура исходного ТЗ отсутствуют.
+This is not a full acceptance certificate. "Local" means execution on the alternative Node/SQLite stack with mock providers. Live verification and the original specification's infrastructure are absent.
 
-| AC | Реализация / доказательство | Граница |
+| AC | Implementation / evidence | Boundary |
 |---|---|---|
-| 01 | Idempotent intake, конфликт изменённого payload; domain/HTTP tests | Contact + Lead + Conversation, Opportunity физически объединена с Lead |
-| 02 | Rejected intake, конфликт идентификаторов, обе политики активного Lead, ручное разрешение | Нормализация телефона принимает только явный международный формат; страну не угадывает |
-| 03 | Форма, свой чат, webhook invitation, phone-only handoff, измерение первого контакта | Проверены локальные времена; SLA настоящего email не измерен |
-| 04 | Один вопрос, несколько полей, отсутствие повторов; mock evaluation | Реальная модель не оценена; mock понимает ограниченные английские фразы |
-| 05 | Null, optional skip, initial + максимум два уточнения, required handoff | Проверены перечисленные сценарии, не любые свободные формулировки |
-| 06 | Field history, corrections, ручные locks и конфликтующие proposals | UI/бизнес-логика локально |
-| 07 | Score factors, версии, независимые состояния, явный пересчёт | Демо-веса, общий бюджетный ориентир, не рыночная оценка |
-| 08 | Hard reject service/area; нет автоматического nurture для Nurture/Unqualified | Локальные отрицательные тесты |
-| 09 | Handoff context для human request, negative, вне FAQ, banned, LLM failure | Live recall/precision LLM не измерены |
-| 10 | Ревизии, Take over во время generation, отдельные Pause/Resume/Return/Consent | Конкуренция процесса и сохранённого состояния проверена; distributed deployment нет |
-| 11 | Контактный STOP, отмена pending actions, запрет implicit consent | Уже начатый запрос к внешнему провайдеру нельзя гарантированно отозвать |
-| 12 | IANA timezone, DST, расписание, буфер, slot offers | Реальный freeBusy адаптер написан, Google live не вызван |
-| 13 | Явный выбор, email/qualification gate, подтверждённый mock event, Booked/summary | Настоящее Google событие не создано |
-| 14 | Reservation, stale offers, idempotency, lost-response unknown/reconcile | Локальные / contract tests; внешний редактор Google не атомарен с БД |
-| 15 | Отмена/перенос одной встречи, сохранение старого состояния при ошибке | Проверено с mock и адаптерными контрактами, без настоящего Google |
-| 16 | Две очереди по три касания, счётчик на Lead, одна активная последовательность | Шаблон письма общий для трёх касаний, не независимый редактор каждого шага |
-| 17 | Проверки состояния, рабочего времени, reply cancellation и skipped backlog | SQLite durable scheduler вместо Redis/BullMQ |
-| 18 | Hashed scoped tokens, одноразовый POST exchange, expiry, отдельная отписка | Безопасность API тестирована; browser E2E нативной загрузки ещё нужен |
-| 19 | Перезапуск SQLite-store, claims/leases и стабильные action/operation keys | PostgreSQL/Redis не используются; локальный диск обязателен |
-| 20 | LLM repair + handoff, unknown calendar/email, ошибка БД не превращается в успех | Реальные сбои поставщиков не инъецировались; контролируемые faults в тестах |
-| 21 | Conversations / profile / notes / stage / fields / meeting / takeover | DOM smoke через actual HTTP bridge; native browser routing не проверен |
-| 22 | Settings, rule versions, attempt log, safe retry / reconcile | Все настройки сведены в компактные endpoints |
-| 23 | RBAC, public schemas, CSRF/Origin, escaping, hashed sessions, encrypted payloads, audit triggers | SQLite triggers не PostgreSQL permission model; независимый security review отсутствует |
-| 24 | 24 сценария, команды и реальные mock-отчёты | Реальная модель не прогнана; не все метрики §13 реализованы в полном аналитическом виде |
-| 25 | Live smoke script и реальные адаптеры поставлены | НЕ ПРОЙДЕНО: нет реальных keys/accounts/доказательств доставки и Google события |
-| 26 | Код, schema, seed, ENV examples, инструкции, screenshots, Dockerfile/Compose | НЕ ПОЛНОСТЬЮ: Docker не запускался, нет публичного deployment и видео |
+| 01 | Idempotent intake, changed-payload conflict; domain/HTTP tests | Contact + Lead + Conversation; Opportunity is physically merged with Lead |
+| 02 | Rejected intake, identifier conflicts, both active-Lead policies, manual resolution | Phone normalization accepts only explicit international format; it does not guess a country |
+| 03 | Form, own chat, webhook invitation, phone-only handoff, first-contact measurement | Local timings were tested; real email SLA was not measured |
+| 04 | One question, multiple fields, no repeated questions; mock evaluation | The real model was not evaluated; the mock understands a limited set of English phrases |
+| 05 | Null, optional skip, initial question + at most two clarifications, required-field handoff | The listed scenarios were tested, not arbitrary free-form wording |
+| 06 | Field history, corrections, manual locks, and conflicting proposals | Local UI/business logic |
+| 07 | Score factors, versions, independent states, explicit recalculation | Demo weights and a general budget reference, not a market estimate |
+| 08 | Hard reject for service/area; no automatic nurture for Nurture/Unqualified | Local negative tests |
+| 09 | Handoff context for human requests, negative responses, questions outside the FAQ, banned topics, and LLM failures | Live LLM recall/precision was not measured |
+| 10 | Revisions, Take over during generation, separate Pause/Resume/Return/Consent | Process and persisted-state concurrency were tested; no distributed deployment |
+| 11 | Contact-wide STOP, cancellation of pending actions, no implicit consent | An external provider request that has already started cannot be guaranteed to be revoked |
+| 12 | IANA timezone, DST, schedule, buffer, slot offers | A real freeBusy adapter is implemented; live Google was not called |
+| 13 | Explicit selection, email/qualification gate, confirmed mock event, Booked/summary | No real Google event was created |
+| 14 | Reservation, stale offers, idempotency, lost-response unknown/reconcile | Local / contract tests; an external Google editor is not atomic with the database |
+| 15 | Cancellation/rescheduling of one appointment, preserving the old state on failure | Tested with mocks and adapter contracts, without real Google |
+| 16 | Two queues with three touches each, per-Lead counter, one active sequence | The email template is shared across the three touches, not independently editable per step |
+| 17 | State and working-hours checks, reply cancellation, and skipped backlog | SQLite durable scheduler instead of Redis/BullMQ |
+| 18 | Hashed scoped tokens, single-use POST exchange, expiry, separate unsubscribe | API security was tested; native-loading browser E2E is still required |
+| 19 | SQLite store reopen, claims/leases, and stable action/operation keys | PostgreSQL/Redis are not used; a local disk is required |
+| 20 | LLM repair + handoff, unknown calendar/email results, database errors do not become success | No real provider failures were injected; tests use controlled faults |
+| 21 | Conversations / profile / notes / stage / fields / meeting / takeover | DOM smoke through an actual HTTP bridge; native browser routing was not tested |
+| 22 | Settings, rule versions, attempt log, safe retry / reconcile | All settings are consolidated into compact endpoints |
+| 23 | RBAC, public schemas, CSRF/Origin, escaping, hashed sessions, encrypted payloads, audit triggers | SQLite triggers are not the PostgreSQL permission model; no independent security review |
+| 24 | 24 scenarios, commands, and actual mock reports | The real model was not run; not all §13 metrics are implemented in full analytical form |
+| 25 | Live smoke script and real adapters are included | NOT PASSED: no real keys/accounts/evidence of delivery or a Google event |
+| 26 | Code, schema, seed, ENV examples, instructions, screenshots, Dockerfile/Compose | INCOMPLETE: Docker was not run; no public deployment or video |
 
-## Дополнительные ограничения
+## Additional limitations
 
-- Vanilla JS/CSS вместо Next.js/TypeScript/Tailwind; Node HTTP вместо NestJS; SQLite вместо PostgreSQL; DB poller вместо BullMQ/Redis. Это осознанно выделенная локальная редакция, не скрытая замена в ТЗ.
-- Изменения UI доставляются polling примерно каждые 1.8 секунды, не WebSocket/SSE.
-- После обновления услуг/часов/длительности администратор должен согласовать тексты FAQ и вопросов: старый FAQ-текст не переписывается автоматически. Число вопросов/тексты не являются универсальным конструктором схем.
-- Email — invitation/follow-up, не входящий канал переписки. Телефонное предпочтение переводит к человеку; SMS и звонков нет.
-- Входящие номера принимаются только в международной записи; исправление неверных телефонов по внешнему справочнику не выполняется.
-- Нет пользовательского интерфейса регистрации/сброса пароля/управления составом сотрудников. Два начальных аккаунта создаются при пустой базе; последующее изменение ENV-паролей не меняет уже сохранённый hash. Для live используйте новую базу с нужными credentials.
-- Нет механизма автоматического обновления схемы будущих несовместимых версий. Перед обновлениями делайте backup и предусмотренную миграцию.
-- Отказ от автоматизации не удаляет уже существующую встречу. Автоматическое восстановление старых email-цепочек после отмены встречи не выполняется.
-- Local runtime не равно production readiness. До реальных данных нужны live acceptance, инфраструктура, backup/restore test и security review.
+- Vanilla JS/CSS instead of Next.js/TypeScript/Tailwind; Node HTTP instead of NestJS; SQLite instead of PostgreSQL; a database poller instead of BullMQ/Redis. This is a deliberately separate local edition, not an undisclosed substitution in the specification.
+- UI updates arrive through polling approximately every 1.8 seconds, not WebSocket/SSE.
+- After updating services/hours/duration, the administrator must align FAQ and question text: old FAQ text is not rewritten automatically. The question count/text settings are not a general-purpose schema builder.
+- Email is used for invitations/follow-up, not as an inbound conversation channel. A phone preference triggers handoff; SMS and calls are not supported.
+- Incoming phone numbers are accepted only in international notation; invalid numbers are not corrected using an external directory.
+- There is no registration/password-reset/staff-management UI. Two initial accounts are created when the database is empty; subsequent ENV password changes do not alter an already stored hash. For live mode, use a new database with the required credentials.
+- There is no automatic schema-upgrade mechanism for future incompatible versions. Before upgrading, create a backup and perform the required migration.
+- Stopping automation does not delete an existing appointment. Old email sequences are not automatically restored after appointment cancellation.
+- Local runtime does not equal production readiness. Real data requires live acceptance, infrastructure, a backup/restore test, and a security review.

@@ -1,75 +1,75 @@
-# Leadloom — приложение с исходным кодом
+# Leadloom — application with source code
 
-**Версия 1.2.0 · автономная локальная редакция.** CRM, веб-чат, квалификация, объяснимая оценка, запись на консультацию и управление менеджером. Интерфейс — на английском.
+**Version 1.2.0 · standalone local edition.** CRM, web chat, qualification, explainable scoring, consultation booking, and manager controls. The interface is in English.
 
-## Запуск за один шаг
+## Start in one step
 
-Нужен **Node.js 22.16.0 или новее** с модулем `node:sqlite` (подойдёт Node.js 24). Встроенный SQLite в некоторых версиях Node выводит ExperimentalWarning; в проверенной среде это предупреждение не мешает запуску.
+Requires **Node.js 22.16.0 or later** with the `node:sqlite` module (Node.js 24 also works). Some Node versions display an ExperimentalWarning for built-in SQLite; this warning did not prevent startup in the tested environment.
 
-Из распакованной папки:
+From the extracted directory:
 
 ```sh
 cd leadloom
 npm start
 ```
 
-**Устанавливать npm-зависимости не нужно: их нет.** Приложение использует стандартные модули Node.js. Откройте **http://localhost:3000** — именно этот адрес, а не `127.0.0.1`, поскольку сервер проверяет Origin.
+**No npm dependencies need to be installed: there are none.** The application uses standard Node.js modules. Open **http://localhost:3000** — use this exact address, not `127.0.0.1`, because the server validates the Origin.
 
-| Доступ | Email | Пароль локального демо |
+| Role | Email | Local demo password |
 |---|---|---|
-| Администратор | `admin@leadloom.local` | `Leadloom-Demo-2026!` |
-| Менеджер | `manager@leadloom.local` | `Leadloom-Manager-2026!` |
+| Administrator | `admin@leadloom.local` | `Leadloom-Demo-2026!` |
+| Manager | `manager@leadloom.local` | `Leadloom-Manager-2026!` |
 
-При первом запуске создаются SQLite-база, конфигурация Acme Home Improvements, два сотрудника и восемь синтетических лидов. История, изменения и задачи сохраняются между запусками. Остановка — Ctrl+C.
+The first launch creates a SQLite database, the Acme Home Improvements configuration, two staff accounts, and eight synthetic leads. History, changes, and tasks persist between runs. Press Ctrl+C to stop.
 
-Форма клиента: **http://localhost:3000/enquire**. Для независимой проверки роли клиента откройте её в другом браузере или приватном окне.
+Customer form: **http://localhost:3000/enquire**. To test the customer role independently, open it in another browser or a private window.
 
-### Пройти сценарий до записи
+### Walk through the booking flow
 
-Заполните форму с новым вымышленным email и услугой Roofing. В чате напишите:
+Complete the form with a new fictional email address and the Roofing service. In the chat, write:
 
 > Roofing in Demo City A. Budget $25000. I own this home and want to start in 2 months.
 
-Нажмите **Choose a consultation time**, затем выберите слот. Дождитесь **Your consultation is confirmed**. В CRM появятся поля, оценка Hot и стадия Booked. Затем можно проверить Take over, Pause, Resume и сообщение `STOP`.
+Click **Choose a consultation time**, then select a slot. Wait for **Your consultation is confirmed**. The CRM will show the extracted fields, a Hot rating, and the Booked stage. You can then try Take over, Pause, Resume, and the `STOP` message.
 
-**Без настройки внешних сервисов это локальное демо:** `mock`-календарь хранит события в SQLite, `mock`-email отображается в Outbox, а квалификация выполняется детерминированным демонстрационным парсером. Никаких платных запросов или настоящих писем по умолчанию нет.
+**Without external service configuration, this is a local demo:** the `mock` calendar stores events in SQLite, `mock` email appears in the Outbox, and qualification uses a deterministic demo parser. There are no paid requests or real emails by default.
 
-## Что находится в приложении
+## Application features
 
-- **Conversations:** три колонки, список и фильтры, переписка, извлечённые поля, причины оценки, перехват и пауза.
-- **Lead Profile:** ручные поля с фиксацией, история изменений, оценки разных версий, заметки, назначение менеджера, стадия, отмена/перенос встречи.
-- **Settings:** компания, территория, услуги, часовой пояс, рабочее время, вопросы, FAQ, правила scoring и две последовательности follow-up.
-- **Execution Log:** принятые/отклонённые intake, фоновые действия, попытки, ошибки, сверка неизвестного результата и безопасный повтор.
-- **Клиентский контур:** защищённая сессия, собственный чат, явный выбор серверного слота, одноразовые ссылки возврата, отписка.
-- **Интеграционные адаптеры:** OpenAI Responses API, Google Calendar через OAuth refresh token, Resend. Они включаются явно и не подменяются mock при отсутствии ключей.
+- **Conversations:** three columns, a list and filters, message history, extracted fields, scoring reasons, takeover, and pause.
+- **Lead Profile:** manual field edits with locking, revision history, scores from different rule versions, notes, manager assignment, stage, and appointment cancellation/rescheduling.
+- **Settings:** company, service area, services, timezone, working hours, questions, FAQ, scoring rules, and two follow-up sequences.
+- **Execution Log:** accepted/rejected intake events, background actions, attempts, errors, reconciliation of unknown results, and safe retries.
+- **Customer access:** a secure session, the customer's own chat, explicit selection of a server-provided slot, single-use return links, and unsubscribe.
+- **Integration adapters:** OpenAI Responses API, Google Calendar through an OAuth refresh token, and Resend. They must be enabled explicitly and do not fall back to mocks when keys are missing.
 
-## Важное отличие от ТЗ
+## Important difference from the specification
 
-Это **не сборка Next.js/NestJS/PostgreSQL/Redis из ТЗ v1.1**. Здесь реализован альтернативный запускаемый стек: **Node.js HTTP + браузерные JavaScript-модули + SQLite WAL + долговечные задачи в SQLite**. Исходники не выданы за ранее обещанный несуществующий проект.
+This is **not the Next.js/NestJS/PostgreSQL/Redis implementation described in specification v1.1**. It implements an alternative runnable stack: **Node.js HTTP + browser JavaScript modules + SQLite WAL + durable tasks in SQLite**. These sources are not presented as the previously promised project that did not exist.
 
-Причина выбора автономной редакции: в среде подготовки нельзя было загрузить npm-пакеты. Вместо неподтверждённых конфигураций фреймворков поставлен код, который удалось реально запустить и проверить. Переход к стеку ТЗ не реализован. Полную приёмку всех AC-01–AC-26 эта поставка не заявляет; см. `DELIVERY-STATUS.md` и `docs/requirements-coverage.md`.
+The standalone edition was chosen because the preparation environment could not download npm packages. Instead of unverified framework configurations, the delivery contains code that was actually run and tested. Migration to the specification's stack has not been implemented. This delivery does not claim full acceptance of AC-01–AC-26; see `DELIVERY-STATUS.md` and `docs/requirements-coverage.md`.
 
-## Проверка и команды
+## Verification and commands
 
 ```sh
-npm run build          # проверка синтаксиса модулей + deploy-копия в dist/
+npm run build          # module syntax checks + deployment copy in dist/
 npm test               # unit / integration / HTTP / contract tests
-npm run eval -- --mock # 24 сценария; никакой платной модели
-npm run check          # все три шага
+npm run eval -- --mock # 24 scenarios; no paid model
+npm run check          # all three steps
 ```
 
-`npm run build` не имитирует компиляцию Next.js: исходные ES-модули исполняются непосредственно Node/браузером. Скрипт проверяет каждый JS-модуль, обязательные assets и создаёт `dist/`.
+`npm run build` does not simulate Next.js compilation: the source ES modules run directly in Node/the browser. The script checks each JS module and required assets, then creates `dist/`.
 
-В поставке есть фактические результаты **60/60 тестов** и **24/24 mock-сценариев**. DOM-проверки кнопок и формы выполнены в Chromium через мост к настоящему локальному HTTP API. Это не нативный браузерный E2E: политика среды запрещала переходы браузера по URL. Отдельный `tests/browser_e2e.py` для обычного браузерного запуска поставлен, но его прохождение не заявляется. Отчёты и пять скриншотов — в `evidence/`.
+The delivery includes actual results for **60/60 tests** and **24/24 mock scenarios**. DOM checks of buttons and the form ran in Chromium through a bridge to the real local HTTP API. This is not native browser E2E: environment policy prohibited browser navigation to URLs. A separate `tests/browser_e2e.py` is included for a normal browser run, but no passing result is claimed. Reports and five screenshots are in `evidence/`.
 
-Реальная оценка модели, требующая вашего ключа:
+Real model evaluation, which requires your key:
 
 ```sh
-# Сначала задайте OPENAI_API_KEY в локальном .env.
+# First set OPENAI_API_KEY in your local .env.
 npm run eval
 ```
 
-Без ключа команда завершится явной ошибкой, а не переключится на mock. Календарь и email в evaluation остаются контролируемыми mock, даже при реальном LLM. Отчёт — `evaluation/last-run.md` и `.json`; прежние результаты сохраняются в `evaluation/history/`.
+Without a key, the command fails explicitly instead of switching to a mock. Calendar and email remain controlled mocks during evaluation, even with a real LLM. Reports are written to `evaluation/last-run.md` and `.json`; previous results are kept in `evaluation/history/`.
 
 ## Docker
 
@@ -77,19 +77,19 @@ npm run eval
 docker compose up --build
 ```
 
-Compose запускает эту же автономную редакцию с включённым worker и именованным томом `leadloom-data`. Порт опубликован только на `127.0.0.1:3000`. В образе нет npm-загрузок, но Docker сначала скачивает базовый образ Node.js. **Docker в среде подготовки отсутствовал: Dockerfile и Compose поставлены, их сборка здесь не проверена.** Проверен прямой запуск Node.
+Compose runs the same standalone edition with the worker enabled and a named `leadloom-data` volume. The port is published only on `127.0.0.1:3000`. The image does not download npm packages, but Docker first downloads the Node.js base image. **Docker was unavailable in the preparation environment: Dockerfile and Compose are included, but their build has not been verified here.** Direct Node startup was verified.
 
-## Настройки и реальные сервисы
+## Configuration and real services
 
-Скопируйте `.env.example` в `.env`, измените необходимые значения и перезапустите сервер. Переменные окружения имеют приоритет. `.env`, база, локальный encryption key и чужие credentials в ZIP отсутствуют.
+Copy `.env.example` to `.env`, change the required values, and restart the server. Environment variables take precedence. The ZIP does not contain `.env`, the database, the local encryption key, or anyone else's credentials.
 
-Подробности: **`docs/integrations.md`**. Для доступа из сети не оставляйте демо-пароли. `APP_MODE=live` требует HTTPS-origin, собственные сильные пароли, отдельный ключ шифрования и webhook-секрет. База помечается режимом: переключить существующую demo-базу в live нельзя; нужен новый `DATABASE_PATH`.
+Details: **`docs/integrations.md`**. Do not retain demo passwords when exposing the application to a network. `APP_MODE=live` requires an HTTPS origin, your own strong passwords, a separate encryption key, and a webhook secret. The database is marked with its mode: an existing demo database cannot be switched to live; use a new `DATABASE_PATH`.
 
-**Live-адаптеры написаны, но не проверены с настоящими аккаунтами.** До работы с реальными лидами нужны real-model evaluation, live smoke, review безопасности и проверка эксплуатационного окружения. Не отправляйте ключи в переписку; задавайте их только у себя.
+**Live adapters are implemented but have not been tested with real accounts.** Before using real leads, complete real-model evaluation, live smoke testing, a security review, and verification of the operating environment. Do not send keys in chat; configure them locally.
 
-## Приём webhook
+## Webhook intake
 
-Endpoint: `POST /api/leads/intake`. Секрет используется только на стороне отправителя:
+Endpoint: `POST /api/leads/intake`. The secret is used only by the sender:
 
 ```sh
 curl http://localhost:3000/api/leads/intake \
@@ -98,32 +98,32 @@ curl http://localhost:3000/api/leads/intake \
   -d '{"source":"website","event_key":"demo-webhook-001","name":"Synthetic Visitor","email":"webhook@example.test","service_type":"roofing"}'
 ```
 
-В демо письмо появится в **Outbox**, доступном администратору. Повтор с тем же source/key и тем же payload вернёт прежний результат; изменённый payload с прежним ключом — конфликт. Идентификаторы и имена маршрутов этой редакции зафиксированы в `docs/api.md`.
+In demo mode, the email appears in the administrator's **Outbox**. Repeating the same source/key and payload returns the previous result; changing the payload while reusing the key causes a conflict. Identifiers and route names for this edition are documented in `docs/api.md`.
 
-## Данные, резервирование, отдельный worker
+## Data, backups, and a separate worker
 
 ```sh
 npm run backup
 npm run seed
-# Только после остановки сервера и worker:
+# Only after stopping the server and worker:
 npm run demo:reset -- --confirm-stopped
 ```
 
-База по умолчанию: `data/leadloom.sqlite`. Снимок базы без encryption key не позволяет расшифровать сохранённые payload внешних операций и Outbox: храните ключ отдельно и безопасно. Сброс разрешён только для базы, помеченной как demo, при всех mock-провайдерах; не используйте его на реальных данных.
+Default database: `data/leadloom.sqlite`. A database snapshot without the encryption key cannot decrypt stored external-operation payloads or the Outbox: keep the key separate and secure. Reset is allowed only for a database marked as demo with all mock providers; do not use it on real data.
 
-Worker по умолчанию работает внутри сервера. Для отдельного процесса задайте `WORKER_ENABLED=false` для сервера и запустите `npm run worker` с тем же абсолютным путём БД и тем же encryption key. SQLite-файл должен находиться на локальном диске того же хоста. Сетевой файловый сервер и многорегиональный кластер не поддерживаются этой редакцией.
+By default, the worker runs inside the server. To use a separate process, set `WORKER_ENABLED=false` for the server and run `npm run worker` with the same absolute database path and encryption key. The SQLite file must reside on a local disk on the same host. This edition does not support a network file server or a multi-region cluster.
 
-## Структура репозитория
+## Repository structure
 
 ```text
-src/             сервер, бизнес-правила, сессии, SQL-схема, worker
-src/providers/   mock и реальные OpenAI / Google Calendar / Resend адаптеры
-web/             полный браузерный интерфейс, стили, API-клиент
-scripts/         сборка, seed, безопасный demo-reset, backup, live-smoke
-tests/          unit, integration, HTTP, provider contracts, browser harnesses
-evaluation/     24 сценария, runner и реальные результаты mock-прогона
-evidence/       результаты проверок и скриншоты
-docs/           архитектура, API, интеграции, runbook, ограничения, исходное ТЗ
+src/             server, business rules, sessions, SQL schema, worker
+src/providers/   mock and real OpenAI / Google Calendar / Resend adapters
+web/             complete browser interface, styles, API client
+scripts/         build, seed, safe demo reset, backup, live smoke
+tests/           unit, integration, HTTP, provider contracts, browser harnesses
+evaluation/      24 scenarios, runner, and actual mock-run results
+evidence/        verification results and screenshots
+docs/            architecture, API, integrations, runbook, limitations, original specification
 ```
 
-Context7 действительно использован при этой реализации для API `node:sqlite`; запросы и источники записаны в `docs/context7.md`. Никаких утверждений «всё самое новое» без проверки lockfile/релизов здесь нет.
+Context7 was used during implementation for the `node:sqlite` API; queries and sources are recorded in `docs/context7.md`. No claims that everything is "the latest" are made without checking lockfiles/releases.
