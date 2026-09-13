@@ -1,5 +1,7 @@
 # Specification v1.1 coverage and local edition boundaries
 
+> Historical delivery snapshot from 10 September 2026, retained to explain the original [AC-01–AC-26](Leadloom-TZ-v1.1.md) mapping. Statements about missing deployment/browser testing describe that delivery date. See [current status](../status.md) for later evidence; this table is not a current acceptance certificate.
+
 This is not a full acceptance certificate. "Local" means execution on the alternative Node/SQLite stack with mock providers. Live verification and the original specification's infrastructure are absent.
 
 | AC | Implementation / evidence | Boundary |

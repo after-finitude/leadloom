@@ -63,14 +63,14 @@ const initials = (name) =>
   );
 const badge = (value, extra = '') =>
   `<span class="badge ${esc(String(value || '').toLowerCase())} ${extra}">${esc(value)}</span>`;
-const dt = (ms, short = false) =>
+const dt = (ms, short = false, timeZone) =>
   ms
-    ? new Intl.DateTimeFormat(
-        'en-GB',
-        short
+    ? new Intl.DateTimeFormat('en-GB', {
+        ...(short
           ? { hour: '2-digit', minute: '2-digit' }
-          : { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }
-      ).format(new Date(ms))
+          : { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
+        timeZone
+      }).format(new Date(ms))
     : '—';
 const money = (v, c = 'USD') =>
   v == null
@@ -555,7 +555,7 @@ function profileContent() {
         .map(
           (a) =>
             `<section class="context-section"><div class="between"><h3>${esc(
-              dt(a.start_at)
+              dt(a.start_at, false, a.timezone)
             )}</h3>${badge(a.status)}</div><p class="muted small">${esc(a.timezone)} · ${esc(
               state.meta.providers.calendar
             )} calendar</p><p class="mono muted">${esc(
@@ -1002,12 +1002,7 @@ function loginPage(enquiry = false) {
       : 'Sign in to your workspace and pick up where the conversation left off.'
   }</p><form data-form="${enquiry ? 'enquiry' : 'login'}">${
     enquiry ? inputField('Your name', 'name', '') : ''
-  }${inputField(
-    'Email address',
-    'email',
-    enquiry ? '' : state.meta.demo ? 'admin@leadloom.local' : '',
-    'email'
-  )}${
+  }${inputField('Email address', 'email', '', 'email')}${
     enquiry
       ? `${inputField(
           'Phone (optional, international format)',
@@ -1017,12 +1012,12 @@ function loginPage(enquiry = false) {
         )}<div class="field"><label for="service_type">What are you planning?</label><select name="service_type" id="service_type"><option value="">I’ll tell you in the chat</option>${services
           .map((s) => `<option value="${esc(s)}">${esc(s[0].toUpperCase() + s.slice(1))}</option>`)
           .join('')}</select></div>`
-      : inputField('Password', 'password', state.meta.demo ? 'Leadloom-Demo-2026!' : '', 'password')
+      : inputField('Password', 'password', '', 'password')
   }<button type="submit" class="btn primary large full">${
     enquiry ? 'Start my conversation' : 'Sign in to workspace'
   } ${icon('arrow')}</button></form>${
     !enquiry && state.meta.demo
-      ? '<div class="demo-credentials"><strong>Local demo workspace</strong><br>admin@leadloom.local<br>Leadloom-Demo-2026!<br>Demo uses a deterministic parser, mock calendar and local email outbox.</div>'
+      ? '<div class="demo-credentials"><strong>Demo workspace</strong><br>Sign in with the credentials provided by your administrator.<br>Demo uses a deterministic parser, mock calendar and local email outbox.</div>'
       : ''
   }<p class="login-footer">${
     enquiry
@@ -1033,14 +1028,18 @@ function loginPage(enquiry = false) {
 function accessPage(unsubscribe = false, error = '') {
   root.innerHTML = `<div class="public-shell"><div class="public-header"><a class="brand" href="/enquire"><span class="brand-mark">L</span>leadloom</a><span class="small muted">Secure conversation</span></div><section class="access-box"><span class="brand-mark">L</span><h2>${
     unsubscribe
-      ? 'Stop automated outreach'
+      ? state.linkToken
+        ? 'Stop automated outreach'
+        : 'Unsubscribe link required'
       : state.linkToken
         ? 'Continue your conversation'
         : 'Welcome to your secure chat'
   }</h2><p>${esc(
     error ||
       (unsubscribe
-        ? 'Confirm below to stop automated messages. Your existing appointment will not be cancelled.'
+        ? state.linkToken
+          ? 'Confirm below to stop automated messages. Your existing appointment will not be cancelled.'
+          : 'Open the unsubscribe link in your email, or type STOP in your existing chat. No preferences have been changed.'
         : state.linkToken
           ? 'This private link is exchanged only when you press Continue. Your email preview has not used it.'
           : 'Start a new enquiry or request a fresh link for a previously verified email address.')
@@ -1049,7 +1048,9 @@ function accessPage(unsubscribe = false, error = '') {
       ? `<button class="btn primary large full" ${
           unsubscribe ? 'data-confirm-unsubscribe' : 'data-exchange'
         }>${unsubscribe ? 'Unsubscribe' : 'Continue securely'} ${icon('lock')}</button>`
-      : `<form data-form="request-access">${inputField(
+      : unsubscribe
+        ? '<a class="btn" href="/chat">Go to your chat</a>'
+        : `<form data-form="request-access">${inputField(
           'Email address',
           'email',
           '',

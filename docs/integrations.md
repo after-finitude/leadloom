@@ -53,7 +53,7 @@ Configure a dedicated calendar and a verified `SMOKE_EMAIL` address, and add tha
 npm run live:smoke -- --confirm
 ```
 
-**This command performs real actions:** it creates a synthetic event, reads it, sends one real email, and deletes the event during cleanup. Incomplete cleanup requires a manual check of the event.id in the report. Do not blindly repeat the command after an unknown result. The report is written to `evidence/live-smoke.json`. The delivered version has no successful live report: keys were not supplied and the command was not run.
+**This command performs real actions:** it creates a synthetic event, reads it, sends one real email, and deletes the event during cleanup. Incomplete cleanup requires a manual check of the event.id in the report. Do not blindly repeat the command after an unknown result. The report is written to `evidence/live-smoke.json`; recorded verification coverage is in [status](status.md).
 
 ## Access and spending limits
 

@@ -41,3 +41,16 @@ The customer chat limit applies per lead, identified through a verified visitor 
 The exact accepted JSON keys are defined by `allowKeys` in `src/http.mjs`/`service.mjs`; reproducible usage examples are in `tests/http.test.mjs`. This is a compact contract for the local edition, not a promise to match every URL in the specification.
 
 Results distinguish rejected (422), conflict (409), forbidden (403), unauthorized (401), accepted/pending (202), and confirmed outcomes. Separate status commands return current state data; the client does not treat 202 as proof that an appointment has been created.
+
+## Webhook example
+
+Against a running server, use its configured origin and webhook secret. This creates a synthetic enquiry and may send an invitation through the selected provider:
+
+```sh
+curl "$APP_ORIGIN/api/leads/intake" \
+  -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer $WEBHOOK_SECRET" \
+  -d '{"source":"website","event_key":"demo-webhook-001","name":"Synthetic Visitor","email":"webhook@example.test","service_type":"roofing"}'
+```
+
+With mock email, an eligible invitation is saved to the administrator's Outbox. Reuse the same event key only for identical data.

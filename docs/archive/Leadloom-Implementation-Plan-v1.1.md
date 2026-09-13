@@ -1,5 +1,7 @@
 # Leadloom — implementation plan v1.1
 
+> Historical plan for the original target stack, not an active execution plan. See [current product flow](../product-flow.md), [architecture](../architecture.md) and [status](../status.md) before making implementation decisions.
+
 **Portfolio title:** Leadloom — AI Lead Qualification & Booking.  
 **Revision date:** September 8, 2026.  
 **Basis:** [Technical specification v1.1](Leadloom-TZ-v1.1.md). Criteria `AC-01`–`AC-26` are defined in §14 of the specification.

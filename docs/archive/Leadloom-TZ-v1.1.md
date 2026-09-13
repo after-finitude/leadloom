@@ -1,5 +1,7 @@
 # Leadloom — technical specification v1.1
 
+> Historical design, not the current implementation contract. The standalone edition uses Node HTTP, browser JavaScript and SQLite. See [current product flow](../product-flow.md), [architecture](../architecture.md) and [status](../status.md). Requirements below describe the original target, not completed acceptance.
+
 **Portfolio title:** Leadloom — AI Lead Qualification & Booking.  
 **Revision date:** September 8, 2026.  
 **Related document:** [Implementation plan v1.1](Leadloom-Implementation-Plan-v1.1.md).

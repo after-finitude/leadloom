@@ -6,6 +6,7 @@ administrator policy blocks Chromium URLs. DOM bridge checks are separate files.
 """
 import os,uuid,json
 from datetime import datetime,timezone
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
 ROOT=Path(__file__).resolve().parents[1];base=os.getenv('APP_ORIGIN','http://localhost:3000')
@@ -17,6 +18,11 @@ with sync_playwright() as p:
     customer=browser.new_context(viewport={'width':1280,'height':960});page=customer.new_page()
     page.on('pageerror',lambda e:errors.append(str(e)))
     name='Native E2E '+uuid.uuid4().hex[:8]
+    page.goto(base+'/unsubscribe')
+    expect(page.get_by_role('heading',name='Unsubscribe link required')).to_be_visible()
+    expect(page.get_by_role('button',name='Request a new link')).to_have_count(0)
+    expect(page.get_by_role('button',name='Unsubscribe',exact=True)).to_have_count(0)
+    expect(page.get_by_role('link',name='Go to your chat')).to_have_attribute('href','/chat')
     page.goto(base+'/enquire')
     page.get_by_label('Your name').fill(name)
     page.get_by_label('Email address').fill(uuid.uuid4().hex+'@example.test')
@@ -42,14 +48,25 @@ with sync_playwright() as p:
     page.locator('[data-book-slot]').first.click()
     expect(page.get_by_text('Your consultation is confirmed',exact=True)).to_be_visible(timeout=20000)
     page.reload();expect(page.get_by_text('Your consultation is confirmed',exact=True)).to_be_visible()
-    staff=browser.new_context();manager=staff.new_page();manager.on('pageerror',lambda e:errors.append(str(e)))
-    manager.goto(base+'/login');manager.get_by_label('Email address').fill(os.getenv('ADMIN_EMAIL','admin@leadloom.local'))
+    staff=browser.new_context(timezone_id='Pacific/Honolulu');manager=staff.new_page();manager.on('pageerror',lambda e:errors.append(str(e)))
+    manager.goto(base+'/login')
+    expect(manager.get_by_label('Email address')).to_have_value('')
+    expect(manager.get_by_label('Password')).to_have_value('')
+    expect(manager.get_by_text('Leadloom-Demo-2026!',exact=True)).to_have_count(0)
+    manager.get_by_label('Email address').fill(os.getenv('ADMIN_EMAIL','admin@leadloom.local'))
     manager.get_by_label('Password').fill(os.getenv('ADMIN_PASSWORD','Leadloom-Demo-2026!'))
     manager.get_by_role('button',name='Sign in to workspace').click()
     manager.get_by_role('textbox',name='Search conversations').fill(name)
     expect(manager.locator('.lead-card')).to_have_count(1)
     manager.get_by_role('button').filter(has_text=name).first.click()
     expect(manager.locator('#chat-panel')).to_contain_text('Booked')
+    manager.get_by_role('button',name='Open lead',exact=True).click()
+    expect(manager.get_by_role('heading',name=name,exact=True)).to_be_visible()
+    profile=manager.request.get(base+'/api'+manager.url.removeprefix(base)).json()
+    appointment=next(a for a in profile['appointments'] if a['status']=='confirmed')
+    expected_time=datetime.fromtimestamp(appointment['start_at']/1000,ZoneInfo(appointment['timezone'])).strftime('%H:%M')
+    manager.get_by_role('button',name='Meetings',exact=True).click()
+    expect(manager.locator('.context-section').filter(has_text=appointment['external_id']).get_by_role('heading')).to_contain_text(expected_time)
     page.get_by_role('textbox',name='Your message').fill('STOP');page.get_by_role('button',name='Send message').click()
     expect(page.get_by_text('Automation is stopped. New messages will not restore consent.',exact=True)).to_be_visible()
     assert not errors,errors;browser.close()

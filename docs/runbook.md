@@ -4,6 +4,8 @@
 
 Run `npm start` from the repository root. The database is created automatically. The worker is enabled by default and polls durable actions approximately every 300 ms. `Ctrl+C` shuts down the server and waits for the current iteration. If startup fails, first check Node >=22.16.0, port availability, write access to the data directory, and that APP_ORIGIN exactly matches the browser address.
 
+Copy `.env.example` to `.env` for configuration; environment variables take precedence. Default storage is `data/leadloom.sqlite`. To use a separate worker, set `WORKER_ENABLED=false` on the server and run `npm run worker` with the same absolute database path and encryption key. Both processes need the same host's local disk. `npm run seed` adds the synthetic demo seed under its configured mode restrictions.
+
 HTTP health: `GET /api/health`. Process errors do not print message bodies, secrets, or access tokens. Technical diagnostics are in the Execution Log. Full conversations are stored in the protected CRM, not stdout.
 
 If the application runs but a booking/email does not complete, check Activity, the operation state, the selected provider, the email allowlist, and credentials. Do not change a record from unknown to confirmed directly in the database.
@@ -22,11 +24,7 @@ Chat requests from a verified visitor session are limited per lead: multiple cha
 
 Pending actions survive process loss. An expired lease for an LLM turn allows reprocessing of the original messages; recovery of an external send does not assume that no request occurred and moves to reconciliation instead.
 
-## Conversation controls
-
-Take over or a manual reply → HUMAN. Pause → paused, independently of ownership. Resume only clears the pause. Return to AI is an explicit return and requires a resolution reason for a review. STOP stops all automated outreach to the contact; an ordinary message or new intake does not restore consent. Restore consent is available only to an administrator with confirmation and a reason; it does not automatically change HUMAN to AI.
-
-Manual editing locks the field against LLM overwrites by default. A conflict appears in history/handoff. Changing rules creates a version; an existing lead retains its previous version until an explicit recalculation.
+For ownership, pause, consent, review and stage semantics, use the [product flow](product-flow.md#4-staff-controls-and-deal-progress).
 
 ## Backup / restore
 
@@ -37,3 +35,28 @@ Manual editing locks the field against LLM overwrites by default. A conflict app
 ## Before real operation
 
 Use a new live database, HTTPS, a dedicated calendar, your own passwords, an encryption key, a webhook secret, a verified email sender, spending controls, live-model evaluation, live smoke testing, and native browser E2E. A backup strategy, disk monitoring, and a restore test are required. The original specification's architecture (Postgres/Redis/Nest/Next) is not included in this delivery.
+
+An existing demo database cannot be switched to live mode: select a new `DATABASE_PATH`. Initial staff accounts are seeded once; changing ENV credentials does not change stored password hashes. Configure providers through [integrations](integrations.md); dated verification coverage is in [status](status.md).
+
+## Shared VPS deployment
+
+The trial deployment runs at `https://leadloom.176.98.40.150.sslip.io` on `176.98.40.150`, alongside Docflow Hub. It uses mock providers and synthetic demo data. Files live in `/opt/leadloom`; `compose.vps.yaml` extends `compose.yaml` with a pinned Node.js 24 image, a 256 MiB memory limit, a non-root user, read-only source mounts, and bounded container logs. No image build or npm installation is required.
+
+The host's `/opt/leadloom/data` directory is a separate writable bind mount owned by UID/GID 1000. Root-only `/opt/leadloom/.env` stores generated staff passwords, the webhook secret, encryption key, image digest, origin, and trusted proxy address. Credentials are not the public README demo passwords. Preserve both the database and its encryption key when backing up or updating the deployment.
+
+Manage only Leadloom from `/opt/leadloom`:
+
+```sh
+docker compose -f compose.yaml -f compose.vps.yaml up -d --no-build
+docker compose -f compose.yaml -f compose.vps.yaml stop
+```
+
+The application listens on host loopback port 3400 and joins the existing `docflow-hub_default` network with alias `leadloom`. The shared Caddy proxies the public hostname to `leadloom:3000`. Its configuration is `/opt/docflow-hub/docker/Caddyfile`; preserve the Leadloom site block during Docflow deployments. The previous configuration is backed up beside that file as `Caddyfile.before-leadloom-*`.
+
+A file bind mount can retain an older inode after a source file is replaced. To load the current host file without restarting Caddy, use:
+
+```sh
+docker exec -i docflow-hub-caddy-1 caddy reload --config /dev/stdin --adapter caddyfile < /opt/docflow-hub/docker/Caddyfile
+```
+
+If Caddy is recreated, check its network address and update Leadloom's `TRUSTED_PROXIES` if it changes, then recreate only the Leadloom service. The trial configuration trusts Caddy's current address, `172.18.0.8`; it does not trust the entire Docker subnet. Changing the public hostname also requires updating `APP_ORIGIN` and the Caddy site block.
