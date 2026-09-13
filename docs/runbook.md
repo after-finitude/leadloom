@@ -60,3 +60,15 @@ docker exec -i docflow-hub-caddy-1 caddy reload --config /dev/stdin --adapter ca
 ```
 
 If Caddy is recreated, check its network address and update Leadloom's `TRUSTED_PROXIES` if it changes, then recreate only the Leadloom service. The trial configuration trusts Caddy's current address, `172.18.0.8`; it does not trust the entire Docker subnet. Changing the public hostname also requires updating `APP_ORIGIN` and the Caddy site block.
+
+## GitHub autodeploy
+
+`.github/workflows/deploy.yml` sends pushes to `main` to this VPS; **Actions → Deploy → Run workflow** supports a manual run of `main`. Jobs are serialized. A pinned checkout action archives the exact commit's runtime files and sends them over SSH; the server does not need a Git checkout or GitHub token.
+
+One-time setup: install `scripts/deploy.sh` as `/usr/local/sbin/leadloom-deploy` (root-owned, mode 0700). Authorize a dedicated project's public key in `/root/.ssh/authorized_keys` using `restrict,command="/usr/local/sbin/leadloom-deploy"`, and store its private key as this repository's Actions secret `DEPLOY_SSH_KEY`. The workflow pins the host key read over the existing trusted connection. Personal SSH keys and application credentials are not uploaded to Actions.
+
+The forced command accepts only a full commit SHA, validates staged Compose configuration, briefly stops Leadloom, replaces `src/`, `web/` and the three runtime configuration files, then recreates only its app service. It uses the already-installed pinned image without building or pulling, waits for health, and records successful deployment in `/opt/leadloom/.deployed-revision`. `.env`, data and Docflow services/Caddy are preserved. The GitHub job fails if configuration, startup or health fails.
+
+This is an in-place deployment with a short interruption and no automatic database/code rollback. For bad application changes, revert the offending commit and push `main`. If the pipeline itself cannot recover, upload a known-good runtime archive through the existing administrator SSH connection and use the manual Compose procedure above. Database recovery is separate and uses a consistent backup with the same encryption key.
+
+Changes to `scripts/deploy.sh` must also be installed at `/usr/local/sbin/leadloom-deploy`; pushing source alone does not replace the privileged forced command. A new pinned runtime image must be installed on the VPS before deploying a configuration that uses it. Test/build commands are not included in this deployment workflow; the health check establishes readiness, not full functional acceptance.

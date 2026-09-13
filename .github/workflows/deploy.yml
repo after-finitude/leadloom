@@ -1,0 +1,36 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: leadloom-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          test -n "$DEPLOY_SSH_KEY"
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/leadloom_deploy
+          chmod 600 ~/.ssh/leadloom_deploy
+          printf '%s\n' '176.98.40.150 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF7+BXvgzkye7AuwZcI5Tbx0Uxi9CbE1uwDfERNQq6SU' > ~/.ssh/known_hosts
+
+      - name: Deploy
+        run: |
+          git archive --format=tar.gz --output=/tmp/leadloom-release.tar.gz "$GITHUB_SHA" src web package.json compose.yaml compose.vps.yaml
+          ssh -i ~/.ssh/leadloom_deploy -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15 root@176.98.40.150 "$GITHUB_SHA" < /tmp/leadloom-release.tar.gz

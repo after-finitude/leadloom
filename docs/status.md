@@ -13,7 +13,9 @@ Documentation snapshot: **13 September 2026**. This page separates recorded evid
 
 The shared VPS demo was deployed alongside Docflow at [Leadloom](https://leadloom.176.98.40.150.sslip.io/) using the pinned runtime/Compose override in the [runbook](runbook.md#shared-vps-deployment). That recorded deployment did not require an image build; it does not establish that the base Dockerfile build was tested. This page is not a live uptime report.
 
-Local changes following the audit correct the meeting time-zone display, hardcoded login hints and tokenless unsubscribe screen. Regression checks were added to `tests/browser_e2e.py`; those changes had not been run or deployed at this snapshot. Do not treat current local source as proof of the server's exact revision.
+Changes following the audit correct the meeting time-zone display, hardcoded login hints and tokenless unsubscribe screen. Regression checks were added to `tests/browser_e2e.py`; they have not been run. The original audit predates these corrections.
+
+GitHub autodeploy is configured for pushes to `main`; see the [runbook](runbook.md#github-autodeploy). Use the GitHub Actions run and `/opt/leadloom/.deployed-revision` to identify the last successful deployment. Deployment health checks establish startup/readiness, not a repeat of the browser audit or regression suite.
 
 ## Unverified release paths
 
