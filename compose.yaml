@@ -3,7 +3,7 @@ services:
     build: .
     init: true
     ports:
-      - "127.0.0.1:3000:3000"
+      - '127.0.0.1:3000:3000'
     environment:
       HOST: 0.0.0.0
       PORT: 3000
@@ -11,7 +11,7 @@ services:
       APP_ORIGIN: ${APP_ORIGIN:-http://localhost:3000}
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
       DATABASE_PATH: /app/data/leadloom.sqlite
-      WORKER_ENABLED: "true"
+      WORKER_ENABLED: 'true'
       SEED_DEMO: ${SEED_DEMO:-true}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@leadloom.local}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Leadloom-Demo-2026!}
@@ -22,6 +22,8 @@ services:
       LLM_PROVIDER: ${LLM_PROVIDER:-mock}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-}
       LLM_TIMEOUT_MS: ${LLM_TIMEOUT_MS:-15000}
       CALENDAR_PROVIDER: ${CALENDAR_PROVIDER:-mock}
       GOOGLE_CALENDAR_ID: ${GOOGLE_CALENDAR_ID:-}

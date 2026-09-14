@@ -1,21 +1,20 @@
 {
-  "checkedAt": "2026-09-10T05:13:00.726Z",
-  "node": "v22.16.0",
+  "checkedAt": "2026-09-14T07:29:04.046Z",
+  "node": "v24.14.1",
   "syntaxFiles": 28,
   "files": [
     "src/auth.mjs",
     "src/config.mjs",
     "src/db.mjs",
-    "src/defaults.mjs",
+    "src/followups.mjs",
     "src/http.mjs",
     "src/main.mjs",
+    "src/operations.mjs",
     "src/providers/calendar.mjs",
     "src/providers/email.mjs",
     "src/providers/llm.mjs",
-    "src/rules.mjs",
     "src/seed.mjs",
     "src/service.mjs",
-    "src/time.mjs",
     "src/util.mjs",
     "src/worker.mjs",
     "web/api.js",
@@ -25,6 +24,7 @@
     "scripts/live-smoke.mjs",
     "scripts/reset.mjs",
     "scripts/seed.mjs",
+    "tests/deploy.test.mjs",
     "tests/domain.test.mjs",
     "tests/helpers.mjs",
     "tests/http.test.mjs",
@@ -33,6 +33,6 @@
     "evaluation/run.mjs"
   ],
   "output": "dist/",
-  "type": "Native ES module syntax validation and deployment copy; no transpilation required",
+  "type": "JavaScript syntax validation and deployment copy after TypeScript checking; Node.js 24 runs .mts directly",
   "success": true
 }

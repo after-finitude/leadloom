@@ -1,4 +1,6 @@
-export const DEFAULT_SETTINGS = {
+import type { CompanySettings, ScoringRules } from './types.ts';
+
+export const DEFAULT_SETTINGS: CompanySettings = {
   company: 'Acme Home Improvements',
   timezone: 'Etc/UTC',
   currency: 'USD',
@@ -54,7 +56,10 @@ export const DEFAULT_SETTINGS = {
   },
   bannedTopics: ['weapons', 'illegal drugs', 'money laundering']
 };
-export function newRules(settings, weights = {}) {
+export function newRules(
+  settings: CompanySettings,
+  weights: Partial<ScoringRules['weights']> = {}
+): ScoringRules {
   return {
     services: settings.services,
     areas: settings.areas,

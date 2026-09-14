@@ -36,9 +36,21 @@ export class AppError extends Error {
     this.status = status;
   }
 }
+/**
+ * @param {unknown} condition
+ * @param {string} code
+ * @param {string} [message]
+ * @param {number} [status]
+ * @returns {asserts condition}
+ */
 export function ensure(condition, code, message = code, status = 400) {
   if (!condition) throw new AppError(code, message, status);
 }
+/**
+ * @param {unknown} value
+ * @param {number} [max]
+ * @returns {string}
+ */
 export function text(value, max = 2000) {
   ensure(
     typeof value === 'string' && value.trim().length > 0 && value.length <= max,
@@ -68,7 +80,7 @@ export function email(value) {
 }
 export function phone(value) {
   if (value === undefined || value === null || value === '') return null;
-  const result = text(value, 32).replace(/[\s()\-]/g, '');
+  const result = text(value, 32).replace(/[\s()-]/g, '');
   ensure(
     /^\+[1-9][0-9]{6,14}$/.test(result),
     'invalid_phone',
@@ -105,9 +117,9 @@ export function decrypt(value, key) {
 }
 export function redact(value) {
   return String(value)
-    .replace(/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/gi, '[email]')
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[email]')
     .replace(/\+\d[\d ()-]{6,}\d/g, '[phone]')
-    .replace(/(?:Bearer\s+)[A-Za-z0-9._\-]+/g, 'Bearer [redacted]');
+    .replace(/(?:Bearer\s+)[A-Za-z0-9._-]+/g, 'Bearer [redacted]');
 }
 export const iso = (ms) => new Date(ms).toISOString();
 export const escapeHtml = (value) =>

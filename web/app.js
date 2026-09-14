@@ -178,7 +178,7 @@ function shell() {
   )}</strong></div><div class="header-tools"><span class="demo-label">${
     state.meta.demo ? 'DEMO WORKSPACE' : 'LOCAL EDITION'
   } · ${esc(
-    state.meta.providers.llm === 'mock' ? 'Mock AI' : 'OpenAI'
+    { mock: 'Mock AI', openai: 'OpenAI', openrouter: 'OpenRouter' }[state.meta.providers.llm]
   )}</span><span class="row small muted"><i class="status-dot"></i><span id="connection-status">Connected</span></span><span class="user-name">${esc(
     state.user.name
   )}</span><div class="avatar">${initials(
@@ -1017,7 +1017,7 @@ function loginPage(enquiry = false) {
     enquiry ? 'Start my conversation' : 'Sign in to workspace'
   } ${icon('arrow')}</button></form>${
     !enquiry && state.meta.demo
-      ? '<div class="demo-credentials"><strong>Demo workspace</strong><br>Sign in with the credentials provided by your administrator.<br>Demo uses a deterministic parser, mock calendar and local email outbox.</div>'
+      ? `<div class="demo-credentials"><strong>Demo workspace</strong><br>Sign in with the credentials provided by your administrator.<br>Providers: AI ${esc(state.meta.providers.llm)}, calendar ${esc(state.meta.providers.calendar)}, email ${esc(state.meta.providers.email)}. Mock meetings stay in this demo; mock emails appear in Outbox.</div>`
       : ''
   }<p class="login-footer">${
     enquiry
@@ -1051,11 +1051,11 @@ function accessPage(unsubscribe = false, error = '') {
       : unsubscribe
         ? '<a class="btn" href="/chat">Go to your chat</a>'
         : `<form data-form="request-access">${inputField(
-          'Email address',
-          'email',
-          '',
-          'email'
-        )}<button class="btn primary full">Request a new link</button></form><div class="form-footer"><a class="link small" href="/enquire">Start a new enquiry ↗</a></div>`
+            'Email address',
+            'email',
+            '',
+            'email'
+          )}<button class="btn primary full">Request a new link</button></form><div class="form-footer"><a class="link small" href="/enquire">Start a new enquiry ↗</a></div>`
   }</section></div>`;
 }
 function publicPage() {
@@ -1158,7 +1158,9 @@ function pendingKey(scope, body) {
 function clearPending(scope) {
   try {
     sessionStorage.removeItem(`leadloom-pending:${scope}`);
-  } catch {}
+  } catch {
+    // Cleanup is best-effort when the browser blocks session storage.
+  }
 }
 function editFieldsModal() {
   const l = state.profile;

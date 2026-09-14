@@ -1,0 +1,147 @@
+
+> leadloom@1.2.0 check
+> npm run lint && npm run format:check && npm run build && npm test && npm run eval -- --mock
+
+
+> leadloom@1.2.0 lint
+> eslint . --max-warnings 0
+
+
+> leadloom@1.2.0 format:check
+> prettier . --check
+
+Checking formatting...
+All matched files use Prettier code style!
+
+> leadloom@1.2.0 build
+> npm run typecheck && node scripts/build.mjs
+
+
+> leadloom@1.2.0 typecheck
+> tsc --noEmit
+
+Build OK: 28 JavaScript modules checked; deployment files copied to dist/.
+
+> leadloom@1.2.0 test
+> node --test --test-concurrency=1 tests/*.test.mjs
+
+✔ deploy rejects non-SHA SSH commands before accessing server files (25.423125ms)
+(node:65975) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ contact normalization preserves distinct plus and dotted addresses (0.848666ms)
+✔ STOP recognizes explicit refusal, not a substring in a project description (0.331875ms)
+✔ scoring is deterministic and explains all five factors (0.214916ms)
+✔ unknown and explicitly negative authority are distinct reasons (0.085708ms)
+✔ unknown budget can produce Warm, not invented budget (0.0705ms)
+✔ hard reject defeats a high score (0.060584ms)
+✔ budget intervals use conservative lower bound (0.069917ms)
+✔ overlapping buffers are not summed (0.062333ms)
+✔ business hours and weekend deferral (55.106834ms)
+✔ slot generation fits the whole appointment into working hours (0.7805ms)
+✔ DST fall-back does not duplicate UTC instants and preserves offsets (6.07975ms)
+✔ invalid configuration and scoring weights are rejected (1.562375ms)
+✔ encrypted payload is authenticated and not plaintext (1.903ms)
+✔ three identical intake deliveries create one lead, contact and first message (73.888958ms)
+✔ invalid authorized intake remains rejected without creating a contact (63.266375ms)
+✔ phone-only webhook goes to a human, with no fictitious first response (63.774292ms)
+✔ deduplication does not authorize a new browser to old history (61.262792ms)
+✔ conflicting email and phone are not silently merged (62.621625ms)
+✔ new enquiry after closing a deal preserves the Contact (61.469625ms)
+✔ service-specific policy allows different services for one contact (65.875334ms)
+✔ multi-field answer becomes a complete qualified lead with one reply (65.1685ms)
+✔ unknown critical field hands off after exactly two clarifications (65.539416ms)
+✔ optional explicit unknown budget remains null and qualification proceeds (64.2615ms)
+✔ manual field lock keeps value and records a conflicting proposal (67.794542ms)
+✔ later correction updates an unlocked field and preserves history (70.469ms)
+✔ STOP is contact-wide and neither Resume nor new intake restores it (64.793917ms)
+✔ human takeover wins against an in-flight LLM response (67.196458ms)
+✔ reply after handoff never returns ownership to AI (65.564667ms)
+✔ new rules do not retroactively change a pinned lead (68.00425ms)
+✔ audit events and rule versions cannot be updated or deleted (61.958458ms)
+✔ visitor response excludes score, contact identifiers and internal notes (62.377542ms)
+✔ chat link is scoped, single-use and separate from unsubscribe (65.661917ms)
+(node:65984) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ HTTP form creates an HttpOnly visitor session and a private chat (94.080208ms)
+✔ API rejects cross-origin writes, missing CSRF and forged public fields (71.4415ms)
+✔ manager role cannot edit settings or restore contact consent (97.463583ms)
+✔ staff login does not bypass CSRF and logout revokes the session (92.809291ms)
+✔ webhook authenticates before accepting an intake event (66.940083ms)
+✔ GET chat preview cannot consume an access token (65.283458ms)
+✔ server does not serve source files, database files or environment secrets (64.027542ms)
+✔ lead pages and search cover more than 300 records with global counters (452.848917ms)
+✔ lead list rejects invalid pagination and unknown filters (129.931375ms)
+✔ untrusted sockets cannot change login limits using forwarded headers (63.316666ms)
+✔ trusted proxies use the first untrusted hop and canonical client addresses (95.657166ms)
+✔ chat limits are per lead while unauthenticated routes retain IP limits (71.399083ms)
+(node:65985) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ same booking request confirms exactly one calendar event (86.572416ms)
+✔ two leads cannot reserve overlapping intervals (73.380167ms)
+✔ external calendar conflict is checked again just before creation (70.008083ms)
+✔ lost calendar response becomes unknown, then reconciles the same event (69.2455ms)
+✔ STOP before dispatch cancels a pending booking without creating an event (65.203667ms)
+✔ changed settings invalidate previously offered slots (68.730916ms)
+✔ unqualified lead cannot get slots or forge a booking (67.280167ms)
+✔ email is required before automatic booking (69.077375ms)
+✔ cancellation retains old state until confirmed and does not restart follow-ups (65.066625ms)
+✔ reschedule updates the existing external event instead of duplicating it (66.218125ms)
+✔ nighttime follow-up waits until working hours, but initial invitation does not (69.226542ms)
+✔ reply cancels the current follow-up run and STOP cancels all pending mail (70.47625ms)
+✔ late follow-ups do not send a backlog as a batch (66.085ms)
+✔ unknown email result is reconciled without a second mock delivery (67.715916ms)
+✔ all data and pending work survive a database reopen (83.13625ms)
+✔ completed qualification sends a follow-up without opening availability (135.99825ms)
+✔ cancelling a queued reschedule frees only the new slot (222.072042ms)
+✔ verified visitors recover human-owned or paused chats without restarting outreach (129.399542ms)
+✔ access recovery keeps email verification and STOP restrictions (62.311167ms)
+✔ access delivery can retry and reconcile while automation stays paused (64.383375ms)
+(node:65986) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ OpenRouter routes real extraction with a strict schema while calendar and email stay mock (15.540417ms)
+✔ OpenAI adapter sends a strict Responses schema and disables response storage (0.266291ms)
+✔ OpenAI JSON repair is limited to one attempt (0.382042ms)
+✔ OpenAI refusal is not silently turned into a mock answer (0.239625ms)
+✔ Google adapter uses a deterministic valid event id without uncontrolled attendee mail (1.918375ms)
+✔ calendar permission is checked after OAuth refresh, immediately before event request (0.319291ms)
+✔ Resend adapter reuses the provided idempotency key and enforces demo allowlist (0.320333ms)
+ℹ tests 72
+ℹ suites 0
+ℹ pass 72
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4775.135833
+
+> leadloom@1.2.0 eval
+> node evaluation/run.mjs --mock
+
+(node:66017) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS hot-booking
+PASS warm-unknown-budget
+PASS unsupported-service
+PASS outside-service-area
+PASS optional-budget-unknown
+PASS critical-location-unknown
+PASS multi-field-extraction
+PASS budget-correction
+PASS manual-lock-conflict
+PASS human-request
+PASS negative-sentiment
+PASS approved-faq
+PASS outside-faq
+PASS banned-topic
+PASS negative-authority
+PASS unknown-timeline
+PASS no-repeat-known-fields
+PASS stop-after-qualification
+PASS nurture-no-booking
+PASS email-required
+PASS prompt-injection-blocked
+PASS unknown-authority
+PASS service-correction-hard-reject
+PASS budget-crosses-threshold
+
+24/24 scenarios passed. Reports saved in evaluation/.

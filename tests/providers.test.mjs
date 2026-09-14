@@ -1,9 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { OpenAILLM } from '../src/providers/llm.mjs';
+import { ResponsesLLM } from '../src/providers/llm.mjs';
+import { config } from '../src/config.mjs';
+import { Store } from '../src/db.mjs';
+import { Leadloom } from '../src/service.mjs';
 import { GoogleCalendar, eventId } from '../src/providers/calendar.mjs';
 import { ResendEmail } from '../src/providers/email.mjs';
-import { DEFAULT_SETTINGS } from '../src/defaults.mjs';
+import { DEFAULT_SETTINGS } from '../src/defaults.mts';
 const result = {
   updates: [{ field: 'service_type', value: 'roofing', evidence: 'roofing' }],
   unknown: [],
@@ -18,9 +21,69 @@ const input = {
   currentField: 'service_type',
   settings: DEFAULT_SETTINGS
 };
+test('OpenRouter routes real extraction with a strict schema while calendar and email stay mock', async () => {
+  const c = config({
+    mode: 'test',
+    dbPath: ':memory:',
+    key: 'b'.repeat(64),
+    llmProvider: 'openrouter',
+    llmKey: 'router-test-key',
+    llmModel: 'vendor/test-model',
+    calendarProvider: 'mock',
+    emailProvider: 'mock'
+  });
+  assert.throws(() => config({ ...c, llmKey: '' }), /OPENROUTER_API_KEY/);
+  assert.throws(() => config({ ...c, llmModel: '' }), /OPENROUTER_MODEL/);
+  const store = new Store(':memory:');
+  try {
+    const app = new Leadloom(store, c);
+    assert.equal(app.llm.name, 'openrouter');
+    assert.equal(app.calendar.name, 'mock');
+    assert.equal(app.email.name, 'mock');
+    let calls = 0;
+    app.llm.fetcher = async (url, options) => {
+      calls++;
+      assert.equal(url, 'https://openrouter.ai/api/v1/responses');
+      assert.equal(options.headers.Authorization, 'Bearer router-test-key');
+      const body = JSON.parse(options.body);
+      assert.equal(body.model, 'vendor/test-model');
+      assert.equal(body.store, false);
+      assert.equal(body.provider.require_parameters, true);
+      assert.equal(body.text.format.strict, true);
+      assert.equal(body.text.format.type, 'json_schema');
+      assert.equal(
+        body.input[1].content[0].text,
+        JSON.stringify({
+          current_field: input.currentField,
+          known_fields: input.fields,
+          latest_messages: input.body
+        })
+      );
+      return json({
+        status: 'completed',
+        output: [
+          {
+            content: [
+              {
+                type: 'output_text',
+                text: calls === 1 ? 'invalid JSON' : JSON.stringify(result)
+              }
+            ]
+          }
+        ]
+      });
+    };
+    assert.deepEqual(await app.llm.extract(input), result);
+    assert.equal(calls, 2);
+    app.llm.fetcher = async () => json({ error: { message: 'Payment required' } }, 402);
+    await assert.rejects(() => app.llm.extract(input), { code: 'llm_http_402' });
+  } finally {
+    store.close();
+  }
+});
 test('OpenAI adapter sends a strict Responses schema and disables response storage', async () => {
   let body;
-  const llm = new OpenAILLM(
+  const llm = new ResponsesLLM(
     { llmKey: 'test-key', llmModel: 'test-model', llmTimeout: 1000 },
     async (url, options) => {
       assert.equal(url, 'https://api.openai.com/v1/responses');
@@ -39,7 +102,7 @@ test('OpenAI adapter sends a strict Responses schema and disables response stora
 });
 test('OpenAI JSON repair is limited to one attempt', async () => {
   let calls = 0;
-  const llm = new OpenAILLM(
+  const llm = new ResponsesLLM(
     { llmKey: 'test-key', llmModel: 'test-model', llmTimeout: 1000 },
     async () => {
       calls++;
@@ -51,7 +114,7 @@ test('OpenAI JSON repair is limited to one attempt', async () => {
 });
 test('OpenAI refusal is not silently turned into a mock answer', async () => {
   let calls = 0;
-  const llm = new OpenAILLM(
+  const llm = new ResponsesLLM(
     { llmKey: 'test-key', llmModel: 'test-model', llmTimeout: 1000 },
     async () => {
       calls++;

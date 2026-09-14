@@ -219,10 +219,14 @@ export class MockLLM {
     return result;
   }
 }
-export class OpenAILLM {
-  name = 'openai';
+export class ResponsesLLM {
   constructor(c, fetcher = fetch) {
     this.c = c;
+    this.name = c.llmProvider || 'openai';
+    this.url =
+      this.name === 'openrouter'
+        ? 'https://openrouter.ai/api/v1/responses'
+        : 'https://api.openai.com/v1/responses';
     this.model = c.llmModel;
     this.fetcher = fetcher;
   }
@@ -240,15 +244,17 @@ export class OpenAILLM {
     let lastError;
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const response = await this.fetcher('https://api.openai.com/v1/responses', {
+        const response = await this.fetcher(this.url, {
           method: 'POST',
           headers: { Authorization: `Bearer ${this.c.llmKey}`, 'Content-Type': 'application/json' },
           signal: AbortSignal.timeout(this.c.llmTimeout),
           body: JSON.stringify({
             model: this.model,
             store: false,
+            ...(this.name === 'openrouter' ? { provider: { require_parameters: true } } : {}),
             input: [
               {
+                type: 'message',
                 role: 'system',
                 content:
                   system +
@@ -257,6 +263,7 @@ export class OpenAILLM {
                     : '')
               },
               {
+                type: 'message',
                 role: 'user',
                 content: JSON.stringify({
                   current_field: input.currentField,
@@ -264,7 +271,10 @@ export class OpenAILLM {
                   latest_messages: input.body
                 })
               }
-            ],
+            ].map((message) => ({
+              ...message,
+              content: [{ type: 'input_text', text: message.content }]
+            })),
             text: {
               format: {
                 type: 'json_schema',

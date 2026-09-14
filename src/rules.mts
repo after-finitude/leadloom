@@ -1,5 +1,14 @@
 import { ensure, text, email } from './util.mjs';
-export const FIELDS = [
+import type {
+  CompanySettings,
+  LeadEligibility,
+  LeadFields,
+  ScoreReason,
+  ScoreResult,
+  ScoringRules
+} from './types.ts';
+
+export const FIELDS: (keyof LeadFields)[] = [
   'service_type',
   'location',
   'budget_min',
@@ -8,12 +17,15 @@ export const FIELDS = [
   'decision_maker',
   'preferred_contact'
 ];
-export function known(fields, field) {
+export function known(fields: LeadFields, field: keyof LeadFields | 'budget') {
   return field === 'budget'
     ? fields.budget_min != null || fields.budget_max != null
     : fields[field] !== null && fields[field] !== undefined;
 }
-export function normalizeField(field, value) {
+export function normalizeField(
+  field: keyof LeadFields,
+  value: unknown
+): string | number | boolean | null {
   ensure([...FIELDS, 'email'].includes(field), 'invalid_field');
   if (value === null) return null;
   if (field === 'email') return email(value);
@@ -36,7 +48,7 @@ export function normalizeField(field, value) {
     ensure(['chat', 'email', 'phone'].includes(v), 'invalid_field_value');
   return field === 'service_type' ? v.toLowerCase() : v;
 }
-export function validateBudget(fields) {
+export function validateBudget(fields: LeadFields) {
   ensure(
     fields.budget_min == null ||
       fields.budget_max == null ||
@@ -45,12 +57,17 @@ export function validateBudget(fields) {
     'Minimum budget must not exceed maximum'
   );
 }
-const matches = (items, value) =>
+const matches = (items: string[], value: string | null | undefined) =>
   value == null ? null : items.some((x) => x.toLowerCase() === String(value).trim().toLowerCase());
-export function scoreLead(fields, rules) {
-  const reasons = [];
-  const add = (factor, value, points, max, reason) =>
-    reasons.push({ factor, value: value ?? null, points, max, reason });
+export function scoreLead(fields: LeadFields, rules: ScoringRules): ScoreResult {
+  const reasons: ScoreReason[] = [];
+  const add = (
+    factor: string,
+    value: ScoreReason['value'] | undefined,
+    points: number,
+    max: number,
+    reason: string
+  ) => reasons.push({ factor, value: value ?? null, points, max, reason });
   const w = rules.weights;
   const serviceFit = matches(rules.services, fields.service_type);
   const locationFit = matches(rules.areas, fields.location);
@@ -135,7 +152,9 @@ export function scoreLead(fields, rules) {
           : 'Nurture';
   return { score, category, reasons, serviceFit, locationFit };
 }
-export function mayAutomate(lead) {
+export function mayAutomate(
+  lead: Pick<LeadEligibility, 'opt_out' | 'owner' | 'paused' | 'review_reason' | 'stage'>
+) {
   return (
     !lead.opt_out &&
     lead.owner === 'AI' &&
@@ -144,9 +163,11 @@ export function mayAutomate(lead) {
     !['Proposal', 'Won', 'Lost'].includes(lead.stage)
   );
 }
-export const maySendAccess = (lead) =>
+export const maySendAccess = (
+  lead: Pick<LeadEligibility, 'email' | 'verified_email' | 'opt_out' | 'stage'>
+) =>
   !!lead.email && !!lead.verified_email && !lead.opt_out && !['Won', 'Lost'].includes(lead.stage);
-export function mayBook(lead, settings) {
+export function mayBook(lead: LeadEligibility, settings: CompanySettings) {
   return (
     mayAutomate(lead) &&
     lead.qualification === 'complete' &&
@@ -158,9 +179,9 @@ export function mayBook(lead, settings) {
     settings.questions.filter((q) => q.required).every((q) => known(lead.fields, q.field))
   );
 }
-export function validateSettings(s) {
+export function validateSettings(s: CompanySettings): CompanySettings {
   ensure(s && typeof s === 'object' && !Array.isArray(s), 'invalid_settings');
-  for (const k of ['company', 'timezone', 'currency', 'brandVoice'])
+  for (const k of ['company', 'timezone', 'currency', 'brandVoice'] as const)
     text(s[k], k === 'brandVoice' ? 2000 : 200);
   try {
     new Intl.DateTimeFormat('en', { timeZone: s.timezone }).format(new Date());
@@ -168,7 +189,7 @@ export function validateSettings(s) {
     ensure(false, 'invalid_timezone');
   }
   ensure(/^[A-Z]{3}$/.test(s.currency), 'invalid_currency');
-  for (const k of ['services', 'areas', 'bannedTopics']) {
+  for (const k of ['services', 'areas', 'bannedTopics'] as const) {
     ensure(
       Array.isArray(s[k]) && s[k].length <= 100 && (k === 'bannedTopics' || s[k].length > 0),
       'invalid_settings'
@@ -190,7 +211,7 @@ export function validateSettings(s) {
     ['buffer', 0, 120],
     ['horizon', 1, 30],
     ['minimumNotice', 0, 1440]
-  ])
+  ] as const)
     ensure(Number.isInteger(s[key]) && s[key] >= min && s[key] <= max, 'invalid_settings');
   ensure(
     ['one_active_per_contact', 'one_active_per_contact_service'].includes(s.deduplication),
@@ -230,13 +251,13 @@ export function validateSettings(s) {
   ensure(Array.isArray(s.faq) && s.faq.length <= 30, 'invalid_faq');
   const faqIds = new Set();
   for (const f of s.faq) {
-    for (const k of ['id', 'question', 'answer']) text(f[k], 2000);
+    for (const k of ['id', 'question', 'answer'] as const) text(f[k], 2000);
     ensure(!faqIds.has(f.id), 'duplicate_faq');
     faqIds.add(f.id);
     ensure(Array.isArray(f.keywords) && f.keywords.length <= 20, 'invalid_faq');
     f.keywords.forEach((k) => text(k, 200));
   }
-  for (const type of ['qualification_abandoned', 'qualified_not_booked']) {
+  for (const type of ['qualification_abandoned', 'qualified_not_booked'] as const) {
     const steps = s.followup?.[type];
     ensure(
       Array.isArray(steps) &&
@@ -252,9 +273,9 @@ export function validateSettings(s) {
   text(s.followup.text, 2000);
   return s;
 }
-export function validateRules(r) {
+export function validateRules(r: ScoringRules): ScoringRules {
   ensure(r && r.weights && Array.isArray(r.services) && Array.isArray(r.areas), 'invalid_rules');
-  for (const key of ['service', 'location', 'budget', 'urgency', 'authority'])
+  for (const key of ['service', 'location', 'budget', 'urgency', 'authority'] as const)
     ensure(
       Number.isInteger(r.weights[key]) && r.weights[key] >= 0 && r.weights[key] <= 100,
       'invalid_rules'

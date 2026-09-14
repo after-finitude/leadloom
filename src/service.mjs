@@ -1,6 +1,5 @@
 import {
   id,
-  token,
   hash,
   stable,
   parse,
@@ -15,7 +14,7 @@ import {
   AppError,
   escapeHtml
 } from './util.mjs';
-import { DEFAULT_SETTINGS, newRules } from './defaults.mjs';
+import { DEFAULT_SETTINGS, newRules } from './defaults.mts';
 import {
   FIELDS,
   normalizeField,
@@ -27,8 +26,8 @@ import {
   maySendAccess,
   validateSettings,
   validateRules
-} from './rules.mjs';
-import { MockLLM, OpenAILLM, validateExtraction } from './providers/llm.mjs';
+} from './rules.mts';
+import { MockLLM, ResponsesLLM, validateExtraction } from './providers/llm.mjs';
 import { MockCalendar, GoogleCalendar } from './providers/calendar.mjs';
 import { MockEmail, ResendEmail } from './providers/email.mjs';
 import { Auth } from './auth.mjs';
@@ -71,7 +70,7 @@ export class Leadloom {
     this.c = c;
     this.clock = clock;
     this.auth = new Auth(store, c, clock);
-    this.llm = providers.llm || (c.llmProvider === 'openai' ? new OpenAILLM(c) : new MockLLM());
+    this.llm = providers.llm || (c.llmProvider === 'mock' ? new MockLLM() : new ResponsesLLM(c));
     this.calendar =
       providers.calendar ||
       (c.calendarProvider === 'google' ? new GoogleCalendar(c) : new MockCalendar(store));

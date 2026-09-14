@@ -1,8 +1,7 @@
 import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { isIP } from 'node:net';
-import { AppError, ensure, allowKeys, sameSecret, text, hash } from './util.mjs';
+import { AppError, ensure, allowKeys, sameSecret, hash } from './util.mjs';
 
 function cookies(req) {
   const out = {};

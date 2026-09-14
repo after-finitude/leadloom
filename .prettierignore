@@ -1,0 +1,7 @@
+node_modules/
+dist/
+data/
+evidence/
+evaluation/history/
+evaluation/last-run.*
+docs/archive/

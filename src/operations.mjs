@@ -1,6 +1,6 @@
 import { id, hash, stable, encrypt, decrypt, text, ensure } from './util.mjs';
-import { mayAutomate, mayBook, maySendAccess } from './rules.mjs';
-import { availableSlots, working, overlaps, timeLabel } from './time.mjs';
+import { mayAutomate, mayBook, maySendAccess } from './rules.mts';
+import { availableSlots, working, overlaps, timeLabel } from './time.mts';
 import { eventId } from './providers/calendar.mjs';
 
 export function operation(app, kind, leadId, key, payload) {

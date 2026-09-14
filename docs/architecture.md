@@ -8,7 +8,9 @@ Browser → Node HTTP API → Leadloom service → SQLite. A background poller s
 
 `service.mjs` manages intake, CRM, conversations, revisions, and the action queue. Its methods preserve a single `Leadloom` interface for the HTTP API and worker. `operations.mjs` contains slot availability, reservations, booking, rescheduling, cancellation, and the lifecycle of external calendar and email operations: execution, confirmation, errors, reconciliation of uncertain results, and retries. `followups.mjs` schedules and sends follow-ups while checking eligibility, working hours, and touch limits. Both modules receive the service instance as an argument and use its store, providers, and clock.
 
-`rules.mjs` calculates scores without an LLM and contains shared eligibility rules for automation, booking, and access recovery. `time.mjs` iterates over UTC intervals and checks the local schedule using an IANA timezone, accounting for DST. `auth.mjs` contains staff/visitor sessions, CSRF, and scoped access tokens. `http.mjs` separates public and staff routes.
+`rules.mts` calculates scores without an LLM and contains shared eligibility rules for automation, booking, and access recovery. `time.mts` iterates over UTC intervals and checks the local schedule using an IANA timezone, accounting for DST. `defaults.mts` defines typed company settings and initial scoring rules. These modules share contracts from `types.ts` and use native Node.js 24 type stripping. `auth.mjs` contains staff/visitor sessions, CSRF, and scoped access tokens. `http.mjs` separates public and staff routes.
+
+TypeScript migration is partial. `npm run typecheck` checks the migrated modules under strict mode and compile-only negative examples in `tests/type-contracts.ts`. Existing JavaScript imports are allowed but not checked; the browser still receives `.js`. The runtime does not run the TypeScript checker: `npm run build` checks types before copying the source into `dist/`, and CI runs this build through `npm run check`. No emitted JavaScript, runtime TypeScript dependency or server-side npm install is required. Runtime input validation remains in place.
 
 ## State boundaries
 

@@ -3,18 +3,40 @@ name: Deploy
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: leadloom-production
+  group: leadloom-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      APP_MODE: test
+      LLM_PROVIDER: mock
+      CALENDAR_PROVIDER: mock
+      EMAIL_PROVIDER: mock
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install development tools
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Check
+        run: npm run check
+
   deploy:
-    if: github.ref == 'refs/heads/main'
+    needs: check
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

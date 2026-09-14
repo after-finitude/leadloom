@@ -26,12 +26,12 @@ flowchart TD
 
 STOP or valid unsubscribe confirmation can interrupt outreach throughout the journey. Booking confirmation requires a confirmed calendar result.
 
-| Actor | Workflow |
-| --- | --- |
-| Customer | Enquiry, own private chat, questions, request for a person, slot selection, secure return and opt-out. |
-| Manager | Inbox, Leads, Activity; replies, controls, field edits, notes, stages, meetings, score recalculation and eligible recovery actions. |
-| Administrator | Manager actions plus settings, rule publication, consent restoration and demo Outbox. |
-| Authorized source | Authenticated webhook intake; not a public form. |
+| Actor             | Workflow                                                                                                                            |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Customer          | Enquiry, own private chat, questions, request for a person, slot selection, secure return and opt-out.                              |
+| Manager           | Inbox, Leads, Activity; replies, controls, field edits, notes, stages, meetings, score recalculation and eligible recovery actions. |
+| Administrator     | Manager actions plus settings, rule publication, consent restoration and demo Outbox.                                               |
+| Authorized source | Authenticated webhook intake; not a public form.                                                                                    |
 
 Staff enter through `/login`. Inbox provides history and project context; Leads provides a searchable table. **Open lead** exposes **Timeline**, **Data**, **Score** and **Meetings**. Activity contains execution and incoming-event logs. Settings and Outbox are described below. Customers use `/enquire`, `/chat` and email links.
 
@@ -44,13 +44,13 @@ Staff enter through `/login`. Inbox provides history and project context; Leads 
 
 Contacts are matched by normalized email, phone and source-specific external identity. Public submissions never overwrite trusted channels.
 
-| Situation | Result |
-| --- | --- |
-| Same source/event key and same payload | Previous result reused. Different payload with that key is rejected. |
-| Existing contact, one active deal per contact | Active lead reused. |
-| One active deal per contact and service | Matching service reused; a different service may create another lead. |
-| Conflicting identities or ambiguous active deals | **needs_resolution**; staff chooses the correct contact in **Activity → Incoming events → Resolve**. |
-| Existing contact from a different visitor session | No automatic access to their chat. Use an existing session, eligible recovery link or staff help. |
+| Situation                                         | Result                                                                                               |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Same source/event key and same payload            | Previous result reused. Different payload with that key is rejected.                                 |
+| Existing contact, one active deal per contact     | Active lead reused.                                                                                  |
+| One active deal per contact and service           | Matching service reused; a different service may create another lead.                                |
+| Conflicting identities or ambiguous active deals  | **needs_resolution**; staff chooses the correct contact in **Activity → Incoming events → Resolve**. |
+| Existing contact from a different visitor session | No automatic access to their chat. Use an existing session, eligible recovery link or staff help.    |
 
 Won/Lost are excluded from active-deal matching; Proposal remains active for this purpose. A typed email alone does not verify the address. A web session can start before email verification; exchanging an email access token verifies it.
 
@@ -64,12 +64,12 @@ Approved FAQ questions return configured answers without spending another clarif
 
 The parser/LLM extracts facts; application code calculates and records the score:
 
-| Default factor | Points |
-| --- | --- |
-| Supported service / covered location | 25 each. |
-| Budget | 25 when the lower bound meets 10,000; 10 when only the upper bound reaches it; otherwise 0. |
-| Timeline | 15 within 3 months, 10 within 6, 5 beyond 6; unknown 0. |
-| Decision maker | 10 for a known decision maker. |
+| Default factor                       | Points                                                                                      |
+| ------------------------------------ | ------------------------------------------------------------------------------------------- |
+| Supported service / covered location | 25 each.                                                                                    |
+| Budget                               | 25 when the lower bound meets 10,000; 10 when only the upper bound reaches it; otherwise 0. |
+| Timeline                             | 15 within 3 months, 10 within 6, 5 beyond 6; unknown 0.                                     |
+| Decision maker                       | 10 for a known decision maker.                                                              |
 
 Hot starts at 80, Warm at 60; lower scores are Nurture. Unsupported service/location overrides the score with Unqualified. **Score** shows reasons and evaluation history. Existing leads keep their rule version until **Recalculate with latest rules**.
 
@@ -84,10 +84,10 @@ Booking additionally requires complete qualification, Hot/Warm, email, current r
 
 Pending means accepted for processing. Unknown means the external effect may already exist and requires reconciliation. Neither means confirmed. Meeting times use the appointment's time zone.
 
-| Staff action in Meetings | Result |
-| --- | --- |
-| **Reschedule** → select fresh slot | Old booking stays active until the change is confirmed. Coverage, qualification and offer freshness are checked. Staff may handle an existing meeting while ownership is HUMAN. |
-| **Cancel appointment → Keep appointment** | Dismisses without cancellation. |
+| Staff action in Meetings                      | Result                                                                                                                                                                              |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Reschedule** → select fresh slot            | Old booking stays active until the change is confirmed. Coverage, qualification and offer freshness are checked. Staff may handle an existing meeting while ownership is HUMAN.     |
+| **Cancel appointment → Keep appointment**     | Dismisses without cancellation.                                                                                                                                                     |
 | **Cancel appointment → Confirm cancellation** | Queues cancellation; old appointment remains confirmed until acknowledgement. Then reservations release and the stage becomes Qualified for complete Hot/Warm, otherwise Contacted. |
 
 Cancellation suppresses follow-ups; old sequences do not restart. A new explicit booking may still be possible when eligible. Changing a deal stage or stopping automation does not cancel a calendar event.
@@ -96,15 +96,15 @@ Cancellation suppresses follow-ups; old sequences do not restart. A new explicit
 
 Find a lead through search (name/email/phone/service) or **All**, **Needs attention**, **AI active**, **Human**, **Booked**. Search/filtering covers the dataset; dashboard counters remain global. Open the profile for field provenance, proposed changes, score, audit trail and meetings.
 
-| Action | Effect and boundary |
-| --- | --- |
-| **Take over** | HUMAN ownership assigned to acting staff; pending automation cancelled. |
-| **Send reply** | Personal message appears in customer chat and takes HUMAN ownership. Blocked for opted-out contacts; not a separate email/SMS delivery. |
-| **Edit fields** | Changed fields lock against AI overwrites by default. Conflicts become proposals and trigger review. **Unlock …** permits future changes; it does not accept a past proposal. |
-| **Add note** | Private team note, absent from customer chat. |
-| **Return to AI** | AI ownership. Existing review requires resolution notes. Does not clear pause, opt-out or a closed stage. |
-| **Pause / Resume** | Set/clear pause independently of ownership. Messages can still be saved; Resume processes them only when automation is eligible. |
-| **Restore consent separately** | Admin reason plus explicit renewed-consent confirmation. Does not automatically return AI ownership or restart old follow-ups. |
+| Action                         | Effect and boundary                                                                                                                                                           |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Take over**                  | HUMAN ownership assigned to acting staff; pending automation cancelled.                                                                                                       |
+| **Send reply**                 | Personal message appears in customer chat and takes HUMAN ownership. Blocked for opted-out contacts; not a separate email/SMS delivery.                                       |
+| **Edit fields**                | Changed fields lock against AI overwrites by default. Conflicts become proposals and trigger review. **Unlock …** permits future changes; it does not accept a past proposal. |
+| **Add note**                   | Private team note, absent from customer chat.                                                                                                                                 |
+| **Return to AI**               | AI ownership. Existing review requires resolution notes. Does not clear pause, opt-out or a closed stage.                                                                     |
+| **Pause / Resume**             | Set/clear pause independently of ownership. Messages can still be saved; Resume processes them only when automation is eligible.                                              |
+| **Restore consent separately** | Admin reason plus explicit renewed-consent confirmation. Does not automatically return AI ownership or restart old follow-ups.                                                |
 
 To resolve a handoff: read the reason, summary and messages; correct/unlock relevant fields; select **Return to AI**, record resolution notes and submit **Resolve and return to AI**. Obsolete assistant drafts are discarded if state changes during generation.
 
@@ -114,10 +114,10 @@ Manager assignment has a protected API but no dedicated picker in the current br
 
 ## 5. Follow-ups, return links and consent
 
-| Sequence | Waiting period begins | Default delays from that start |
-| --- | --- | --- |
-| Unfinished qualification | Assistant/invitation awaits qualification response. | 1 hour, 1 day, 3 days. |
-| Qualified, not yet booked | Lead becomes eligible for booking and awaits selection. | 1, 3, 7 days. |
+| Sequence                  | Waiting period begins                                   | Default delays from that start |
+| ------------------------- | ------------------------------------------------------- | ------------------------------ |
+| Unfinished qualification  | Assistant/invitation awaits qualification response.     | 1 hour, 1 day, 3 days.         |
+| Qualified, not yet booked | Lead becomes eligible for booking and awaits selection. | 1, 3, 7 days.                  |
 
 Before each send, the worker checks consent, ownership, pause, review, stage, email, latest reply, waiting period and appointments. Changed conditions cancel obsolete outreach. Sends outside working hours are deferred; obsolete overdue touches can be skipped instead of sent together. There are at most three confirmed/in-flight/uncertain touches per lead and sequence type. Queued messages retain their saved template; settings changes do not rewrite them.
 
@@ -131,26 +131,26 @@ Emails contain separate chat and unsubscribe links:
 
 ## 6. Configuration and operational exceptions
 
-| Settings area | Configure |
-| --- | --- |
+| Settings area          | Configure                                                                                                                                          |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Company & availability | Name, IANA zone, currency, services/coverage, hours/days, duration, buffer, horizon, notice, deduplication and brand voice. No overnight schedule. |
-| Qualification | Question wording/order and required flags; service/location remain required. |
-| Knowledge & safety | Approved FAQ answers, matching phrases and topics requiring a person. **Add FAQ** creates a draft; populate and save. |
-| Scoring rules | Weights summing to 100, budget threshold and Hot/Warm cutoffs. Publishing creates an immutable version with current coverage/currency. |
-| Email follow-up | Three ascending delays per sequence and shared subject/body. |
+| Qualification          | Question wording/order and required flags; service/location remain required.                                                                       |
+| Knowledge & safety     | Approved FAQ answers, matching phrases and topics requiring a person. **Add FAQ** creates a draft; populate and save.                              |
+| Scoring rules          | Weights summing to 100, budget threshold and Hot/Warm cutoffs. Publishing creates an immutable version with current coverage/currency.             |
+| Email follow-up        | Three ascending delays per sequence and shared subject/body.                                                                                       |
 
 Each form saves independently. Invalid values are rejected; a stale settings revision requires reload. Coverage/currency changes do not publish rules automatically: publish a version and recalculate selected existing leads when needed. Current coverage still gates booking even for an old Hot score. Keep FAQ/question wording aligned with company changes.
 
 Provider cards report ENV configuration, not editable switches; see [integrations](integrations.md). Demo Outbox is administrator-only: it previews saved mock emails and their return/unsubscribe links.
 
-| Activity situation | Action |
-| --- | --- |
-| Rejected intake / identifier conflict | Correct source data or use **Resolve** with the correct contact. |
-| Known failed eligible action | **Retry safely** after resolving restrictions. |
-| Unknown external result | **Reconcile** before another effect; never assume nothing happened. |
-| Failed booking/reschedule | Get a fresh offer and create a fresh operation; generic retry does not replay a stale calendar offer. |
-| Cancellation uncertainty | Inspect/reconcile the existing event before another cancellation. |
-| Assistant failure / unanswered required field | Handle the conversation, then explicitly resolve review. |
+| Activity situation                            | Action                                                                                                |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Rejected intake / identifier conflict         | Correct source data or use **Resolve** with the correct contact.                                      |
+| Known failed eligible action                  | **Retry safely** after resolving restrictions.                                                        |
+| Unknown external result                       | **Reconcile** before another effect; never assume nothing happened.                                   |
+| Failed booking/reschedule                     | Get a fresh offer and create a fresh operation; generic retry does not replay a stale calendar offer. |
+| Cancellation uncertainty                      | Inspect/reconcile the existing event before another cancellation.                                     |
+| Assistant failure / unanswered required field | Handle the conversation, then explicitly resolve review.                                              |
 
 Queue-action and provider-operation states differ. Inspect the relevant operation, not only whether an action says done. Expired staff sessions require sign-in; session/CSRF errors may require reload. Recovery and backup procedures are in the [runbook](runbook.md).
 

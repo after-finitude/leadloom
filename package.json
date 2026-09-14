@@ -1,13 +1,39 @@
 {
-  "name": "leadloom", "version": "1.2.0", "private": true,
+  "name": "leadloom",
+  "version": "1.2.0",
+  "private": true,
   "description": "Runnable Leadloom local edition: CRM, qualification, booking and follow-up",
-  "type": "module", "engines": { "node": ">=22.16.0" },
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "scripts": {
-    "start": "node src/main.mjs", "dev": "node --watch src/main.mjs", "demo": "node src/main.mjs",
-    "worker": "node src/worker.mjs", "build": "node scripts/build.mjs",
+    "start": "node src/main.mjs",
+    "dev": "node --watch src/main.mjs",
+    "demo": "node src/main.mjs",
+    "worker": "node src/worker.mjs",
+    "build": "npm run typecheck && node scripts/build.mjs",
     "test": "node --test --test-concurrency=1 tests/*.test.mjs",
-    "eval": "node evaluation/run.mjs", "check": "npm run build && npm test && npm run eval -- --mock",
-    "seed": "node scripts/seed.mjs", "demo:reset": "node scripts/reset.mjs",
-    "backup": "node scripts/backup.mjs", "live:smoke": "node scripts/live-smoke.mjs"
-  }, "license": "MIT"
+    "eval": "node evaluation/run.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "npm run lint -- --fix",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "check": "npm run lint && npm run format:check && npm run build && npm test && npm run eval -- --mock",
+    "seed": "node scripts/seed.mjs",
+    "demo:reset": "node scripts/reset.mjs",
+    "backup": "node scripts/backup.mjs",
+    "live:smoke": "node scripts/live-smoke.mjs"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.13.4",
+    "eslint": "10.10.0",
+    "globals": "17.12.0",
+    "prettier": "3.9.6",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.70.0"
+  }
 }

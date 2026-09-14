@@ -1,5 +1,7 @@
-const formatters = new Map();
-export function localParts(ms, timezone) {
+import type { AvailabilitySettings, TimeInterval } from './types.ts';
+
+const formatters = new Map<string, Intl.DateTimeFormat>();
+export function localParts(ms: number, timezone: string) {
   if (!formatters.has(timezone))
     formatters.set(
       timezone,
@@ -16,7 +18,7 @@ export function localParts(ms, timezone) {
     );
   const parts = Object.fromEntries(
     formatters
-      .get(timezone)
+      .get(timezone)!
       .formatToParts(new Date(ms))
       .filter((p) => p.type !== 'literal')
       .map((p) => [p.type, p.value])
@@ -27,10 +29,14 @@ export function localParts(ms, timezone) {
     minute: Number(parts.hour) * 60 + Number(parts.minute)
   };
 }
-export function working(ms, settings, duration = 0) {
+export function working(
+  ms: number,
+  settings: Pick<AvailabilitySettings, 'timezone' | 'hours'>,
+  duration = 0
+) {
   const p = localParts(ms, settings.timezone);
   const end = localParts(ms + Math.max(0, duration - 1), settings.timezone);
-  const minutes = (s) => Number(s.slice(0, 2)) * 60 + Number(s.slice(3));
+  const minutes = (s: string) => Number(s.slice(0, 2)) * 60 + Number(s.slice(3));
   return (
     settings.hours.days.includes(p.weekday) &&
     p.minute >= minutes(settings.hours.start) &&
@@ -39,22 +45,30 @@ export function working(ms, settings, duration = 0) {
     end.minute < minutes(settings.hours.end)
   );
 }
-export function nextWorking(ms, settings) {
+export function nextWorking(
+  ms: number,
+  settings: Pick<AvailabilitySettings, 'timezone' | 'hours'>
+) {
   if (working(ms, settings)) return ms;
   let next = Math.ceil(ms / 60000) * 60000;
   for (let i = 0; i < 9 * 1440; i++, next += 60000) if (working(next, settings)) return next;
   throw new Error('No working interval in the next nine days');
 }
-export function overlaps(a, b, buffer = 0) {
+export function overlaps(a: TimeInterval, b: TimeInterval, buffer = 0) {
   return a.start < b.end + buffer && a.end + buffer > b.start;
 }
-export function availableSlots(now, settings, busy, max = 5) {
+export function availableSlots(
+  now: number,
+  settings: AvailabilitySettings,
+  busy: TimeInterval[],
+  max = 5
+): TimeInterval[] {
   const duration = settings.duration * 60000,
     buffer = settings.buffer * 60000,
     step = 15 * 60000;
   const first = Math.ceil((now + settings.minimumNotice * 60000) / step) * step,
     limit = now + settings.horizon * 86400000;
-  const slots = [];
+  const slots: TimeInterval[] = [];
   for (let start = first; start < limit && slots.length < max; start += step) {
     const candidate = { start, end: start + duration };
     if (
@@ -65,7 +79,7 @@ export function availableSlots(now, settings, busy, max = 5) {
   }
   return slots;
 }
-export function timeLabel(start, timezone) {
+export function timeLabel(start: number, timezone: string) {
   return new Intl.DateTimeFormat('en-GB', {
     timeZone: timezone,
     weekday: 'short',

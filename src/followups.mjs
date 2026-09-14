@@ -1,6 +1,6 @@
 import { id, hash, stable, parse } from './util.mjs';
-import { mayAutomate, mayBook } from './rules.mjs';
-import { working, nextWorking } from './time.mjs';
+import { mayAutomate, mayBook } from './rules.mts';
+import { working, nextWorking } from './time.mts';
 
 const CLOSED = ['Proposal', 'Won', 'Lost'];
 

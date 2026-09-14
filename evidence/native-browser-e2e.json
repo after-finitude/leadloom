@@ -1,0 +1,13 @@
+{
+  "date": "2026-09-14T06:49:26.802Z",
+  "mode": "native Chrome, all providers mock, isolated in-memory database",
+  "success": true,
+  "checks": [
+    "Tokenless unsubscribe explains the missing link",
+    "Enquiry and qualification enable booking",
+    "Stale/taken slots recover; confirmed booking survives reload",
+    "Staff login/search/profile and appointment timezone regression",
+    "STOP disables automation"
+  ],
+  "errors": []
+}

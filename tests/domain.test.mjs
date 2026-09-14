@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { email, phone, isStop, id, hash, encrypt, decrypt } from '../src/util.mjs';
-import { scoreLead, validateRules, validateSettings } from '../src/rules.mjs';
-import { DEFAULT_SETTINGS, newRules } from '../src/defaults.mjs';
-import { availableSlots, working, nextWorking, overlaps, localParts } from '../src/time.mjs';
+import { email, phone, isStop, id, encrypt, decrypt } from '../src/util.mjs';
+import { scoreLead, validateRules, validateSettings } from '../src/rules.mts';
+import { DEFAULT_SETTINGS, newRules } from '../src/defaults.mts';
+import { availableSlots, working, nextWorking, overlaps, localParts } from '../src/time.mts';
 import { fixture, HOT } from './helpers.mjs';
 const rules = newRules(DEFAULT_SETTINGS),
   hot = {

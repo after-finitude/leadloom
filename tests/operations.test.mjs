@@ -229,7 +229,7 @@ test('reply cancels the current follow-up run and STOP cancels all pending mail'
 test('late follow-ups do not send a backlog as a batch', async () => {
   const f = fixture();
   try {
-    const lid = await f.lead(null);
+    await f.lead(null);
     f.advance(5 * 86400000);
     await f.app.tick();
     assert.equal(f.store.get('SELECT count(*) AS n FROM outbox').n, 1);

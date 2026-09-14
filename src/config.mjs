@@ -14,6 +14,7 @@ export function readEnv(path = resolve('.env')) {
 }
 export function config(overrides = {}) {
   const e = process.env;
+  const llmProvider = overrides.llmProvider ?? e.LLM_PROVIDER ?? 'mock';
   const c = {
     mode: e.APP_MODE || 'demo',
     host: e.HOST || '127.0.0.1',
@@ -32,9 +33,10 @@ export function config(overrides = {}) {
     managerPassword: e.MANAGER_PASSWORD || 'Leadloom-Manager-2026!',
     webhookSecret: e.WEBHOOK_SECRET || 'local-demo-webhook-change-before-use',
     key: e.ENCRYPTION_KEY || '',
-    llmProvider: e.LLM_PROVIDER || 'mock',
-    llmKey: e.OPENAI_API_KEY || '',
-    llmModel: e.OPENAI_MODEL || 'gpt-4.1-mini',
+    llmProvider,
+    llmKey: (llmProvider === 'openrouter' ? e.OPENROUTER_API_KEY : e.OPENAI_API_KEY) || '',
+    llmModel:
+      llmProvider === 'openrouter' ? e.OPENROUTER_MODEL || '' : e.OPENAI_MODEL || 'gpt-4.1-mini',
     llmTimeout: Number(e.LLM_TIMEOUT_MS || 15000),
     calendarProvider: e.CALENDAR_PROVIDER || 'mock',
     calendarId: e.GOOGLE_CALENDAR_ID || '',
@@ -54,7 +56,7 @@ export function config(overrides = {}) {
   if (!['demo', 'live', 'test'].includes(c.mode))
     throw new Error('APP_MODE must be demo, live or test');
   if (
-    !['mock', 'openai'].includes(c.llmProvider) ||
+    !['mock', 'openai', 'openrouter'].includes(c.llmProvider) ||
     !['mock', 'google'].includes(c.calendarProvider) ||
     !['mock', 'resend'].includes(c.emailProvider)
   )
@@ -85,6 +87,8 @@ export function config(overrides = {}) {
   }
   if (c.llmProvider === 'openai' && !c.llmKey)
     throw new Error('OPENAI_API_KEY is required; no mock fallback');
+  if (c.llmProvider === 'openrouter' && (!c.llmKey || !c.llmModel.trim()))
+    throw new Error('OPENROUTER_API_KEY and OPENROUTER_MODEL are required; no mock fallback');
   if (
     c.calendarProvider === 'google' &&
     ![c.calendarId, c.googleClientId, c.googleClientSecret, c.googleRefreshToken].every(Boolean)

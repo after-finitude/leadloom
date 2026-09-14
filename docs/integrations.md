@@ -2,6 +2,29 @@
 
 All providers default to mocks. Selecting a real provider requires keys; a missing key causes a startup error. Never commit real `.env` files to Git or send tokens in chat.
 
+## Portfolio demo: OpenRouter with simulated calendar and email
+
+The portfolio target uses a real LLM through OpenRouter with the existing mock calendar and email adapters. Configure these values in the local `.env` (fill in the key and exact model ID):
+
+```dotenv
+APP_MODE=demo
+LLM_PROVIDER=openrouter
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL=
+CALENDAR_PROVIDER=mock
+EMAIL_PROVIDER=mock
+```
+
+Choose a model ID in `vendor/model` form whose endpoint supports structured outputs. The shared adapter uses OpenRouter's [Responses API](https://openrouter.ai/docs/api_reference/responses/basic-usage), the existing extraction schema and evidence validation, and `provider.require_parameters=true` to require support for the supplied parameters. See [structured outputs](https://openrouter.ai/docs/guides/features/structured-outputs). Missing credentials or an incompatible model do not silently switch qualification to the mock parser.
+
+Booking, rescheduling and cancellation use SQLite; no Google account or event is involved. Mock emails, including secure chat and unsubscribe links, appear in the administrator's Outbox; no Resend account or actual email delivery is involved. Present this as **real AI qualification with simulated calendar and email** in the portfolio.
+
+Existing synthetic demo records remain usable. Automatic sample seeding and reset require all providers to be mock; a fresh database with OpenRouter enabled starts without the eight sample leads. To include them, seed in all-mock demo mode before enabling OpenRouter, when execution is authorized. New enquiries can also be created through the form.
+
+When checks are authorized, `npm run eval` uses the configured OpenRouter model with mock calendar/email and records the provider/model in the report. It makes paid LLM requests. `npm run eval -- --mock` remains offline. Real Google/Resend smoke is outside this portfolio scope.
+
+Docker Compose forwards the OpenRouter variables. On the shared VPS, an administrator must install the updated `compose.yaml` and configure the server `.env`; the source-only autodeploy does not update Compose or credentials. No activation, deployment or provider check is implied by these instructions.
+
 ## OpenAI
 
 ```dotenv
@@ -13,7 +36,7 @@ LLM_TIMEOUT_MS=15000
 
 The model name is a configurable default, **not a claim that it is the newest or best model**. The selected model must support the Responses API and strict structured output. The adapter in `src/providers/llm.mjs` calls `https://api.openai.com/v1/responses`, requests extraction only, requires evidence from the message, and validates the JSON schema and allowed fields. The model does not receive scoring weights, owner, or calendar tools. An invalid response allows one repair attempt, followed by handoff. FAQ answers are retrieved from configuration by ID rather than copied from arbitrary model output.
 
-`npm run eval` uses real OpenAI when a key is present, but mock calendar/email providers. The run may incur charges. The local demo parser recognizes a limited set of English expressions; a successful mock run does not automatically generalize to arbitrary real responses.
+With `LLM_PROVIDER=openai`, `npm run eval` uses real OpenAI but mock calendar/email providers. For backward compatibility, an unset/mock LLM provider also selects OpenAI for evaluation unless `--mock` is supplied. The run may incur charges. The local demo parser recognizes a limited set of English expressions; a successful mock run does not automatically generalize to arbitrary real responses.
 
 ## Google Calendar
 
