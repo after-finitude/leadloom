@@ -1,0 +1,76 @@
+{
+  "startedAt": "2026-09-14T10:57:28.263Z",
+  "base": "https://leadloom.176.98.40.150.sslip.io",
+  "runId": "mu14pd53",
+  "method": "Native Chrome, real public UI actions. Staff profile responses used read-only to verify stored fields and categories. Real OpenRouter; calendar and email mocked.",
+  "results": [
+    {
+      "id": "manual-lock-conflict",
+      "name": "Browser mu14pd53 manual-lock-conflict",
+      "expected": {
+        "id": "manual-lock-conflict",
+        "turns": [
+          "Roofing in Demo City A. Budget $20000. I own the home and want to start in 2 months.",
+          "Correction, budget $10000."
+        ],
+        "manualBefore": 1,
+        "manualFields": {
+          "budget_min": 50000,
+          "budget_max": 50000
+        },
+        "category": "Hot",
+        "fields": {
+          "budget_min": 50000
+        },
+        "handoff": true,
+        "book": false
+      },
+      "failures": [],
+      "checks": [
+        "Public intake and initial assistant question",
+        "Budget manually edited and locked through staff UI",
+        "Staff search, profile, stored fields and category",
+        "No booking controls for ineligible lead"
+      ],
+      "turns": [
+        {
+          "message": "Roofing in Demo City A. Budget $20000. I own the home and want to start in 2 months.",
+          "replies": [
+            "Thanks — I have the project details. Use “Choose a consultation time” below to see current availability."
+          ]
+        },
+        {
+          "message": "Correction, budget $10000.",
+          "replies": [
+            "Your conversation has been passed to our team. A team member will continue here during working hours."
+          ]
+        }
+      ],
+      "errors": [],
+      "leadId": "78b4c6da-682c-4c55-a347-06b62569d0ae",
+      "actual": {
+        "category": "Hot",
+        "fields": {
+          "service_type": "roofing",
+          "location": "Demo City A",
+          "budget_min": 50000,
+          "budget_max": 50000,
+          "timeline": 2,
+          "decision_maker": true
+        },
+        "reviewReason": "locked_field_conflict",
+        "owner": "HUMAN",
+        "stopped": false,
+        "canBook": false,
+        "questions": 1
+      },
+      "cleanup": "Automation stopped via public chat; synthetic lead and mock appointment retained",
+      "passed": true,
+      "elapsedMs": 15431
+    }
+  ],
+  "finishedAt": "2026-09-14T10:57:47.929Z",
+  "staffErrors": [],
+  "passed": 1,
+  "total": 1
+}

@@ -5,6 +5,7 @@ import { createHttp } from '../src/http.mjs';
 import { fixture } from './helpers.mjs';
 import { hash } from '../src/util.mjs';
 import { config } from '../src/config.mjs';
+import { ApiError } from '../web/api.js';
 async function webFixture(options = {}) {
   const f = fixture(options);
   const server = createHttp(f.app);
@@ -64,6 +65,28 @@ test('HTTP form creates an HttpOnly visitor session and a private chat', async (
     assert.equal(body.score, undefined);
     const admin = await f.request('/api/leads', { cookie });
     assert.equal(admin.status, 401);
+  } finally {
+    await f.stop();
+  }
+});
+test('empty enquiry explains the missing contact details on first submission and retry', async () => {
+  const f = await webFixture();
+  try {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const response = await f.request('/api/public/intake', {
+        method: 'POST',
+        body: { event_key: 'empty-enquiry', name: '', email: '', phone: '', service_type: '' }
+      });
+      assert.equal(response.status, 422);
+      const error = new ApiError(await response.json(), response.status);
+      assert.equal(error.code, 'contact_required');
+      assert.equal(
+        error.message,
+        'Enter an email address or an international phone number to start your conversation.'
+      );
+    }
+    assert.equal(f.store.get('SELECT count(*) AS n FROM contacts').n, 0);
+    assert.equal(f.store.get('SELECT count(*) AS n FROM leads').n, 0);
   } finally {
     await f.stop();
   }

@@ -1,0 +1,21 @@
+{
+  "startedAt": "2026-09-14T10:59:01.026Z",
+  "base": "https://leadloom.176.98.40.150.sslip.io",
+  "runId": "mu14rcpu",
+  "method": "Native Chrome, real public UI actions. Staff profile responses used read-only to verify stored fields and categories. Real OpenRouter; calendar and email mocked.",
+  "results": [
+    {
+      "id": "Tokenless unsubscribe and invalid access token",
+      "passed": true
+    },
+    {
+      "id": "Empty intake validation and selected-service intake",
+      "passed": false,
+      "error": "expect(locator).toBeVisible() failed\n\nLocator: getByText(/email or phone|required/i).last()\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"to.be.visible\" with timeout 5000ms\n  - waiting for getByText(/email or phone|required/i).last()\n"
+    }
+  ],
+  "finishedAt": "2026-09-14T10:59:14.617Z",
+  "staffErrors": [],
+  "passed": 1,
+  "total": 2
+}

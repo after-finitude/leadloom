@@ -1,8 +1,13 @@
 export const security = { staff: null, visitor: null };
 export class ApiError extends Error {
   constructor(data, status) {
-    super(data.message || 'Request failed');
-    this.code = data.error;
+    super(
+      data.message ||
+        (data.reason === 'contact_required'
+          ? 'Enter an email address or an international phone number to start your conversation.'
+          : 'Request failed')
+    );
+    this.code = data.error || data.reason;
     this.status = status;
   }
 }

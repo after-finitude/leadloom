@@ -1,0 +1,64 @@
+{
+  "startedAt": "2026-09-14T10:58:51.271Z",
+  "base": "https://leadloom.176.98.40.150.sslip.io",
+  "runId": "mu14r56v",
+  "method": "Native Chrome, real public UI actions. Staff profile responses used read-only to verify stored fields and categories. Real OpenRouter; calendar and email mocked.",
+  "results": [
+    {
+      "id": "budget-crosses-threshold",
+      "name": "Browser mu14r56v budget-crosses-threshold",
+      "expected": {
+        "id": "budget-crosses-threshold",
+        "turns": [
+          "Roofing in Demo City A. Budget $5000 to $15000. I own the home. Start in 2 months."
+        ],
+        "category": "Hot",
+        "fields": {
+          "budget_min": 5000,
+          "budget_max": 15000
+        },
+        "book": true
+      },
+      "failures": [],
+      "checks": [
+        "Public intake and initial assistant question",
+        "Staff search, profile, stored fields and category",
+        "Slots refreshed, booking confirmed, persists after reload"
+      ],
+      "turns": [
+        {
+          "message": "Roofing in Demo City A. Budget $5000 to $15000. I own the home. Start in 2 months.",
+          "replies": [
+            "Thanks — I have the project details. Use “Choose a consultation time” below to see current availability."
+          ]
+        }
+      ],
+      "errors": [],
+      "leadId": "07cc17cb-b2db-4ce0-985f-bf0dffdb987a",
+      "actual": {
+        "category": "Hot",
+        "fields": {
+          "service_type": "roofing",
+          "location": "Demo City A",
+          "budget_min": 5000,
+          "budget_max": 15000,
+          "decision_maker": true,
+          "timeline": 2
+        },
+        "reviewReason": null,
+        "owner": "AI",
+        "stopped": false,
+        "canBook": true,
+        "questions": 1
+      },
+      "booked": true,
+      "cleanup": "Automation stopped via public chat; synthetic lead and mock appointment retained",
+      "passed": true,
+      "elapsedMs": 15830
+    }
+  ],
+  "finishedAt": "2026-09-14T10:59:11.141Z",
+  "staffErrors": [],
+  "passed": 1,
+  "total": 1
+}

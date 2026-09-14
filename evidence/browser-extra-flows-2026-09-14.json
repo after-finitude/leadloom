@@ -1,0 +1,61 @@
+{
+  "startedAt": "2026-09-14T11:00:14.824Z",
+  "base": "https://leadloom.176.98.40.150.sslip.io",
+  "runId": "mu14sxns",
+  "method": "Native Chrome, real public UI actions. Staff profile responses used read-only to verify stored fields and categories. Real OpenRouter; calendar and email mocked.",
+  "results": [
+    {
+      "id": "Tokenless unsubscribe and invalid access token",
+      "passed": true
+    },
+    {
+      "id": "Selected-service intake and qualification",
+      "passed": true
+    },
+    {
+      "id": "Duplicate intake reuses own authenticated conversation",
+      "passed": true
+    },
+    {
+      "id": "Booking, staff timezone, rescheduling and cancellation",
+      "passed": true
+    },
+    {
+      "id": "Pause, saved visitor message, resume and ownership controls",
+      "passed": true
+    },
+    {
+      "id": "Private note, score and explicit recalculation",
+      "passed": true
+    },
+    {
+      "id": "Manual reply, STOP persistence and staff outreach block",
+      "passed": true
+    },
+    {
+      "id": "390px customer and staff screens",
+      "passed": true
+    },
+    {
+      "id": "Lost stage reason validation and saved stage",
+      "passed": true
+    },
+    {
+      "id": "Settings tabs, Activity, Outbox and empty search",
+      "passed": true
+    },
+    {
+      "id": "Manager login and role restrictions",
+      "passed": true
+    },
+    {
+      "id": "Admin logout",
+      "passed": true
+    }
+  ],
+  "finishedAt": "2026-09-14T11:01:15.447Z",
+  "staffErrors": [],
+  "passed": 12,
+  "total": 12,
+  "leadId": "1f9255d3-57ba-4962-9933-9c7d639c42db"
+}
