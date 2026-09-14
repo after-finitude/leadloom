@@ -1,50 +1,46 @@
-import { readdirSync, readFileSync, mkdirSync, rmSync, cpSync, writeFileSync } from 'node:fs';
+import { readdirSync, mkdirSync, rmSync, cpSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { build } from 'vite';
+
 const root = fileURLToPath(new URL('..', import.meta.url));
 const files = [];
 function walk(path) {
-  for (const e of readdirSync(path, { withFileTypes: true })) {
-    const p = join(path, e.name);
-    if (e.isDirectory()) walk(p);
-    // TypeScript is checked by the preceding typecheck command; Node --check only accepts JS.
-    else if (/\.(mjs|js)$/.test(e.name)) files.push(p);
+  for (const entry of readdirSync(path, { withFileTypes: true })) {
+    const file = join(path, entry.name);
+    if (entry.isDirectory()) walk(file);
+    else if (/\.(mjs|js)$/.test(entry.name)) files.push(file);
   }
 }
-for (const folder of ['src', 'web', 'scripts', 'tests', 'evaluation']) walk(join(root, folder));
+for (const folder of ['src', 'scripts', 'tests', 'evaluation']) walk(join(root, folder));
 for (const file of files) {
-  const r = spawnSync(process.execPath, ['--check', file], { encoding: 'utf8' });
-  if (r.status !== 0) {
-    process.stderr.write(r.stderr);
+  const result = spawnSync(process.execPath, ['--check', file], { encoding: 'utf8' });
+  if (result.status !== 0) {
+    process.stderr.write(result.stderr);
     process.exit(1);
   }
 }
-for (const file of [
-  'web/index.html',
-  'web/style.css',
-  'web/app.js',
-  'web/api.js',
-  'src/schema.sql'
-])
-  if (!readFileSync(join(root, file), 'utf8').trim())
-    throw new Error(`Empty required asset: ${file}`);
-const dest = join(root, 'dist');
-rmSync(dest, { recursive: true, force: true });
-mkdirSync(dest, { recursive: true });
-for (const file of ['src', 'web', 'package.json'])
-  cpSync(join(root, file), join(dest, file), { recursive: true });
-const result = {
-  checkedAt: new Date().toISOString(),
-  node: process.version,
-  syntaxFiles: files.length,
-  files: files.map((f) => relative(root, f)),
-  output: 'dist/',
-  type: 'JavaScript syntax validation and deployment copy after TypeScript checking; Node.js 24 runs .mts directly',
-  success: true
-};
+const destination = join(root, 'dist');
+rmSync(destination, { recursive: true, force: true });
+await build({ configFile: join(root, 'vite.config.mjs') });
+for (const file of ['src', 'package.json'])
+  cpSync(join(root, file), join(destination, file), { recursive: true });
 mkdirSync(join(root, 'evidence'), { recursive: true });
-writeFileSync(join(root, 'evidence/build.json'), JSON.stringify(result, null, 2) + '\n');
-console.log(
-  `Build OK: ${files.length} JavaScript modules checked; deployment files copied to dist/.`
+writeFileSync(
+  join(root, 'evidence/build.json'),
+  JSON.stringify(
+    {
+      checkedAt: new Date().toISOString(),
+      node: process.version,
+      syntaxFiles: files.length,
+      files: files.map((file) => relative(root, file)),
+      output: 'dist/',
+      type: 'Svelte/Vite production bundle and Node.js 24 server after TypeScript checking',
+      success: true
+    },
+    null,
+    2
+  ) + '\n'
 );
+console.log(`Build OK: Svelte frontend and server written to dist/.`);

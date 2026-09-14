@@ -1,16 +1,18 @@
 # Leadloom
 
-**1.2.0 · standalone edition.** Incoming enquiry → private chat → qualification and explainable scoring → consultation booking → staff follow-through. Built with Node.js HTTP, browser JavaScript and SQLite; no runtime npm dependencies.
+**1.2.0 · standalone edition.** Incoming enquiry → private chat → qualification and explainable scoring → consultation booking → staff follow-through. Built with Svelte 5, TypeScript and Vite on the frontend; Node.js HTTP and SQLite on the backend. The production server has no runtime npm dependencies.
 
 ## Run locally
 
 Requires Node.js **24+** with `node:sqlite` and native TypeScript type stripping.
 
 ```sh
+npm ci --ignore-scripts
+npm run build
 npm start
 ```
 
-Open [localhost:3000](http://localhost:3000); customer form: [/enquire](http://localhost:3000/enquire). Use the exact configured `APP_ORIGIN`, including hostname and port. No `npm install` is needed. The default first launch creates a local database, staff accounts and eight synthetic leads.
+Open [localhost:3000](http://localhost:3000); customer form: [/enquire](http://localhost:3000/enquire). Use the exact configured `APP_ORIGIN`, including hostname and port. Build once before starting from source; rebuild after frontend changes. The default first launch creates a local database, staff accounts and eight synthetic leads.
 
 | Default local account | Email                  | Password               |
 | --------------------- | ---------------------- | ---------------------- |
@@ -38,21 +40,28 @@ Historical design/acceptance material is indexed in [status](docs/status.md#hist
 
 ## Commands
 
-Install development tools with `npm ci --ignore-scripts`. ESLint checks JavaScript with recommended rules and separate Node/browser globals; Prettier formats supported source and documentation files. `.editorconfig` keeps editor whitespace consistent. These are development dependencies; starting the application still needs no npm installation.
+Install dependencies with `npm ci --ignore-scripts`. ESLint checks JavaScript, TypeScript and Svelte with recommended rules and separate Node/browser globals. Prettier includes `prettier-plugin-svelte`; `.editorconfig` keeps editor whitespace consistent. Runtime release archives already contain compiled browser assets, so the server needs no npm installation.
 
-TypeScript migration is incremental: `src/defaults.mts`, `src/rules.mts` and `src/time.mts` use the contracts in `src/types.ts`. `tsconfig.json` enables strict checking for migrated code, `allowJs` for existing imports and `noEmit`. Remaining JavaScript, including the browser UI, is not yet type-checked (`checkJs: false`). Node.js 24 runs `.mts` directly; browser assets stay JavaScript. Type checks do not replace validation of HTTP/LLM input at runtime.
+The frontend uses Svelte 5 components and TypeScript throughout, with strict checking in `web/tsconfig.json`. `svelte-check` checks components and browser modules; backend `tsc` checks migrated `.mts` modules and shared contracts in `src/types.ts`. Remaining backend JavaScript is not type-checked (`checkJs: false`). Node.js 24 runs `.mts` directly; Vite compiles the frontend into hashed JS/CSS under `dist/web/assets/`. Runtime HTTP/LLM validation remains necessary.
+
+Versions are pinned in the lockfile. Svelte 5.57.0, Vite 8.3.0 and their latest stable tooling were selected on 14 September 2026 using Context7 documentation and npm metadata. TypeScript stays at 6.0.3: the latest TypeScript 7 is outside the supported peer ranges of `svelte-check` and TypeScript ESLint. Node typings stay on the latest Node 24 version to match the server.
 
 | Command                                   | Purpose                                                                      |
 | ----------------------------------------- | ---------------------------------------------------------------------------- |
-| `npm start`                               | Server with embedded worker by default.                                      |
-| `npm run typecheck`                       | Strict TypeScript checking and negative contract examples; no output files.  |
-| `npm run build`                           | TypeScript check, JavaScript syntax checks and deployment copy into `dist/`. |
+| `npm run dev`                             | Vite at localhost:5173 plus the API/worker on port 3000 (or `PORT`).         |
+| `npm start`                               | Server with embedded worker; serves the previously built frontend.           |
+| `npm run typecheck`                       | Strict backend TypeScript and Svelte component checks; no output files.      |
+| `npm run build`                           | Type checks, server syntax checks, Vite bundle and release files in `dist/`. |
 | `npm test`                                | Unit, integration, HTTP and provider contract tests.                         |
 | `npm run eval -- --mock`                  | Deterministic evaluation without paid requests.                              |
-| `npm run lint` / `npm run lint:fix`       | Check JavaScript / apply available automatic lint fixes.                     |
+| `npm run lint` / `npm run lint:fix`       | Check JS, TS and Svelte / apply available automatic lint fixes.              |
 | `npm run format` / `npm run format:check` | Format files / check formatting without changing files.                      |
 | `npm run check`                           | Lint, formatting check, build (including types), tests and mock evaluation.  |
 | `docker compose up --build`               | Build and start the base local Docker configuration.                         |
+
+Development uses `http://localhost:5173`; API requests are proxied to the backend. The dev script overrides `APP_ORIGIN` for its child process to keep cookies and CSRF on that browser origin, without changing `.env`. Stop another backend on the same port before using `npm run dev`. Production/local preview uses the configured `APP_ORIGIN` (normally `http://localhost:3000`).
+
+HTTP tests that load pages require `npm run build` first. The optional native browser scenario is `python tests/browser_e2e.py`, against an already running isolated demo with mock providers. Old scripts that injected the vanilla renderer into a simulated page have been removed.
 
 These are available commands, not a statement that they were just run. Backup, separate-worker and real-provider procedures are documented in the runbook/integration guide.
 
@@ -60,4 +69,4 @@ Generated output, saved evidence/evaluation reports and archived documentation a
 
 ## Source layout
 
-`src/` — service, schema, worker and providers; `web/` — browser UI; `scripts/` — operating commands; `tests/` — automated/browser scenarios; `evaluation/` and `evidence/` — dated results; `docs/` — documentation.
+`src/` — service, schema, worker and providers; `web/pages/` — Svelte screens; `web/components/` — shared UI; `web/lib/` — typed API and Svelte state; `web/public/` — static assets; `scripts/` — operating commands; `tests/` — automated/browser scenarios; `evaluation/` and `evidence/` — dated results; `docs/` — documentation.

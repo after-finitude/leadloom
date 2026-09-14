@@ -1,10 +1,11 @@
 """Optional native-browser E2E. Requires an already-running local demo server.
 Install locally: python -m pip install playwright; python -m playwright install chromium
 Run: python tests/browser_e2e.py
-This native-navigation test was not executed in the delivery environment because
-administrator policy blocks Chromium URLs. DOM bridge checks are separate files.
+Build the Svelte frontend first, or point APP_ORIGIN at the Vite dev server.
+Use an isolated mock-provider demo database. This script creates a lead and booking.
+Historical browser evidence does not verify the Svelte migration.
 """
-import os,uuid,json
+import os,uuid,json,re
 from datetime import datetime,timezone
 from zoneinfo import ZoneInfo
 from pathlib import Path
@@ -29,9 +30,13 @@ with sync_playwright() as p:
     page.get_by_label('What are you planning?').select_option('roofing')
     page.get_by_role('button',name='Start my conversation').click()
     expect(page).to_have_url(base+'/chat')
+    page.get_by_role('textbox',name='Your message').fill('Draft before reload')
+    page.reload()
+    expect(page.get_by_role('textbox',name='Your message')).to_have_value('Draft before reload')
     page.get_by_role('textbox',name='Your message').fill('Roofing in Demo City A. Budget $25000. I own this home and want to start in 2 months.')
     page.get_by_role('button',name='Send message').click()
     expect(page.get_by_role('button',name='Choose a consultation time')).to_be_visible(timeout=20000)
+    expect(page.get_by_role('textbox',name='Your message')).to_have_value('')
     page.get_by_role('button',name='Choose a consultation time').click()
     for code in ['stale_offer','slot_taken']:
         def reject_slot(route):
@@ -59,7 +64,39 @@ with sync_playwright() as p:
     manager.get_by_role('textbox',name='Search conversations').fill(name)
     expect(manager.locator('.lead-card')).to_have_count(1)
     manager.get_by_role('button').filter(has_text=name).first.click()
-    expect(manager.locator('#chat-panel')).to_contain_text('Booked')
+    expect(manager.locator('#chat-panel .conversation-identity h2')).to_have_text(name)
+    manager.get_by_label('Filter conversations').select_option('booked')
+    expect(manager.locator('.lead-card')).to_have_count(1)
+    inbox_url=manager.url
+    assert 'lead=' in inbox_url and 'q=' in inbox_url and 'filter=booked' in inbox_url
+    manager.get_by_role('textbox',name='Manager reply').fill('Saved staff draft')
+    sidebar=manager.locator('.sidebar').element_handle()
+    manager.get_by_role('button',name='Settings',exact=True).click()
+    expect(manager.get_by_role('heading',name='Workspace settings',exact=True)).to_be_visible()
+    assert sidebar.evaluate('(element) => element.isConnected'), 'Navigation replaced the sidebar'
+    manager.get_by_role('button',name='Inbox',exact=True).click()
+    expect(manager).to_have_url(inbox_url)
+    expect(manager.get_by_role('textbox',name='Manager reply')).to_have_value('Saved staff draft')
+    manager.reload()
+    expect(manager.get_by_role('textbox',name='Manager reply')).to_have_value('Saved staff draft')
+    expect(manager.get_by_label('Filter conversations')).to_have_value('booked')
+    expect(manager.get_by_role('textbox',name='Search conversations')).to_have_value(name)
+    manager.route('**/api/leads/*/messages',lambda route: route.fulfill(
+        status=503,content_type='application/json',body=json.dumps({'message':'Please retry your reply.'})
+    ),times=1)
+    manager.get_by_role('button',name='Send reply',exact=True).click()
+    expect(manager.locator('.composer [role="alert"]')).to_have_text('Please retry your reply.')
+    expect(manager.get_by_role('textbox',name='Manager reply')).to_have_value('Saved staff draft')
+    manager.get_by_role('textbox',name='Manager reply').fill('')
+    manager.get_by_role('button',name='Lead details',exact=True).click()
+    manager.get_by_role('button',name='Open lead',exact=True).click()
+    expect(manager.get_by_role('heading',name=name,exact=True)).to_be_visible()
+    expect(manager).to_have_url(re.compile(r'/leads/[\w-]+$'))
+    manager.reload()
+    manager.get_by_role('button',name='Conversations',exact=True).click()
+    expect(manager).to_have_url(inbox_url)
+    expect(manager.get_by_role('textbox',name='Manager reply')).to_have_value('')
+    manager.get_by_role('button',name='Lead details',exact=True).click()
     manager.get_by_role('button',name='Open lead',exact=True).click()
     expect(manager.get_by_role('heading',name=name,exact=True)).to_be_visible()
     profile=manager.request.get(base+'/api'+manager.url.removeprefix(base)).json()

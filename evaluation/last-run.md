@@ -1,8 +1,8 @@
-# Leadloom evaluation — real openrouter, controlled mock calendar/email
+# Leadloom evaluation — MOCK, not real AI
 
-Date: 2026-09-14T10:24:50.398Z
+Date: 2026-09-14T14:04:15.902Z
 Node: v24.14.1
-Model: google/gemini-2.5-flash-lite
+Model: deterministic-parser-1.2
 Prompt: leadloom-extraction-1.2.3
 Fixture SHA-256: 9999a82fd43bd06adcfce5a75528e2a408567698e7e989d8f75f3fda95f8dd40
 Service SHA-256: 18144dd7ce542f94129f738eba9f16e7b8c230af50b0672ef934ab74b35c2712
@@ -16,7 +16,7 @@ Service SHA-256: 18144dd7ce542f94129f738eba9f16e7b8c230af50b0672ef934ab74b35c271
 - False bookings: 0.
 - First chat contact median: 1 ms; p90: 1 ms.
 
-Only the LLM is live in this run. Email and calendar remain controlled mocks. No live integration acceptance is implied.
+The deterministic parser run does not establish real model accuracy, live email delivery, Google Calendar behavior or production SLA.
 
 | Scenario | Result | Observed category | Notes |
 |---|---|---|---|
@@ -44,5 +44,3 @@ Only the LLM is live in this run. Email and calendar remain controlled mocks. No
 | unknown-authority | PASS | Hot |  |
 | service-correction-hard-reject | PASS | Unqualified |  |
 | budget-crosses-threshold | PASS | Hot |  |
-
-LLM requests: 37. Reported cost: $0.0056309 (excludes requests with no returned usage). Reasoning disabled; existing Responses API and 15-second timeout.

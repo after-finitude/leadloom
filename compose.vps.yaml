@@ -1,5 +1,5 @@
 # Use with compose.yaml and the pinned Node image in LEADLOOM_IMAGE.
-# Source files are mounted read-only; no application build is needed.
+# Release src/ and compiled web/ are mounted read-only; assets are built in CI.
 services:
   app:
     build: !reset null

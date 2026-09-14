@@ -1,6 +1,6 @@
 # Standalone edition architecture
 
-Browser → Node HTTP API → Leadloom service → SQLite. A background poller selects durable `actions` and calls provider interfaces for calendar and email operations. SQLite is the source of truth, not memory or the external calendar. A separate `worker.mjs` uses the same database; the default startup runs the worker inside the server.
+Svelte browser app → Node HTTP API → Leadloom service → SQLite. A background poller selects durable `actions` and calls provider interfaces for calendar and email operations. SQLite is the source of truth, not memory or the external calendar. A separate `worker.mjs` uses the same database; the default startup runs the worker inside the server.
 
 ## Components
 
@@ -10,7 +10,11 @@ Browser → Node HTTP API → Leadloom service → SQLite. A background poller s
 
 `rules.mts` calculates scores without an LLM and contains shared eligibility rules for automation, booking, and access recovery. `time.mts` iterates over UTC intervals and checks the local schedule using an IANA timezone, accounting for DST. `defaults.mts` defines typed company settings and initial scoring rules. These modules share contracts from `types.ts` and use native Node.js 24 type stripping. `auth.mjs` contains staff/visitor sessions, CSRF, and scoped access tokens. `http.mjs` separates public and staff routes.
 
-TypeScript migration is partial. `npm run typecheck` checks the migrated modules under strict mode and compile-only negative examples in `tests/type-contracts.ts`. Existing JavaScript imports are allowed but not checked; the browser still receives `.js`. The runtime does not run the TypeScript checker: `npm run build` checks types before copying the source into `dist/`, and CI runs this build through `npm run check`. No emitted JavaScript, runtime TypeScript dependency or server-side npm install is required. Runtime input validation remains in place.
+The frontend is a Svelte 5 SPA built with Vite. `web/App.svelte` selects the existing routes; `web/pages/` contains screens, `web/components/` shared UI, and `web/lib/workspace.svelte.ts` reactive state and navigation. Components use typed API responses and render escaped text. Request generations discard stale responses; polling does not replace composer DOM or form drafts. No SvelteKit server or additional router is needed for the existing fixed routes.
+
+`npm run typecheck` checks backend TypeScript contracts and all Svelte/browser TypeScript. Existing backend JavaScript imports are allowed but not type-checked. `npm run build` produces compiled, hashed browser assets in `dist/web/` and copies the Node server to `dist/src/`; CI deploys that release layout. The server still runs `.mts` with native Node 24 type stripping and needs no runtime npm installation. Frontend dependencies are bundled by Vite. HTTP/LLM input validation remains in place.
+
+`npm run dev` runs Vite on port 5173 and the backend on port 3000 (or `PORT`). Vite proxies `/api` without changing the browser Origin. The child backend uses `APP_ORIGIN=http://localhost:5173`, preserving same-origin session/CSRF behavior. Production serves only built assets and known page routes; source components, environment files and source maps are not exposed.
 
 ## State boundaries
 

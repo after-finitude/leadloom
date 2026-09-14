@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { isIP } from 'node:net';
 import { AppError, ensure, allowKeys, sameSecret, hash } from './util.mjs';
 
@@ -64,13 +64,17 @@ async function readBody(req) {
 export function createHttp(service) {
   const c = service.c;
   const trustedProxies = new Set((c.trustedProxies || []).map(normalizeIp));
-  const assets = new Map([
-    ['/assets/app.js', ['app.js', 'text/javascript']],
-    ['/assets/api.js', ['api.js', 'text/javascript']],
-    ['/assets/style.css', ['style.css', 'text/css']],
-    ['/favicon.svg', ['favicon.svg', 'image/svg+xml']]
-  ]);
-  const assetRoot = new URL('../web/', import.meta.url);
+  // Release archives place built assets beside src; local source uses dist/web.
+  const assetRoot = new URL(
+    existsSync(new URL('../web/assets/', import.meta.url)) ? '../web/' : '../dist/web/',
+    import.meta.url
+  );
+  const assetTypes = {
+    js: 'text/javascript',
+    css: 'text/css',
+    svg: 'image/svg+xml',
+    woff2: 'font/woff2'
+  };
   return createServer(async (req, res) => {
     const requestId = crypto.randomUUID();
     res.setHeader('X-Request-Id', requestId);
@@ -108,11 +112,16 @@ export function createHttp(service) {
         ip = clientIp(req, trustedProxies);
       if (!path.startsWith('/api/')) {
         ensure(method === 'GET' || method === 'HEAD', 'method_not_allowed', undefined, 405);
-        if (assets.has(path)) {
-          const [file, type] = assets.get(path);
-          res.setHeader('Content-Type', type + '; charset=utf-8');
-          res.setHeader('Cache-Control', 'public, max-age=300');
-          res.end(method === 'HEAD' ? undefined : readFileSync(new URL(file, assetRoot)));
+        const asset = path.match(/^\/assets\/[A-Za-z0-9_-]+\.(js|css|svg|woff2)$/);
+        if (asset || path === '/favicon.svg') {
+          const file = new URL(path.slice(1), assetRoot);
+          ensure(existsSync(file), 'not_found', 'Asset not found', 404);
+          res.setHeader('Content-Type', asset ? assetTypes[asset[1]] : 'image/svg+xml');
+          res.setHeader(
+            'Cache-Control',
+            asset ? 'public, max-age=31536000, immutable' : 'public, max-age=300'
+          );
+          res.end(method === 'HEAD' ? undefined : readFileSync(file));
           return;
         }
         ensure(
@@ -131,6 +140,12 @@ export function createHttp(service) {
           'not_found',
           'Page not found',
           404
+        );
+        ensure(
+          existsSync(new URL('index.html', assetRoot)),
+          'frontend_not_built',
+          'Run npm run build before npm start, or use npm run dev.',
+          503
         );
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
         res.end(method === 'HEAD' ? undefined : readFileSync(new URL('index.html', assetRoot)));

@@ -8,6 +8,8 @@ ESLint, Prettier and EditorConfig were subsequently added, with lint/format chec
 
 TypeScript was added after that recorded run: company defaults, scoring/eligibility rules and availability calculations now use `.mts` with strict contracts and Node.js 24+. Existing JavaScript remains unchecked during this gradual migration. `npm run typecheck` is included in `build` and therefore in `check`/CI. Post-migration verification is recorded separately in the [TypeScript check log](../evidence/typescript-check-2026-09-14.txt); the earlier quality-check and browser reports refer to the code before this migration.
 
+**Svelte migration, 14 September:** the working tree replaces the vanilla frontend with Svelte 5 and TypeScript, updates Vite/ESLint/Prettier configuration, and changes Docker/CI to package compiled browser assets. The follow-up verification passed formatting, lint, TypeScript/Svelte checks, production build, 75 automated tests and 24 mock evaluation scenarios. Native in-app browser checks covered customer intake/chat/booking/reload/STOP, staff login/search/profile/field edits/settings/rule publication, table screens and manager restrictions. See the [Svelte verification report](../evidence/svelte-verification-2026-09-14.md) for scope and remaining limits; older evidence below refers to earlier revisions.
+
 ## Recorded evidence
 
 | Evidence                                                                                                                              | What it establishes                                                                                                                       | Boundary                                                                                                                       |

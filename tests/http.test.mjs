@@ -5,7 +5,7 @@ import { createHttp } from '../src/http.mjs';
 import { fixture } from './helpers.mjs';
 import { hash } from '../src/util.mjs';
 import { config } from '../src/config.mjs';
-import { ApiError } from '../web/api.js';
+import { ApiError } from '../web/lib/api.ts';
 async function webFixture(options = {}) {
   const f = fixture(options);
   const server = createHttp(f.app);
@@ -201,7 +201,11 @@ test('server does not serve source files, database files or environment secrets'
       '/.env',
       '/src/config.mjs',
       '/data/leadloom.sqlite',
-      '/assets/../../../etc/passwd'
+      '/assets/../../../etc/passwd',
+      '/main.ts',
+      '/App.svelte',
+      '/assets/missing.js',
+      '/assets/..%2f..%2f.env'
     ])
       assert.equal((await f.request(path)).status, 404);
     const health = await (await f.request('/api/health')).json();
@@ -382,6 +386,43 @@ test('chat limits are per lead while unauthenticated routes retain IP limits', a
       ).status,
       429
     );
+  } finally {
+    await f.stop();
+  }
+});
+
+test('deep links serve the compiled Svelte entry and immutable assets under the CSP', async () => {
+  const f = await webFixture();
+  try {
+    const response = await f.request('/leads/00000000-0000-4000-8000-000000000001');
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    assert.match(response.headers.get('content-security-policy'), /script-src 'self'/);
+    const html = await response.text();
+    assert.doesNotMatch(html, /main\.ts|App\.svelte|<script(?![^>]*\bsrc=)/);
+    const assets = [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+\.(?:js|css))"/g)].map(
+      (match) => match[1]
+    );
+    assert.ok(
+      assets.some((path) => path.endsWith('.js')),
+      'compiled JS entry must exist'
+    );
+    assert.ok(
+      assets.some((path) => path.endsWith('.css')),
+      'compiled stylesheet must exist'
+    );
+    for (const path of assets) {
+      const asset = await f.request(path);
+      assert.equal(asset.status, 200);
+      assert.match(asset.headers.get('cache-control'), /immutable/);
+      assert.match(
+        asset.headers.get('content-type'),
+        path.endsWith('.js') ? /javascript/ : /text\/css/
+      );
+      assert.ok((await asset.text()).length > 0);
+      assert.equal((await f.request(path, { method: 'HEAD' })).status, 200);
+    }
+    assert.equal((await f.request('/favicon.svg?v=2')).status, 200);
   } finally {
     await f.stop();
   }
