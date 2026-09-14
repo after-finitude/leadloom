@@ -49,6 +49,8 @@ test('OpenRouter routes real extraction with a strict schema while calendar and 
       assert.equal(body.model, 'vendor/test-model');
       assert.equal(body.store, false);
       assert.equal(body.provider.require_parameters, true);
+      assert.deepEqual(body.reasoning, { effort: 'none' });
+      assert.equal(body.temperature, 0);
       assert.equal(body.text.format.strict, true);
       assert.equal(body.text.format.type, 'json_schema');
       assert.equal(
@@ -99,6 +101,8 @@ test('OpenAI adapter sends a strict Responses schema and disables response stora
   assert.equal(body.text.format.strict, true);
   assert.equal(body.text.format.type, 'json_schema');
   assert.equal(body.tools, undefined);
+  assert.equal(body.reasoning, undefined);
+  assert.equal(body.temperature, undefined);
 });
 test('OpenAI JSON repair is limited to one attempt', async () => {
   let calls = 0;
@@ -110,6 +114,22 @@ test('OpenAI JSON repair is limited to one attempt', async () => {
     }
   );
   await assert.rejects(() => llm.extract(input));
+  assert.equal(calls, 2);
+});
+test('a known FAQ cannot also be outside the FAQ; extraction repairs the contradiction', async () => {
+  let calls = 0;
+  const expected = { updates: [], unknown: [], handoff: null, faq_id: 'hours' };
+  const llm = new ResponsesLLM(
+    { llmKey: 'test-key', llmModel: 'test-model', llmTimeout: 1000 },
+    async () => {
+      calls++;
+      const answer = calls === 1 ? { ...expected, handoff: 'outside_faq' } : expected;
+      return json({
+        output: [{ content: [{ type: 'output_text', text: JSON.stringify(answer) }] }]
+      });
+    }
+  );
+  assert.deepEqual(await llm.extract({ ...input, body: 'When are you open?' }), expected);
   assert.equal(calls, 2);
 });
 test('OpenAI refusal is not silently turned into a mock answer', async () => {

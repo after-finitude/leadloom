@@ -1,0 +1,8 @@
+{
+  "status": 429,
+  "retryAfter": null,
+  "errorCode": 429,
+  "errorMessage": "Provider returned error",
+  "provider": "Baidu",
+  "upstreamError": "deepseek/deepseek-v4-flash-0731 is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations"
+}

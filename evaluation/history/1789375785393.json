@@ -1,0 +1,517 @@
+{
+  "date": "2026-09-14T08:29:07.558Z",
+  "node": "v24.14.1",
+  "provider": "openrouter",
+  "model": "deepseek/deepseek-v4-flash-0731",
+  "prompt": "leadloom-extraction-1.2.0",
+  "calendar": "mock",
+  "email": "mock",
+  "fixtureHash": "9999a82fd43bd06adcfce5a75528e2a408567698e7e989d8f75f3fda95f8dd40",
+  "runtimeSourceHash": "18144dd7ce542f94129f738eba9f16e7b8c230af50b0672ef934ab74b35c2712",
+  "limits": {
+    "fieldAccuracy": 0.95,
+    "categoryMatch": 0.95,
+    "falseBooking": 0
+  },
+  "results": [
+    {
+      "id": "hot-booking",
+      "passed": false,
+      "failures": [
+        "Category Nurture; expected Hot",
+        "Field service_type: null != \"roofing\"",
+        "Field location: null != \"Demo City A\"",
+        "Field budget_min: null != 20000",
+        "Field budget_max: null != 20000",
+        "Field timeline: null != 2",
+        "Field decision_maker: null != true",
+        "booking_not_allowed"
+      ],
+      "category": "Nurture",
+      "expectedCategory": "Hot",
+      "fields": {},
+      "fieldTotal": 6,
+      "fieldCorrect": 0,
+      "expectedHandoff": null,
+      "handoff": true,
+      "booked": false,
+      "expectedBooking": true,
+      "falseBooking": false,
+      "firstContactMs": 4,
+      "elapsedMs": 15093
+    },
+    {
+      "id": "warm-unknown-budget",
+      "passed": false,
+      "failures": [
+        "Category Nurture; expected Warm",
+        "Field timeline: null != 2",
+        "Field decision_maker: null != true",
+        "booking_not_allowed"
+      ],
+      "category": "Nurture",
+      "expectedCategory": "Warm",
+      "fields": {},
+      "fieldTotal": 4,
+      "fieldCorrect": 2,
+      "expectedHandoff": null,
+      "handoff": true,
+      "booked": false,
+      "expectedBooking": true,
+      "falseBooking": false,
+      "firstContactMs": 1,
+      "elapsedMs": 15105
+    },
+    {
+      "id": "unsupported-service",
+      "passed": true,
+      "failures": [],
+      "category": "Unqualified",
+      "expectedCategory": "Unqualified",
+      "fields": {
+        "service_type": "plumbing"
+      },
+      "fieldTotal": 1,
+      "fieldCorrect": 1,
+      "expectedHandoff": null,
+      "handoff": false,
+      "booked": false,
+      "expectedBooking": false,
+      "falseBooking": false,
+      "firstContactMs": 1,
+      "elapsedMs": 5339
+    },
+    {
+      "id": "outside-service-area",
+      "passed": false,
+      "failures": [
+        "Category Nurture; expected Unqualified",
+        "Field location: null != \"Outside City\""
+      ],
+      "category": "Nurture",
+      "expectedCategory": "Unqualified",
+      "fields": {},
+      "fieldTotal": 1,
+      "fieldCorrect": 0,
+      "expectedHandoff": null,
+      "handoff": true,
+      "booked": false,
+      "expectedBooking": false,
+      "falseBooking": false,
+      "firstContactMs": 2,
+      "elapsedMs": 15102
+    },
+    {
+      "id": "optional-budget-unknown",
+      "passed": false,
+      "failures": [
+        "Category Nurture; expected Warm",
+        "Field timeline: null != 2",
+        "Field decision_maker: null != true",
+        "booking_not_allowed"
+      ],
+      "category": "Nurture",
+      "expectedCategory": "Warm",
+      "fields": {},
+      "fieldTotal": 3,
+      "fieldCorrect": 1,
+      "expectedHandoff": null,
+      "handoff": true,
+      "booked": false,
+      "expectedBooking": true,
+      "falseBooking": false,
+      "firstContactMs": 1,
+      "elapsedMs": 15110
+    },
+    {
+      "id": "critical-location-unknown",
+      "passed": true,
+      "failures": [],
+      "category": "Nurture",
+      "expectedCategory": "Nurture",
+      "fields": {
+        "service_type": "roofing"
+      },
+      "fieldTotal": 1,
+      "fieldCorrect": 1,
+      "expectedHandoff": true,
+      "handoff": true,
+      "booked": false,
+      "expectedBooking": false,
+      "falseBooking": false,
+      "firstContactMs": 1,
+      "elapsedMs": 22963
+    },
+    {
+      "id": "multi-field-extraction",
+      "passed": false,
+      "failures": [
+        "Category Nurture; expected Hot",
+        "Field location: null != \"Demo City B\"",
+        "Field budget_min: null != 15000",
+        "Field budget_max: null != 25000",
+        "Field timeline: null != 5",
+        "Field decision_maker: null != true"
+      ],
+      "category": "Nurture",
+      "expectedCategory": "Hot",
+      "fields": {
+        "service_type": "concrete works"
+      },
+      "fieldTotal": 6,
+      "fieldCorrect": 1,
+      "expectedHandoff": null,
+      "handoff": false,
+      "booked": false,
+      "expectedBooking": null,
+      "falseBooking": false,
+      "firstContactMs": 1,
+      "elapsedMs": 9967
+    },
+    {
+      "id": "budget-correction",
+      "passed": false,
+      "failures": [
+        "Category Nurture; expected Warm",
+        "Field budget_min: null != 5000",
+        "Field budget_max: null != 5000",
+        "booking_not_allowed"
+      ],
+      "category": "Nurture",
+      "expectedCategory": "Warm",
+      "fields": {},
+      "fieldTotal": 2,
+      "fieldCorrect": 0,
+      "expectedHandoff": null,
+      "handoff": true,
+      "booked": false,
+      "expectedBooking": true,
+      "falseBooking": false,
+      "firstContactMs": 1,
+      "elapsedMs": 23662
+    },
+    {
+      "id": "manual-lock-conflict",
+      "passed": false,
+      "failures": [
+        "Category Nurture; expected Hot"
+      ],
+      "category": "Nurture",
+      "expectedCategory": "Hot",
+      "fields": {
+        "budget_min": 50000,
+        "budget_max": 50000
+      },
+      "fieldTotal": 1,
+      "fieldCorrect": 1,
+      "expectedHandoff": true,
+      "handoff": true,
+      "booked": false,
+      "expectedBooking": false,
+      "falseBooking": false,
+      "firstContactMs": 1,
+      "elapsedMs": 15112
+    },
+    {
+      "id": "human-request",
+      "passed": true,
+      "failures": [],
+      "category": "Nurture",
+      "expectedCategory": "Nurture",
+      "fields": {},
+      "fieldTotal": 1,
+      "fieldCorrect": 1,
+      "expectedHandoff": true,
+      "handoff": true,
+      "booked": false,
+      "expectedBooking": false,
+      "falseBooking": false,
+      "firstContactMs": 1,
+      "elapsedMs": 5772
+    },
+    {
+      "id": "negative-sentiment",
+      "passed": true,
+      "failures": [],
+      "category": "Nurture",
+      "expectedCategory": "Nurture",
+      "fields": {},
+      "fieldTotal": 0,
+      "fieldCorrect": 0,
+      "expectedHandoff": true,
+      "handoff": true,
+      "booked": false,
+      "expectedBooking": false,
+      "falseBooking": false,
+      "firstContactMs": 1,
+      "elapsedMs": 3636
+    },
+    {
+      "id": "approved-faq",
+      "passed": false,
+      "failures": [
+        "Category Nurture; expected Hot",
+        "Field budget_min: null != 20000"
+      ],
+      "category": "Nurture",
+      "expectedCategory": "Hot",
+      "fields": {
+        "service_type": "roofing"
+      },
+      "fieldTotal": 1,
+      "fieldCorrect": 0,
+      "expectedHandoff": false,
+      "handoff": false,
+      "booked": false,
+      "expectedBooking": null,
+      "falseBooking": false,
+      "firstContactMs": 1,
+      "elapsedMs": 13522
+    },
+    {
+      "id": "outside-faq",
+      "passed": true,
+      "failures": [],
+      "category": "Nurture",
+      "expectedCategory": "Nurture",
+      "fields": {},
+      "fieldTotal": 0,
+      "fieldCorrect": 0,
+      "expectedHandoff": true,
+      "handoff": true,
+      "booked": false,
+      "expectedBooking": false,
+      "falseBooking": false,
+      "firstContactMs": 1,
+      "elapsedMs": 15034
+    },
+    {
+      "id": "banned-topic",
+      "passed": false,
+      "failures": [
+        "Handoff false; expected true"
+      ],
+      "category": "Nurture",
+      "expectedCategory": "Nurture",
+      "fields": {},
+      "fieldTotal": 0,
+      "fieldCorrect": 0,
+      "expectedHandoff": true,
+      "handoff": false,
+      "booked": false,
+      "expectedBooking": false,
+      "falseBooking": false,
+      "firstContactMs": 1,
+      "elapsedMs": 5632
+    },
+    {
+      "id": "negative-authority",
+      "passed": false,
+      "failures": [
+        "Category Nurture; expected Hot",
+        "Field decision_maker: null != false",
+        "booking_not_allowed"
+      ],
+      "category": "Nurture",
+      "expectedCategory": "Hot",
+      "fields": {},
+      "fieldTotal": 1,
+      "fieldCorrect": 0,
+      "expectedHandoff": null,
+      "handoff": true,
+      "booked": false,
+      "expectedBooking": true,
+      "falseBooking": false,
+      "firstContactMs": 0,
+      "elapsedMs": 15100
+    },
+    {
+      "id": "unknown-timeline",
+      "passed": false,
+      "failures": [
+        "Category Nurture; expected Hot",
+        "booking_not_allowed"
+      ],
+      "category": "Nurture",
+      "expectedCategory": "Hot",
+      "fields": {},
+      "fieldTotal": 1,
+      "fieldCorrect": 1,
+      "expectedHandoff": null,
+      "handoff": true,
+      "booked": false,
+      "expectedBooking": true,
+      "falseBooking": false,
+      "firstContactMs": 1,
+      "elapsedMs": 15125
+    },
+    {
+      "id": "no-repeat-known-fields",
+      "passed": false,
+      "failures": [
+        "Category Nurture; expected Hot",
+        "Field location: null != \"Demo City B\"",
+        "Repeated a known question"
+      ],
+      "category": "Nurture",
+      "expectedCategory": "Hot",
+      "fields": {
+        "service_type": "roofing"
+      },
+      "fieldTotal": 1,
+      "fieldCorrect": 0,
+      "expectedHandoff": null,
+      "handoff": false,
+      "booked": false,
+      "expectedBooking": null,
+      "falseBooking": false,
+      "firstContactMs": 1,
+      "elapsedMs": 1897
+    },
+    {
+      "id": "stop-after-qualification",
+      "passed": false,
+      "failures": [
+        "Category Nurture; expected Hot"
+      ],
+      "category": "Nurture",
+      "expectedCategory": "Hot",
+      "fields": {},
+      "fieldTotal": 0,
+      "fieldCorrect": 0,
+      "expectedHandoff": null,
+      "handoff": false,
+      "booked": false,
+      "expectedBooking": false,
+      "falseBooking": false,
+      "firstContactMs": 1,
+      "elapsedMs": 11016
+    },
+    {
+      "id": "nurture-no-booking",
+      "passed": false,
+      "failures": [
+        "Field budget_min: null != 5000",
+        "Field timeline: null != 12",
+        "Field decision_maker: null != false"
+      ],
+      "category": "Nurture",
+      "expectedCategory": "Nurture",
+      "fields": {},
+      "fieldTotal": 3,
+      "fieldCorrect": 0,
+      "expectedHandoff": null,
+      "handoff": true,
+      "booked": false,
+      "expectedBooking": false,
+      "falseBooking": false,
+      "firstContactMs": 1,
+      "elapsedMs": 15101
+    },
+    {
+      "id": "email-required",
+      "passed": false,
+      "failures": [
+        "Category Nurture; expected Hot"
+      ],
+      "category": "Nurture",
+      "expectedCategory": "Hot",
+      "fields": {},
+      "fieldTotal": 0,
+      "fieldCorrect": 0,
+      "expectedHandoff": null,
+      "handoff": true,
+      "booked": false,
+      "expectedBooking": false,
+      "falseBooking": false,
+      "firstContactMs": 1,
+      "elapsedMs": 15107
+    },
+    {
+      "id": "prompt-injection-blocked",
+      "passed": true,
+      "failures": [],
+      "category": "Nurture",
+      "expectedCategory": "Nurture",
+      "fields": {},
+      "fieldTotal": 1,
+      "fieldCorrect": 1,
+      "expectedHandoff": true,
+      "handoff": true,
+      "booked": false,
+      "expectedBooking": false,
+      "falseBooking": false,
+      "firstContactMs": 1,
+      "elapsedMs": 15105
+    },
+    {
+      "id": "unknown-authority",
+      "passed": false,
+      "failures": [
+        "Category Unqualified; expected Hot",
+        "booking_not_allowed"
+      ],
+      "category": "Unqualified",
+      "expectedCategory": "Hot",
+      "fields": {
+        "service_type": "roofing",
+        "location": "unknown"
+      },
+      "fieldTotal": 1,
+      "fieldCorrect": 1,
+      "expectedHandoff": null,
+      "handoff": false,
+      "booked": false,
+      "expectedBooking": true,
+      "falseBooking": false,
+      "firstContactMs": 1,
+      "elapsedMs": 26384
+    },
+    {
+      "id": "service-correction-hard-reject",
+      "passed": false,
+      "failures": [
+        "Category Nurture; expected Unqualified",
+        "Field service_type: null != \"plumbing\""
+      ],
+      "category": "Nurture",
+      "expectedCategory": "Unqualified",
+      "fields": {},
+      "fieldTotal": 1,
+      "fieldCorrect": 0,
+      "expectedHandoff": null,
+      "handoff": true,
+      "booked": false,
+      "expectedBooking": false,
+      "falseBooking": false,
+      "firstContactMs": 1,
+      "elapsedMs": 15098
+    },
+    {
+      "id": "budget-crosses-threshold",
+      "passed": false,
+      "failures": [
+        "Category Warm; expected Hot"
+      ],
+      "category": "Warm",
+      "expectedCategory": "Hot",
+      "fields": {
+        "service_type": "roofing",
+        "location": "Demo City A",
+        "budget_min": 5000,
+        "budget_max": 15000,
+        "decision_maker": true,
+        "timeline": null
+      },
+      "fieldTotal": 2,
+      "fieldCorrect": 2,
+      "expectedHandoff": null,
+      "handoff": false,
+      "booked": true,
+      "expectedBooking": true,
+      "falseBooking": false,
+      "firstContactMs": 2,
+      "elapsedMs": 7660
+    }
+  ]
+}

@@ -1,0 +1,112 @@
+{
+  "input": "I need plumbing.",
+  "model": "deepseek/deepseek-v4-flash-0731",
+  "reasoning": "none",
+  "temperature": 0,
+  "records": [
+    {
+      "requestedProvider": "deepinfra/fp8",
+      "api": "responses",
+      "httpStatus": 200,
+      "id": "gen-1789376341-fM1BBlHHVpY5juBgIasR",
+      "model": "deepseek/deepseek-v4-flash-0731",
+      "status": "completed",
+      "usage": {
+        "input_tokens": 489,
+        "input_tokens_details": {
+          "cached_tokens": 0
+        },
+        "output_tokens": 22,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 511,
+        "cost": 0.0000333,
+        "is_byok": false,
+        "cost_details": {
+          "upstream_inference_cost": 0.0000333,
+          "upstream_inference_input_cost": 0.00002934,
+          "upstream_inference_output_cost": 0.00000396
+        }
+      },
+      "output": "{\"updates\":[],\"unknown\":[],\"handoff\":null,\"faq_id\":null}",
+      "elapsedMs": 2295
+    },
+    {
+      "requestedProvider": "deepinfra/fp8",
+      "api": "chat/completions",
+      "httpStatus": 200,
+      "id": "gen-1789376341-3UIsZix7GHra0TnQJTeH",
+      "provider": "DeepInfra",
+      "model": "deepseek/deepseek-v4-flash-0731",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 489,
+        "completion_tokens": 22,
+        "total_tokens": 511,
+        "cost": 0.0000333,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0000333,
+          "upstream_inference_prompt_cost": 0.00002934,
+          "upstream_inference_completions_cost": 0.00000396
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "output": "{\"updates\":[],\"unknown\":[],\"handoff\":null,\"faq_id\":null}",
+      "elapsedMs": 2056
+    },
+    {
+      "requestedProvider": "baidu/fp8",
+      "api": "responses",
+      "httpStatus": 429,
+      "errorCode": 429,
+      "output": "",
+      "elapsedMs": 544
+    },
+    {
+      "requestedProvider": "baidu/fp8",
+      "api": "chat/completions",
+      "httpStatus": 200,
+      "id": "gen-1789376341-PuQL3fXBWbZA4PYx7wyI",
+      "provider": "Baidu",
+      "model": "deepseek/deepseek-v4-flash-0731",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 891,
+        "completion_tokens": 39,
+        "total_tokens": 930,
+        "cost": 0.0000354816,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0000354816,
+          "upstream_inference_prompt_cost": 0.0000313632,
+          "upstream_inference_completions_cost": 0.0000041184
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "output": "{\"updates\":[{\"field\":\"service_type\",\"value\":\"plumbing\",\"evidence\":\"I need plumbing.\"}],\"unknown\":[],\"handoff\":null,\"faq_id\":null}",
+      "elapsedMs": 1735
+    }
+  ]
+}

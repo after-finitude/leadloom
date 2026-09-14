@@ -10,12 +10,14 @@ The portfolio target uses a real LLM through OpenRouter with the existing mock c
 APP_MODE=demo
 LLM_PROVIDER=openrouter
 OPENROUTER_API_KEY=
-OPENROUTER_MODEL=
+OPENROUTER_MODEL=google/gemini-2.5-flash-lite
 CALENDAR_PROVIDER=mock
 EMAIL_PROVIDER=mock
 ```
 
-Choose a model ID in `vendor/model` form whose endpoint supports structured outputs. The shared adapter uses OpenRouter's [Responses API](https://openrouter.ai/docs/api_reference/responses/basic-usage), the existing extraction schema and evidence validation, and `provider.require_parameters=true` to require support for the supplied parameters. See [structured outputs](https://openrouter.ai/docs/guides/features/structured-outputs). Missing credentials or an incompatible model do not silently switch qualification to the mock parser.
+Choose a model ID in `vendor/model` form whose endpoint supports structured outputs and disabled reasoning. The shared adapter uses OpenRouter's [Responses API](https://openrouter.ai/docs/api_reference/responses/basic-usage), the existing extraction schema and evidence validation, and `provider.require_parameters=true` to require support for the supplied parameters. OpenRouter extraction requests set `reasoning.effort=none` so reasoning cannot consume the 1,600-token JSON response budget, and `temperature=0` to reduce output variability. See [structured outputs](https://openrouter.ai/docs/guides/features/structured-outputs). Missing credentials or an incompatible model do not silently switch qualification to the mock parser.
+
+The extraction prompt separates business eligibility from reported facts: unsupported services and locations must still be extracted. It requests every stated field, defines property ownership/approval as qualification evidence, and distinguishes explicit uncertainty from missing information and human handoff. Scores, eligibility and booking remain application decisions.
 
 Booking, rescheduling and cancellation use SQLite; no Google account or event is involved. Mock emails, including secure chat and unsubscribe links, appear in the administrator's Outbox; no Resend account or actual email delivery is involved. Present this as **real AI qualification with simulated calendar and email** in the portfolio.
 

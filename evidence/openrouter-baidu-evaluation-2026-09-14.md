@@ -1,0 +1,54 @@
+# Leadloom evaluation — real openrouter, controlled mock calendar/email
+
+> **Blocked by provider rate limiting.** All 24 LLM requests returned HTTP 429 from Baidu. No inference output was received, so the 6/24 application assertions below are not a model-quality score. Two diagnostic requests also returned HTTP 429, including one after a 60-second pause. OpenRouter identified a temporary upstream rate limit for this model at Baidu; no Retry-After was provided. Working configuration was not changed.
+
+Date: 2026-09-14T10:08:24.781Z
+Node: v24.14.1
+Model: deepseek/deepseek-v4-flash-0731
+Prompt: leadloom-extraction-1.2.0
+Fixture SHA-256: 9999a82fd43bd06adcfce5a75528e2a408567698e7e989d8f75f3fda95f8dd40
+Service SHA-256: 18144dd7ce542f94129f738eba9f16e7b8c230af50b0672ef934ab74b35c2712
+
+## Results
+
+- Scenario assertions passed: 6/24.
+- Declared field assertions: 9/38. These are selected golden fields, not a population estimate.
+- Category matches: 7/24.
+- Expected valid bookings: 0/8.
+- False bookings: 0.
+- First chat contact median: 1 ms; p90: 1 ms.
+
+Only the LLM is live in this run. Email and calendar remain controlled mocks. No live integration acceptance is implied.
+
+| Scenario | Result | Observed category | Notes |
+|---|---|---|---|
+| hot-booking | FAIL | Nurture | Category Nurture; expected Hot; Field service_type: null != "roofing"; Field location: null != "Demo City A"; Field budget_min: null != 20000; Field budget_max: null != 20000; Field timeline: null != 2; Field decision_maker: null != true; booking_not_allowed |
+| warm-unknown-budget | FAIL | Nurture | Category Nurture; expected Warm; Field timeline: null != 2; Field decision_maker: null != true; booking_not_allowed |
+| unsupported-service | FAIL | Nurture | Category Nurture; expected Unqualified; Field service_type: null != "plumbing" |
+| outside-service-area | FAIL | Nurture | Category Nurture; expected Unqualified; Field location: null != "Outside City" |
+| optional-budget-unknown | FAIL | Nurture | Category Nurture; expected Warm; Field timeline: null != 2; Field decision_maker: null != true; booking_not_allowed |
+| critical-location-unknown | PASS | Nurture |  |
+| multi-field-extraction | FAIL | Nurture | Category Nurture; expected Hot; Field service_type: null != "concrete works"; Field location: null != "Demo City B"; Field budget_min: null != 15000; Field budget_max: null != 25000; Field timeline: null != 5; Field decision_maker: null != true |
+| budget-correction | FAIL | Nurture | Category Nurture; expected Warm; Field budget_min: null != 5000; Field budget_max: null != 5000; booking_not_allowed |
+| manual-lock-conflict | FAIL | Nurture | Category Nurture; expected Hot |
+| human-request | PASS | Nurture |  |
+| negative-sentiment | PASS | Nurture |  |
+| approved-faq | FAIL | Nurture | Category Nurture; expected Hot; Handoff true; expected false; Field budget_min: null != 20000 |
+| outside-faq | PASS | Nurture |  |
+| banned-topic | PASS | Nurture |  |
+| negative-authority | FAIL | Nurture | Category Nurture; expected Hot; Field decision_maker: null != false; booking_not_allowed |
+| unknown-timeline | FAIL | Nurture | Category Nurture; expected Hot; booking_not_allowed |
+| no-repeat-known-fields | FAIL | Nurture | Category Nurture; expected Hot; Field location: null != "Demo City B" |
+| stop-after-qualification | FAIL | Nurture | Category Nurture; expected Hot |
+| nurture-no-booking | FAIL | Nurture | Field budget_min: null != 5000; Field timeline: null != 12; Field decision_maker: null != false |
+| email-required | FAIL | Nurture | Category Nurture; expected Hot |
+| prompt-injection-blocked | PASS | Nurture |  |
+| unknown-authority | FAIL | Nurture | Category Nurture; expected Hot; booking_not_allowed |
+| service-correction-hard-reject | FAIL | Nurture | Category Nurture; expected Unqualified; Field service_type: null != "plumbing" |
+| budget-crosses-threshold | FAIL | Nurture | Category Nurture; expected Hot; Field budget_min: null != 5000; Field budget_max: null != 15000; booking_not_allowed |
+
+## Controlled Baidu Chat run
+
+Provider pinned to baidu/fp8; fallbacks disabled. Chat Completions API, temperature 0, reasoning none. Existing 15-second timeout, prompt, schema, scenarios and validation retained. A temporary diagnostic adapter translated the request/response formats; application source and .env were not changed for this run.
+
+Requests: 24; HTTP 429: 24; timeouts: 0; reported usage cost: $0. Cost excludes any requests for which usage was not returned.

@@ -1,0 +1,13 @@
+{
+  "date": "2026-09-14T10:35:41.046Z",
+  "mode": "native Chrome; Gemini 2.5 Flash Lite through OpenRouter; calendar/email mock; isolated in-memory database",
+  "success": true,
+  "checks": [
+    "Tokenless unsubscribe explains the missing link",
+    "Enquiry and qualification enable booking",
+    "Stale/taken slots recover; confirmed booking survives reload",
+    "Staff login/search/profile and appointment timezone regression",
+    "STOP disables automation"
+  ],
+  "errors": []
+}
