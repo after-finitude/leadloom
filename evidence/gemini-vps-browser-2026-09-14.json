@@ -1,0 +1,13 @@
+{
+  "date": "2026-09-14T10:41:38.080Z",
+  "mode": "native Chrome; public VPS; Gemini 2.5 Flash Lite through OpenRouter; calendar/email mock; persistent synthetic smoke record",
+  "success": true,
+  "checks": [
+    "Tokenless unsubscribe explains the missing link",
+    "Enquiry and qualification enable booking",
+    "Slots refresh and confirmed booking survives reload",
+    "STOP disables automation",
+    "Public health reports OpenRouter and mock calendar/email"
+  ],
+  "errors": []
+}

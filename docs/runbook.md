@@ -40,7 +40,7 @@ An existing demo database cannot be switched to live mode: select a new `DATABAS
 
 ## Shared VPS deployment
 
-The trial deployment runs at `https://leadloom.176.98.40.150.sslip.io` on `176.98.40.150`, alongside Docflow Hub. It uses mock providers and synthetic demo data. Files live in `/opt/leadloom`; `compose.vps.yaml` extends `compose.yaml` with a pinned Node.js 24 image, a 256 MiB memory limit, a non-root user, read-only source mounts, and bounded container logs. No image build or npm installation is required.
+The trial deployment runs at `https://leadloom.176.98.40.150.sslip.io` on `176.98.40.150`, alongside Docflow Hub. As of the 14 September activation, it uses Gemini 2.5 Flash Lite through OpenRouter, mock calendar/email providers and synthetic demo data. See the [activation report](../evidence/gemini-vps-release-2026-09-14.md). Files live in `/opt/leadloom`; `compose.vps.yaml` extends `compose.yaml` with a pinned Node.js 24 image, a 256 MiB memory limit, a non-root user, read-only source mounts, and bounded container logs. No image build or npm installation is required.
 
 The host's `/opt/leadloom/data` directory is a separate writable bind mount owned by UID/GID 1000. Root-only `/opt/leadloom/.env` stores generated staff passwords, the webhook secret, encryption key, image digest, origin, and trusted proxy address. Credentials are not the public README demo passwords. Preserve both the database and its encryption key when backing up or updating the deployment.
 
