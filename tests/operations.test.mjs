@@ -57,6 +57,42 @@ test('external calendar conflict is checked again just before creation', async (
     assert.equal(f.app.operationStatus(op.id).state, 'failed');
     assert.notEqual(f.app.lead(lid).stage, 'Booked');
     assert.equal(f.store.get('SELECT count(*) AS n FROM calendar_events').n, 1);
+    const state = f.app.publicState(lid);
+    assert.equal(state.appointment, null);
+    assert.equal(state.can_book, true);
+    assert.deepEqual(state.booking_issue, {
+      id: op.id,
+      message:
+        'Sorry, that time was taken before we could confirm your booking. No appointment was created.'
+    });
+    assert.deepEqual(f.app.publicState(lid).booking_issue, state.booking_issue);
+    const fresh = await f.app.availability(lid);
+    assert.ok(fresh.slots.length);
+    assert.ok(fresh.slots.every((offer) => offer.start >= slot.end + 15 * 60000));
+    f.app.book(lid, fresh.slots[0].id, 'new-choice');
+    assert.equal(f.app.publicState(lid).booking_issue, null);
+    await f.app.tick();
+    assert.equal(f.app.publicState(lid).appointment.status, 'confirmed');
+    assert.equal(f.app.publicState(lid).booking_issue, null);
+    assert.equal(f.store.get('SELECT count(*) AS n FROM calendar_events').n, 2);
+  } finally {
+    f.close();
+  }
+});
+test('public booking failures hide provider diagnostics and belong only to their lead', async () => {
+  const f = fixture();
+  try {
+    const { lid, op } = await booking(f);
+    f.app.calendar.busy = async () => {
+      throw new AppError('calendar_http_401', 'Private provider diagnostic', 502);
+    };
+    await f.app.tick();
+    assert.deepEqual(f.app.publicState(lid).booking_issue, {
+      id: op.id,
+      message: 'We could not confirm your booking. No appointment was created.'
+    });
+    assert.equal(f.app.publicState(await f.lead()).booking_issue, null);
+    assert.equal(f.store.get('SELECT count(*) AS n FROM calendar_events').n, 0);
   } finally {
     f.close();
   }
@@ -69,6 +105,9 @@ test('lost calendar response becomes unknown, then reconciles the same event', a
     await f.app.tick();
     assert.equal(f.app.operationStatus(op.id).state, 'unknown');
     assert.equal(f.app.lead(lid).owner, 'HUMAN');
+    assert.equal(f.app.publicState(lid).booking_issue, null);
+    assert.equal(f.app.publicState(lid).can_book, false);
+    assert.equal(f.app.publicState(lid).appointment.status, 'unknown');
     const fixed = await f.app.reconcile(op.id);
     assert.equal(fixed.state, 'confirmed');
     assert.equal(f.app.lead(lid).stage, 'Booked');

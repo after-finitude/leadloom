@@ -910,6 +910,10 @@ export class Leadloom {
       appointment = this.s.get(
         "SELECT start_at,end_at,timezone,status FROM appointments WHERE lead_id=? AND status IN ('pending','unknown','confirmed') ORDER BY created_at DESC LIMIT 1",
         leadId
+      ),
+      booking = this.s.get(
+        "SELECT id,state,error_code FROM operations WHERE lead_id=? AND kind='booking' ORDER BY created_at DESC,rowid DESC LIMIT 1",
+        leadId
       );
     return {
       company: s.company,
@@ -920,6 +924,18 @@ export class Leadloom {
       stopped: !!l.opt_out,
       can_book: mayBook(l, s) && !appointment,
       appointment: appointment || null,
+      booking_issue:
+        !appointment && booking?.state === 'failed'
+          ? {
+              id: booking.id,
+              message:
+                booking.error_code === 'slot_taken'
+                  ? 'Sorry, that time was taken before we could confirm your booking. No appointment was created.'
+                  : ['stale_booking', 'outside_hours'].includes(booking.error_code)
+                    ? 'That time is no longer available for this enquiry. No appointment was created.'
+                    : 'We could not confirm your booking. No appointment was created.'
+            }
+          : null,
       messages: this.s.all(
         'SELECT id,author,body,created_at FROM messages WHERE conversation_id=? ORDER BY seq',
         l.conversation_id

@@ -36,6 +36,7 @@ export interface FieldMeta {
   source: string;
   at: number;
   locked: boolean;
+  messageId?: string;
 }
 export interface AuditEvent {
   id: string;
@@ -111,6 +112,7 @@ export interface PublicChat {
   stopped: boolean;
   can_book: boolean;
   appointment: Pick<Appointment, 'start_at' | 'end_at' | 'timezone' | 'status'> | null;
+  booking_issue: { id: string; message: string } | null;
   messages: Message[];
   demo: boolean;
   providers: { calendar: string; email: string };

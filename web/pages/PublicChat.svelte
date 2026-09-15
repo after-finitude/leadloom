@@ -20,6 +20,7 @@
   let sendError = $state('');
   let accessError = $state('');
   let bookingError = $state('');
+  let handledBookingIssue = $state('');
   let draftSaved = $state(true);
   const unsubscribe = $derived(ui.route === '/unsubscribe');
   const chat = $derived(ui.chat);
@@ -27,6 +28,14 @@
   $effect(() => {
     body = draftScope ? readDraft(draftScope) : '';
     sendError = '';
+  });
+  $effect(() => {
+    const issue = chat?.booking_issue;
+    if (!issue || !chat?.can_book || ui.busy || issue.id === handledBookingIssue) return;
+    handledBookingIssue = issue.id;
+    clearPending('booking');
+    slots = null;
+    void availability();
   });
   function updateDraft(next: string) {
     body = next;
@@ -74,19 +83,17 @@
     );
     if (sent) await run(refreshPublic);
   }
+  async function loadAvailability() {
+    const data = await api<Availability>('/public/chat/availability');
+    slots = data.slots;
+    await refreshPublic();
+    if (!slots.length) notify('No slots found; your enquiry has been passed to the team.');
+  }
   async function availability() {
     bookingError = '';
-    await run(
-      async () => {
-        const data = await api<Availability>('/public/chat/availability');
-        slots = data.slots;
-        await refreshPublic();
-        if (!slots.length) notify('No slots found; your enquiry has been passed to the team.');
-      },
-      (cause) => {
-        bookingError = errorMessage(cause);
-      }
-    );
+    await run(loadAvailability, (cause) => {
+      bookingError = errorMessage(cause);
+    });
   }
   async function book(offerId: string) {
     bookingError = '';
@@ -109,7 +116,13 @@
           ) {
             slots = null;
             clearPending('booking');
+            bookingError =
+              error.code === 'slot_taken'
+                ? 'Sorry, that time was just taken. Please choose another time below.'
+                : 'Those times have expired. Please choose a new time below.';
             await refreshPublic();
+            if (ui.chat?.can_book) await loadAvailability();
+            return;
           }
           throw error;
         }
@@ -224,9 +237,15 @@
             <p>{chat.appointment.timezone} · {chat.providers.calendar} calendar</p>
           </div>{/if}</Messages
       >
+      {#if chat.booking_issue}<p class="attention" role="alert">
+          {chat.booking_issue.message}
+        </p>{/if}
       {#if chat.can_book}<div class="slots-panel">
           <h3>Your next step</h3>
-          <p>Times are shown in {chat.timezone} and checked again when you book.</p>
+          <p>
+            {chat.booking_issue ? 'Please choose another time. ' : ''}Times are shown in
+            {chat.timezone} and checked again when you book.
+          </p>
           {#if bookingError}<p class="form-error" role="alert">{bookingError}</p>{/if}
           {#if slots}<div class="slot-grid">
               {#each slots as slot (slot.id)}<button

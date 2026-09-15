@@ -80,7 +80,7 @@ Booking additionally requires complete qualification, Hot/Warm, email, current r
 1. **Choose a consultation time** gets slots based on calendar busy intervals, local reservations, company time zone, working hours/days, duration, buffer, minimum notice and horizon.
 2. Customer selects a server-issued slot. The application reserves the interval and queues the calendar operation; the worker rechecks eligibility and availability.
 3. Confirmed success sets Booked, stops pending follow-ups and saves a staff summary. The appointment card displays confirmation; a chat confirmation is added when automation remains eligible.
-4. A stale/occupied offer requires fresh availability. **Refresh available times** replaces the old offers; repeated requests with the same key do not create another meeting.
+4. A stale/occupied offer shows an explanation and automatically loads fresh availability. A known background booking failure remains visible after reload and also loads fresh times when the lead is still eligible. **Refresh available times** retries loading offers if needed; repeated requests with the same key do not create another meeting.
 
 Pending means accepted for processing. Unknown means the external effect may already exist and requires reconciliation. Neither means confirmed. Meeting times use the appointment's time zone.
 
@@ -95,6 +95,8 @@ Cancellation suppresses follow-ups; old sequences do not restart. A new explicit
 ## 4. Staff controls and deal progress
 
 Find a lead through search (name/email/phone/service) or **All**, **Needs attention**, **AI active**, **Human**, **Booked**. Search/filtering covers the dataset; dashboard counters remain global. Open the profile for field provenance, proposed changes, score, audit trail and meetings.
+
+In Inbox Details and the profile's Data tab, select a field value marked **View source** to expand its original lead message and timestamp. Budget minimum and maximum show their sources separately. Manual edits are labelled as team edits; fields without a recorded message do not invent a source.
 
 | Action                         | Effect and boundary                                                                                                                                                           |
 | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
