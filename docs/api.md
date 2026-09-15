@@ -8,7 +8,7 @@ All routes use the `/api` prefix. The public client does not supply trusted lead
 | POST /auth/login, /auth/logout; GET /me               | Login, logout, and staff CSRF                                                                                      |
 | POST /leads/intake                                    | Authorized webhook: source, event_key, name?, email?, phone?, service_type?, external_id?                          |
 | POST /public/intake                                   | Form: event_key, name?, email?, phone?, service_type?; source is set by the server                                 |
-| GET /public/chat                                      | Visitor's own messages, active appointment, safe booking issue, and visitor CSRF                                    |
+| GET /public/chat                                      | Visitor's own messages, active appointment, safe booking issue, and visitor CSRF                                   |
 | POST /public/chat/messages                            | body, key; durable processing                                                                                      |
 | GET /public/chat/availability                         | Server-provided slot offers for the visitor's own lead                                                             |
 | POST /public/chat/appointments                        | offerId, key; explicit selection, response describes the persisted operation rather than a fabricated confirmation |

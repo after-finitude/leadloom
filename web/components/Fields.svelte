@@ -45,7 +45,8 @@
               {#if value == null}<span class="muted">Unknown</span>{:else}{value}{/if}
               <span class="field-origin">
                 <Icon name={lead.meta[key]?.locked ? 'lock' : 'check'} /> View source
-                {#if lead.meta[key]} · {dateTime(lead.meta[key]?.at, true)}{/if}
+                {#if lead.meta[key]}
+                  · {dateTime(lead.meta[key]?.at, true)}{/if}
               </span>
             </summary>
             <div class="field-evidence">
