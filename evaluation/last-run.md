@@ -1,11 +1,11 @@
 # Leadloom evaluation — MOCK, not real AI
 
-Date: 2026-09-14T14:04:15.902Z
+Date: 2026-09-24T12:48:11.904Z
 Node: v24.14.1
 Model: deterministic-parser-1.2
 Prompt: leadloom-extraction-1.2.3
 Fixture SHA-256: 9999a82fd43bd06adcfce5a75528e2a408567698e7e989d8f75f3fda95f8dd40
-Service SHA-256: 18144dd7ce542f94129f738eba9f16e7b8c230af50b0672ef934ab74b35c2712
+Service SHA-256: 1135a0668a3013e4e5f3fc5170bca22bed2242b3f111fbbffbd0910904c8f719
 
 ## Results
 

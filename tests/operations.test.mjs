@@ -161,6 +161,22 @@ test('unqualified lead cannot get slots or forge a booking', async () => {
     f.close();
   }
 });
+test('unsupported location names the service area and a corrected city requalifies', async () => {
+  const f = fixture();
+  try {
+    const lid = await f.lead(
+      'Roofing, located in Outside City. Budget $50000. I own the home. Start in 2 months.'
+    );
+    assert.equal(f.app.lead(lid).current_field, 'location');
+    assert.match(f.app.publicState(lid).messages.at(-1).body, /Demo City A and Demo City B/);
+    f.app.postMessage(lid, 'Demo City A', id());
+    await f.app.tick();
+    assert.notEqual(f.app.lead(lid).category, 'Unqualified');
+    assert.equal(f.app.lead(lid).fields.location, 'Demo City A');
+  } finally {
+    f.close();
+  }
+});
 test('email is required before automatic booking', async () => {
   const f = fixture();
   try {

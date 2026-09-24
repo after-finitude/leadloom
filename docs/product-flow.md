@@ -60,7 +60,7 @@ Default question order is service → location → budget → timeline → decis
 
 Budget uses known minimum/maximum bounds; timeline is the conservative upper bound in months. Unknown values remain unknown. Optional questions are still asked and must be answered or skipped to complete the normal flow. After repeated unsuccessful clarification, an optional field can be skipped; an unknown required field causes handoff.
 
-Approved FAQ questions return configured answers without spending another clarification attempt. Requests for a person, questions outside the FAQ, restricted topics, extraction failures or locked-field conflicts can trigger handoff. Unsupported service/location produces Unqualified without completing every remaining question.
+Approved FAQ questions return configured answers without spending another clarification attempt. Requests for a person, questions outside the FAQ, restricted topics, extraction failures or locked-field conflicts can trigger handoff. Unsupported service/location produces Unqualified without completing every remaining question; the assistant names the covered services or areas and waits for a corrected answer, which requalifies the lead.
 
 The parser/LLM extracts facts; application code calculates and records the score:
 

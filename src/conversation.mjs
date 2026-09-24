@@ -5,7 +5,8 @@ import {
   known,
   mayAutomate,
   mayBook,
-  maySendAccess
+  maySendAccess,
+  scoreLead
 } from './rules.mts';
 import { validateExtraction } from './providers/llm.mjs';
 import { BOOKABLE_CATEGORIES } from './domain.mts';
@@ -67,12 +68,21 @@ export function askNext(ctx, leadId, markFirst = false, prefix = '') {
   remindIfBookable(ctx, l);
   let question = null;
   if (l.category === 'Unqualified') {
+    // Name what we do cover and keep listening, so a corrected answer requalifies the lead.
+    const rules = ctx.workspace.rules(l.rule_id).data,
+      { serviceFit } = scoreLead(l.fields, rules),
+      list = (items) => new Intl.ListFormat('en', { type: 'conjunction' }).format(items),
+      field = serviceFit === false ? 'service_type' : 'location';
     ctx.messages.add(
       leadId,
       'AI',
-      `${prefix}Thank you for the details. This project is outside our current services or service area, so I cannot book it automatically. Your enquiry is saved for our team.`
+      `${prefix}${
+        field === 'service_type'
+          ? `Sorry, that is not a service we offer. We can help with ${list(rules.services)}.`
+          : `Sorry, that location is outside our service area. We currently work in ${list(rules.areas)}.`
+      } If your project fits, just tell me and we will continue. Otherwise your enquiry is saved for our team.`
     );
-    ctx.leads.update(leadId, { current_field: null });
+    ctx.leads.update(leadId, { current_field: field });
   } else if (l.qualification === 'complete') {
     if (BOOKABLE_CATEGORIES.includes(l.category) && !l.email) {
       question = {
