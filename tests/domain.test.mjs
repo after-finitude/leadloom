@@ -435,9 +435,9 @@ test('store audit and rate limits require the service clock', () => {
   const f = fixture();
   try {
     assert.throws(() => f.store.audit(null, 'no_clock'), TypeError);
-    assert.throws(() => f.store.limit('no_clock', 1, 1000), TypeError);
+    assert.throws(() => f.app.limits.hit('no_clock', 1, 1000), TypeError);
     f.store.audit(null, 'with_clock', {}, 'system', undefined, f.clock());
-    f.store.limit('with_clock', 1, 1000, f.clock());
+    f.app.limits.hit('with_clock', 1, 1000, f.clock());
   } finally {
     f.close();
   }

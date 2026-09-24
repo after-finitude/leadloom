@@ -69,6 +69,9 @@ test('HTTP form creates an HttpOnly visitor session and a private chat', async (
     await f.stop();
   }
 });
+// Fills a rate-limit window so the next request with this key is refused.
+const exhaust = (f, key, count) =>
+  f.app.limits.windows.set(key, { count, resetAt: f.clock() + 60000 });
 test('HTTP rate limits use the injected clock', async () => {
   const f = await webFixture();
   try {
@@ -78,7 +81,7 @@ test('HTTP rate limits use the injected clock', async () => {
     });
     assert.equal(r.status, 201);
     assert.deepEqual(
-      f.store.all('SELECT key FROM rate_limits WHERE reset_at>?', f.clock() + 3600000),
+      [...f.app.limits.windows].filter(([, window]) => window.resetAt > f.clock() + 3600000),
       []
     );
   } finally {
@@ -306,11 +309,7 @@ test('lead list rejects invalid pagination and unknown filters', async () => {
 test('untrusted sockets cannot change login limits using forwarded headers', async () => {
   const f = await webFixture({ config: { trustedProxies: [] } });
   try {
-    f.store.run(
-      'INSERT INTO rate_limits(key,count,reset_at) VALUES(?,10,?)',
-      `login:${hash('127.0.0.1')}`,
-      f.clock() + 60000
-    );
+    exhaust(f, `login:${hash('127.0.0.1')}`, 10);
     for (const ip of ['203.0.113.5', '203.0.113.6', 'not-an-ip']) {
       const response = await f.request('/api/auth/login', {
         method: 'POST',
@@ -327,12 +326,7 @@ test('untrusted sockets cannot change login limits using forwarded headers', asy
 test('trusted proxies use the first untrusted hop and canonical client addresses', async () => {
   const f = await webFixture({ config: { trustedProxies: ['::ffff:127.0.0.1', '10.0.0.2'] } });
   try {
-    for (const ip of ['203.0.113.5', '2001:db8::1'])
-      f.store.run(
-        'INSERT INTO rate_limits(key,count,reset_at) VALUES(?,10,?)',
-        `login:${hash(ip)}`,
-        f.clock() + 60000
-      );
+    for (const ip of ['203.0.113.5', '2001:db8::1']) exhaust(f, `login:${hash(ip)}`, 10);
     for (const [forwarded, status] of [
       ['198.51.100.1, 203.0.113.5, 10.0.0.2', 429],
       ['forged-prefix, 203.0.113.5, 10.0.0.2', 429],
@@ -362,11 +356,7 @@ test('chat limits are per lead while unauthenticated routes retain IP limits', a
     const first = f.app.auth.create('visitor', one),
       second = f.app.auth.create('visitor', two),
       another = f.app.auth.create('visitor', one);
-    f.store.run(
-      'INSERT INTO rate_limits(key,count,reset_at) VALUES(?,180,?)',
-      `public:lead:${one}`,
-      Date.now() + 60000
-    );
+    exhaust(f, `public:lead:${one}`, 180);
     assert.equal(
       (await f.request('/api/public/chat', { cookie: `ll_visitor=${first.raw}` })).status,
       429
@@ -379,11 +369,7 @@ test('chat limits are per lead while unauthenticated routes retain IP limits', a
       (await f.request('/api/public/chat', { cookie: `ll_visitor=${another.raw}` })).status,
       429
     );
-    f.store.run(
-      'INSERT INTO rate_limits(key,count,reset_at) VALUES(?,180,?)',
-      `public:ip:${hash('127.0.0.1')}`,
-      Date.now() + 60000
-    );
+    exhaust(f, `public:ip:${hash('127.0.0.1')}`, 180);
     assert.equal(
       (await f.request('/api/public/chat', { cookie: `ll_visitor=${second.raw}` })).status,
       200

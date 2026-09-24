@@ -4,6 +4,7 @@ import { MockLLM, ResponsesLLM } from './providers/llm.mjs';
 import { MockCalendar, GoogleCalendar } from './providers/calendar.mjs';
 import { MockEmail, ResendEmail } from './providers/email.mjs';
 import { Auth } from './auth.mjs';
+import { RateLimiter } from './limits.mjs';
 import { Leads, Messages, Audit, Actions, Operations, Workspace } from './repos.mjs';
 import { Worker } from './queue.mjs';
 import * as settings from './settings.mjs';
@@ -17,11 +18,13 @@ import { followup } from './followups.mjs';
 // above; each receives `ctx` with the store, repositories, providers, clock and config.
 export class Leadloom {
   constructor(store, c, providers = {}, clock = Date.now) {
+    const limits = new RateLimiter();
     this.ctx = {
       store,
       config: c,
       clock,
-      auth: new Auth(store, c, clock),
+      limits,
+      auth: new Auth(store, c, clock, limits),
       llm: providers.llm || (c.llmProvider === 'mock' ? new MockLLM() : new ResponsesLLM(c)),
       calendar:
         providers.calendar ||
@@ -54,6 +57,9 @@ export class Leadloom {
   }
   get auth() {
     return this.ctx.auth;
+  }
+  get limits() {
+    return this.ctx.limits;
   }
   get llm() {
     return this.ctx.llm;

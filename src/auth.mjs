@@ -10,10 +10,11 @@ import {
   text
 } from './util.mjs';
 export class Auth {
-  constructor(store, c, clock = Date.now) {
+  constructor(store, c, clock = Date.now, limits) {
     this.s = store;
     this.c = c;
     this.clock = clock;
+    this.limits = limits;
   }
   seed() {
     for (const [address, password, name, role] of [
@@ -32,7 +33,7 @@ export class Auth {
     }
   }
   login(body, ip) {
-    this.s.limit(`login:${hash(ip)}`, 10, 15 * 60000, this.clock());
+    this.limits.hit(`login:${hash(ip)}`, 10, 15 * 60000, this.clock());
     const address = email(body.email);
     text(body.password, 1024);
     const user = this.s.get('SELECT * FROM users WHERE email=? AND active=1', address);

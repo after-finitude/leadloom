@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { readFileSync, readdirSync, mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { id, redact, AppError } from './util.mjs';
+import { id, redact } from './util.mjs';
 // Time comes from the service clock so injected clocks stay consistent.
 function requireTime(now) {
   if (!Number.isFinite(now)) throw new TypeError('Pass the service clock time');
@@ -83,23 +83,6 @@ export class Store {
       correlationId,
       now
     );
-  }
-  limit(key, max, windowMs, now) {
-    requireTime(now);
-    this.tx(() => {
-      const row = this.get('SELECT * FROM rate_limits WHERE key=?', key);
-      if (!row || row.reset_at <= now)
-        this.run(
-          'INSERT INTO rate_limits(key,count,reset_at) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET count=1,reset_at=excluded.reset_at',
-          key,
-          now + windowMs
-        );
-      else {
-        if (row.count >= max)
-          throw new AppError('rate_limited', 'Too many requests. Try again later.', 429);
-        this.run('UPDATE rate_limits SET count=count+1 WHERE key=?', key);
-      }
-    });
   }
   close() {
     this.db.close();

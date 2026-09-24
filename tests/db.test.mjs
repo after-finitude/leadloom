@@ -14,11 +14,12 @@ const table = (store, name) =>
 test('a new database applies every migration once', () => {
   const store = new Store();
   try {
-    assert.deepEqual(versions(store), [1, 2]);
+    assert.deepEqual(versions(store), [1, 2, 3]);
     assert.ok(table(store, 'audit_events_lead'));
     assert.equal(table(store, 'runtime_locks'), undefined);
+    assert.equal(table(store, 'rate_limits'), undefined);
     store.migrate();
-    assert.deepEqual(versions(store), [1, 2]);
+    assert.deepEqual(versions(store), [1, 2, 3]);
   } finally {
     store.close();
   }
@@ -40,8 +41,9 @@ test('a database created by the pre-migration schema is upgraded in place', () =
     legacy.close();
     const store = new Store(path);
     try {
-      assert.deepEqual(versions(store), [1, 2]);
+      assert.deepEqual(versions(store), [1, 2, 3]);
       assert.equal(table(store, 'runtime_locks'), undefined);
+      assert.equal(table(store, 'rate_limits'), undefined);
       assert.ok(table(store, 'actions_lead'));
       assert.equal(store.get("SELECT value FROM app_metadata WHERE key='mode'").value, 'demo');
     } finally {

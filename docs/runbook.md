@@ -16,7 +16,7 @@ If the application runs but a booking/email does not complete, check Activity, t
 
 A trusted proxy must append its client's actual address to `X-Forwarded-For`, for example in Nginx: `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`. The application parses the chain from right to left until it reaches the first untrusted address; client-supplied values to its left are ignored. List only proxies trusted to construct this header.
 
-Chat requests from a verified visitor session are limited per lead: multiple chats behind one IP do not share a polling limit. Staff login, the form, link exchange, and access recovery retain separate IP or email limits.
+Chat requests from a verified visitor session are limited per lead: multiple chats behind one IP do not share a polling limit. Staff login, the form, link exchange, and access recovery retain separate IP or email limits. Limits are counted in the server process: a restart, including each deployment, starts every window afresh.
 
 ## Uncertain results
 

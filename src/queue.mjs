@@ -40,7 +40,6 @@ export class Worker {
       store.run('DELETE FROM sessions WHERE expires_at<=?', now);
       store.run('DELETE FROM access_tokens WHERE expires_at<=?', now);
       store.run('DELETE FROM slot_offers WHERE expires_at<=?', now);
-      store.run('DELETE FROM rate_limits WHERE reset_at<=?', now);
     });
   }
   recoverLeases() {

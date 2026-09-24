@@ -163,5 +163,5 @@ Check: `npm run check` and `tests/browser_e2e.py`.
 
 ### Phase 7. Infrastructure (optional)
 
-25. Deploy as a dedicated user instead of `root`.
+25. Deploy as a dedicated user instead of `root`. _Not done:_ the Actions key in `/root/.ssh/authorized_keys` is already limited by `restrict,command=` to the deploy script, which needs root for Docker and the root-owned app directory. A separate user would need sudo for the same script, so the gain is small; it requires VPS changes before `deploy.yml` can change.
 26. Move public rate limiting into process memory, or run it without `BEGIN IMMEDIATE` if the threat model allows.

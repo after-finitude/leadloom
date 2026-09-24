@@ -510,7 +510,7 @@ export function createHttp(service) {
         ip,
         status: route.status || 200,
         setSession,
-        limit: (key, max, windowMs) => service.s.limit(key, max, windowMs, service.clock())
+        limit: (key, max, windowMs) => service.limits.hit(key, max, windowMs, service.clock())
       };
       let visitor = null;
       if (path.startsWith('/api/public/')) {

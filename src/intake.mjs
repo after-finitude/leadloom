@@ -301,7 +301,7 @@ export function resolveIntake(ctx, eventId, contactId, actor) {
 export function requestAccess(ctx, address) {
   const normalized = email(address);
   ensure(normalized, 'invalid_email');
-  ctx.store.limit(`access:${hash(normalized)}`, 3, 3600000, ctx.clock());
+  ctx.limits.hit(`access:${hash(normalized)}`, 3, 3600000, ctx.clock());
   ctx.store.tx(() => {
     const contact = ctx.store.get(
       'SELECT * FROM contacts WHERE email=? AND verified_email=1 AND opt_out=0',
