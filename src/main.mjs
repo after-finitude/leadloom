@@ -24,7 +24,7 @@ server.listen(c.port, c.host, () => {
       'Local demo credentials are documented in README.md. Mock email appears in the staff Outbox.'
     );
 });
-server.on('error', (error) => {
+server.on('error', (/** @type {NodeJS.ErrnoException} */ error) => {
   console.error(`Could not listen: ${error.code || 'server_error'}`);
   process.exitCode = 1;
 });

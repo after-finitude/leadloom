@@ -39,6 +39,7 @@ export function cancelPending(ctx, leadId, reason) {
   ctx.leads.update(leadId, { waiting_at: null, followup_run: null, followup_type: null });
 }
 
+/** @returns {Promise<import('./types.ts').Availability>} */
 export async function availability(ctx, leadId, reschedule = false) {
   const l = ctx.leads.get(leadId),
     s = ctx.workspace.settings();

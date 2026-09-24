@@ -134,16 +134,16 @@ export async function followup(ctx, action) {
     );
     return;
   }
-  let op;
-  ctx.store.tx(() => {
+  const op = ctx.store.tx(() => {
     const key = `followup:${action.id}`;
-    op =
+    const op =
       ctx.operations.byKey(key) ||
       ctx.operations.create('followup', l.id, key, {
         email: emailPayload(ctx, l.id, d.subject, d.text),
         sequence: d.sequence
       });
     ctx.store.run('UPDATE actions SET operation_id=? WHERE id=?', op.id, action.id);
+    return op;
   });
   await executeOperation(ctx, op.id);
 }

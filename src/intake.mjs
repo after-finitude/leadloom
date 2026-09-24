@@ -54,7 +54,8 @@ export function intake(
       source: sourceKey,
       now
     };
-    let v, validationError;
+    let v = null,
+      validationError = null;
     try {
       v = validate(payload, sourceKey);
     } catch (error) {
@@ -73,7 +74,7 @@ export function intake(
         event.correlation,
         now
       );
-    if (validationError) {
+    if (!v) {
       audit(ctx, event, null, 'intake_rejected', {
         eventId: event.id,
         reason: validationError.code

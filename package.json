@@ -15,7 +15,7 @@
     "build": "npm run typecheck && node scripts/build.mjs",
     "test": "node --test --test-concurrency=1 tests/*.test.mjs",
     "eval": "node evaluation/run.mjs",
-    "typecheck": "tsc --noEmit && svelte-check --tsconfig ./web/tsconfig.json --fail-on-warnings",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.js.json && svelte-check --tsconfig ./web/tsconfig.json --fail-on-warnings",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "npm run lint -- --fix",
     "format": "prettier . --write",

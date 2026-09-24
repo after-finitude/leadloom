@@ -114,6 +114,7 @@ export class MockLLM {
   async extract(input) {
     const { body, settings, currentField } = input,
       lower = body.toLowerCase();
+    /** @type {import('../types.ts').Extraction} */
     const result = { updates: [], unknown: [], handoff: null, faq_id: null };
     const add = (field, value, evidence = body) => result.updates.push({ field, value, evidence });
     if (/\b(?:human|person|manager|call me|phone me|real agent)\b/i.test(body))
@@ -306,6 +307,7 @@ export class ResponsesLLM {
         });
         if (!response.ok)
           throw new AppError(`llm_http_${response.status}`, 'LLM request failed', 502);
+        /** @type {any} */
         const data = await response.json();
         if (data.status === 'incomplete')
           throw new AppError('llm_incomplete', 'LLM response was incomplete', 502);

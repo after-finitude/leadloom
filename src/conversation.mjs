@@ -388,6 +388,7 @@ function clearField(fields, field) {
   } else fields[field] = null;
 }
 
+/** @returns {Omit<import('./types.ts').PublicChat, 'csrf'>} */
 export function publicState(ctx, leadId) {
   const l = ctx.leads.get(leadId),
     s = ctx.workspace.settings(),

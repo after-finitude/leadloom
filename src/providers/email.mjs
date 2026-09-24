@@ -69,6 +69,7 @@ export class ResendEmail {
         'Email provider rejected the request',
         502
       );
+    /** @type {any} */
     const data = await response.json();
     ensure(typeof data.id === 'string', 'email_unknown', 'Email response had no identifier', 502);
     return { id: data.id };
@@ -84,6 +85,7 @@ export class ResendEmail {
     );
     if (r.status === 404) return null;
     if (!r.ok) throw new AppError('email_lookup_failed', 'Could not inspect email operation', 502);
+    /** @type {any} */
     const d = await r.json();
     return { id: d.id };
   }

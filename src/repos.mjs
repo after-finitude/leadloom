@@ -129,6 +129,12 @@ export class Audit {
     this.s = store;
     this.clock = clock;
   }
+  /**
+   * @param {string | null} leadId
+   * @param {string} action
+   * @param {object} [details]
+   * @param {{ actor?: string, correlation?: string, at?: number }} [options]
+   */
   add(leadId, action, details = {}, { actor = 'system', correlation, at = this.clock() } = {}) {
     this.s.audit(leadId, action, details, actor, correlation, at);
   }
@@ -216,10 +222,12 @@ export class Workspace {
   constructor(store) {
     this.s = store;
   }
+  /** @returns {import('./types.ts').CompanySettings & { revision: number }} */
   settings() {
     const row = this.s.get('SELECT * FROM settings WHERE id=1');
     return { ...parse(row.data), revision: row.revision };
   }
+  /** @returns {import('./types.ts').Rule} */
   rules(ruleId) {
     const row = ruleId
       ? this.s.get('SELECT * FROM rule_versions WHERE id=?', ruleId)
@@ -227,6 +235,7 @@ export class Workspace {
     ensure(row, 'rules_not_found', 'Rules version not found', 404);
     return { ...row, data: parse(row.data) };
   }
+  /** @returns {import('./types.ts').Rule[]} */
   ruleVersions() {
     return this.s
       .all('SELECT * FROM rule_versions ORDER BY version DESC')

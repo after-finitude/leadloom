@@ -46,9 +46,12 @@ export class Store {
   run(sql, ...params) {
     return this.prepare(sql).run(...params);
   }
+  // Rows are untyped: each caller knows the columns it selected.
+  /** @returns {any} */
   get(sql, ...params) {
     return this.prepare(sql).get(...params);
   }
+  /** @returns {any[]} */
   all(sql, ...params) {
     return this.prepare(sql).all(...params);
   }

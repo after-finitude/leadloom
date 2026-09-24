@@ -5,6 +5,7 @@ import { AppError, ensure, allowKeys, sameSecret, hash } from './util.mjs';
 import { VERSION } from './config.mjs';
 
 function cookies(req) {
+  /** @type {Record<string, string>} */
   const out = {};
   for (const part of (req.headers.cookie || '').split(';')) {
     const at = part.indexOf('=');
@@ -62,15 +63,40 @@ async function readBody(req) {
     throw new AppError('invalid_json', 'Malformed JSON request');
   }
 }
+/** @returns {import('./types.ts').Providers} */
 function providersInfo(app) {
   return { llm: app.llm.name, calendar: app.calendar.name, email: app.email.name };
 }
+
+/**
+ * @typedef {object} RouteRequest
+ * @property {import('./service.mjs').Leadloom} app
+ * @property {Record<string, string>} params
+ * @property {Record<string, string>} query
+ * @property {any} body
+ * @property {Record<string, string>} cookie
+ * @property {string} ip
+ * @property {number} status
+ * @property {(kind: 'staff' | 'visitor', raw: string, remove?: boolean) => void} setSession
+ * @property {(key: string, max: number, windowMs: number) => void} limit
+ * @property {any} [visitor]
+ * @property {any} [session]
+ * @property {any} [user]
+ */
+/**
+ * @typedef {object} RouteOptions
+ * @property {'public' | 'webhook' | 'visitor' | 'staff' | 'admin'} auth
+ * @property {string[]} [keys]
+ * @property {number} [status]
+ * @property {(r: RouteRequest) => unknown} handler
+ */
 
 // [method, path, options]. `:name` matches one path segment, `:name(a|b)` one of the listed
 // values. `auth` is public, webhook, visitor, staff or admin; the dispatcher checks Origin
 // and CSRF for mutations and rejects body properties outside `keys`. Handlers return the
 // JSON response and may set `r.status`.
-const routes = [
+/** @type {[string, string, RouteOptions][]} */
+const table = [
   [
     'GET',
     '/api/health',
@@ -344,7 +370,8 @@ const routes = [
     }
   ],
   ['GET', '/api/outbox', { auth: 'admin', handler: ({ app }) => app.demoOutbox() }]
-].map(([method, path, options]) => ({
+];
+const routes = table.map(([method, path, options]) => ({
   method,
   pattern: new RegExp(
     `^${path.replace(/:(\w+)(?:\(([^)]*)\))?/g, (_, name, values) => `(?<${name}>${values || '[\\w-]+'})`)}$`
@@ -473,6 +500,7 @@ export function createHttp(service) {
           'Open the app at its configured APP_ORIGIN',
           403
         );
+      /** @type {RouteRequest} */
       const r = {
         app: service,
         params,

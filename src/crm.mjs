@@ -1,3 +1,4 @@
+/** @import { Contact, Lead, LeadFields, LeadList, OutboxMessage, Runs, User } from './types.ts' */
 import { id, parse, decrypt, text, ensure, allowKeys } from './util.mjs';
 import { FIELDS, normalizeField, validateBudget, mayAutomate } from './rules.mts';
 import { STAGES, CLOSED_STAGES, NO_AUTOMATION_STAGES, sqlList } from './domain.mts';
@@ -6,6 +7,7 @@ import { score } from './qualification.mjs';
 import { remindIfBookable } from './followups.mjs';
 import { cancelPending } from './operations.mjs';
 
+/** @returns {LeadList} */
 export function list(ctx, options = {}) {
   allowKeys(options, ['q', 'filter', 'page', 'pageSize']);
   const q = options.q ?? '',
@@ -62,16 +64,19 @@ export function list(ctx, options = {}) {
   return { items, total, page, pageSize, stats };
 }
 
+/** @returns {User[]} */
 export function users(ctx) {
   return ctx.store.all('SELECT id,name,email,role FROM users WHERE active=1');
 }
 
+/** @returns {Contact[]} */
 export function contacts(ctx) {
   return ctx.store.all(
     'SELECT id,name,email,phone FROM contacts ORDER BY created_at DESC LIMIT 300'
   );
 }
 
+/** @returns {Lead} */
 export function profile(ctx, leadId) {
   const l = ctx.leads.get(leadId),
     rules = ctx.workspace.rules(l.rule_id);
@@ -202,7 +207,7 @@ export function editFields(ctx, leadId, body, actor) {
       fields = { ...l.fields },
       meta = { ...l.meta };
     for (const [field, value] of Object.entries(body.fields)) {
-      const v = normalizeField(field, value);
+      const v = normalizeField(/** @type {keyof LeadFields} */ (field), value);
       ensure(
         field !== 'email',
         'contact_change_requires_verification',
@@ -271,6 +276,7 @@ export function addNote(ctx, leadId, body, actor) {
   return { id: nid };
 }
 
+/** @returns {Runs} */
 export function runs(ctx) {
   return {
     actions: ctx.store.all(
@@ -285,6 +291,7 @@ export function runs(ctx) {
   };
 }
 
+/** @returns {OutboxMessage[]} */
 export function demoOutbox(ctx) {
   ensure(
     ctx.config.mode === 'demo',

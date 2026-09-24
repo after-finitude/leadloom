@@ -88,6 +88,7 @@ export class GoogleCalendar {
       })
     });
     if (!r.ok) throw new AppError('calendar_auth', 'Google OAuth refresh failed', 502);
+    /** @type {any} */
     const data = await r.json();
     ensure(typeof data.access_token === 'string', 'calendar_auth');
     this.cached = {
@@ -96,6 +97,7 @@ export class GoogleCalendar {
     };
     return data.access_token;
   }
+  /** @param {string} path @param {string} [method] @param {object} [body] @returns {Promise<any>} */
   async request(path, method = 'GET', body = undefined, gate = () => {}) {
     const auth = await this.accessToken();
     gate();
