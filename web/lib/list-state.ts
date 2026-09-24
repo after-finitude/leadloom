@@ -1,3 +1,5 @@
+import { LIST_FILTERS, type ListFilter } from '../../src/domain.mts';
+
 export function readListState(query: string) {
   const params = new URLSearchParams(query);
   const page = Number(params.get('page') || 1);
@@ -5,7 +7,7 @@ export function readListState(query: string) {
   const lead = params.get('lead') || '';
   return {
     search: (params.get('q') || '').slice(0, 200),
-    filter: ['all', 'attention', 'ai', 'human', 'booked'].includes(filter) ? filter : 'all',
+    filter: (LIST_FILTERS as readonly string[]).includes(filter) ? (filter as ListFilter) : 'all',
     page: Number.isSafeInteger(page) && page > 0 ? page : 1,
     leadId: /^[\w-]+$/.test(lead) ? lead : ''
   };

@@ -4,6 +4,7 @@
   import { api, post, pendingKey, clearPending, ApiError, errorMessage } from '../lib/api.ts';
   import { ui, submit, run, refresh, notify } from '../lib/workspace.svelte.ts';
   import { value } from '../lib/format.ts';
+  import { STAGES } from '../../src/domain.mts';
   import Field from './Field.svelte';
   import Icon from './Icon.svelte';
   let { modal }: { modal: Modal } = $props();
@@ -250,9 +251,7 @@
             >{/each}
         {:else if modal.kind === 'stage'}<div class="field">
             <label for="stage">Stage</label><select id="stage" name="stage" value={modal.lead.stage}
-              >{#each ['New', 'Contacted', 'Qualified', 'Booked', 'Proposal', 'Won', 'Lost'] as stage (stage)}<option
-                  >{stage}</option
-                >{/each}</select
+              >{#each STAGES as stage (stage)}<option>{stage}</option>{/each}</select
             >
           </div>
           <div class="field">

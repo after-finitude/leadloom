@@ -33,6 +33,13 @@ import { MockEmail, ResendEmail } from './providers/email.mjs';
 import { Auth } from './auth.mjs';
 import * as operations from './operations.mjs';
 import * as followups from './followups.mjs';
+import {
+  STAGES,
+  CLOSED_STAGES,
+  NO_AUTOMATION_STAGES,
+  BOOKABLE_CATEGORIES,
+  sqlList
+} from './domain.mts';
 
 const LEAD_COLUMNS = new Set([
   'stage',
@@ -73,10 +80,10 @@ export class Leadloom {
     this.llm = providers.llm || (c.llmProvider === 'mock' ? new MockLLM() : new ResponsesLLM(c));
     this.calendar =
       providers.calendar ||
-      (c.calendarProvider === 'google' ? new GoogleCalendar(c) : new MockCalendar(store));
+      (c.calendarProvider === 'google' ? new GoogleCalendar(c) : new MockCalendar(store, clock));
     this.email =
       providers.email ||
-      (c.emailProvider === 'resend' ? new ResendEmail(c) : new MockEmail(store, c));
+      (c.emailProvider === 'resend' ? new ResendEmail(c) : new MockEmail(store, c, clock));
   }
   init() {
     this.s.tx(() => {
@@ -143,7 +150,7 @@ export class Leadloom {
       )
         ensure(
           !this.s.get(
-            "SELECT contact_id FROM leads WHERE stage NOT IN ('Won','Lost') GROUP BY contact_id HAVING COUNT(*)>1 LIMIT 1"
+            `SELECT contact_id FROM leads WHERE stage NOT IN (${sqlList(CLOSED_STAGES)}) GROUP BY contact_id HAVING COUNT(*)>1 LIMIT 1`
           ),
           'active_deal_conflict',
           'Close duplicate active deals before changing policy',
@@ -539,7 +546,7 @@ export class Leadloom {
       }
       // Never overwrite the trusted contact channels based on public deduplication.
       let active = this.s.all(
-        "SELECT id,service_key FROM leads WHERE contact_id=? AND stage NOT IN ('Won','Lost') ORDER BY created_at DESC",
+        `SELECT id,service_key FROM leads WHERE contact_id=? AND stage NOT IN (${sqlList(CLOSED_STAGES)}) ORDER BY created_at DESC`,
         contact.id
       );
       if (this.settings().deduplication === 'one_active_per_contact_service') {
@@ -671,7 +678,7 @@ export class Leadloom {
       );
       this.save(leadId, { current_field: null });
     } else if (l.qualification === 'complete') {
-      if (['Hot', 'Warm'].includes(l.category) && !l.email) {
+      if (BOOKABLE_CATEGORIES.includes(l.category) && !l.email) {
         question = {
           field: 'email',
           text: 'What email address should we use for your consultation details?'
@@ -681,7 +688,7 @@ export class Leadloom {
           leadId,
           'AI',
           `${prefix}${
-            ['Hot', 'Warm'].includes(l.category)
+            BOOKABLE_CATEGORIES.includes(l.category)
               ? 'Thanks — I have the project details. Use “Choose a consultation time” below to see current availability.'
               : 'Thank you — your project details are saved. Our team can review the next steps with you.'
           }`
@@ -851,7 +858,7 @@ export class Leadloom {
         fields.service_type &&
         this.settings().deduplication === 'one_active_per_contact_service' &&
         this.s.get(
-          "SELECT id FROM leads WHERE contact_id=? AND service_key=? AND id<>? AND stage NOT IN ('Won','Lost')",
+          `SELECT id FROM leads WHERE contact_id=? AND service_key=? AND id<>? AND stage NOT IN (${sqlList(CLOSED_STAGES)})`,
           latest.contact_id,
           fields.service_type,
           leadId
@@ -974,7 +981,7 @@ export class Leadloom {
     const filters = {
       all: '1',
       attention: "l.review_reason IS NOT NULL AND l.review_reason<>'' AND c.opt_out=0",
-      ai: "l.owner='AI' AND l.paused=0 AND c.opt_out=0 AND (l.review_reason IS NULL OR l.review_reason='') AND l.stage NOT IN ('Booked','Proposal','Won','Lost')",
+      ai: `l.owner='AI' AND l.paused=0 AND c.opt_out=0 AND (l.review_reason IS NULL OR l.review_reason='') AND l.stage NOT IN (${sqlList(['Booked', ...NO_AUTOMATION_STAGES])})`,
       human: "l.owner='HUMAN'",
       booked: "l.stage='Booked'",
       waiting: 'l.waiting_at IS NOT NULL'
@@ -989,7 +996,7 @@ export class Leadloom {
     const total = this.s.get(`SELECT count(*) AS n ${from} ${where}`, q.trim()).n;
     const page = Math.min(requestedPage, Math.max(1, Math.ceil(total / pageSize)));
     const stats = this.s.get(`SELECT count(*) AS total,
-      coalesce(sum(l.stage NOT IN ('Won','Lost')),0) AS open,
+      coalesce(sum(l.stage NOT IN (${sqlList(CLOSED_STAGES)})),0) AS open,
       coalesce(sum(${filters.ai}),0) AS ai,
       coalesce(sum(${filters.attention}),0) AS attention,
       coalesce(sum(${filters.booked}),0) AS booked ${from}`);
@@ -1071,12 +1078,7 @@ export class Leadloom {
         for (const lead of this.s.all('SELECT id FROM leads WHERE contact_id=?', l.contact_id))
           this.bump(lead.id);
       } else if (command === 'stage') {
-        ensure(
-          ['New', 'Contacted', 'Qualified', 'Booked', 'Proposal', 'Won', 'Lost'].includes(
-            body.stage
-          ),
-          'invalid_stage'
-        );
+        ensure(STAGES.includes(body.stage), 'invalid_stage');
         if (body.stage === 'Lost') text(body.reason, 1000);
         if (body.stage === 'Booked')
           ensure(
@@ -1191,7 +1193,7 @@ export class Leadloom {
       if (fields.service_type && this.settings().deduplication === 'one_active_per_contact_service')
         ensure(
           !this.s.get(
-            "SELECT id FROM leads WHERE contact_id=? AND service_key=? AND id<>? AND stage NOT IN ('Won','Lost')",
+            `SELECT id FROM leads WHERE contact_id=? AND service_key=? AND id<>? AND stage NOT IN (${sqlList(CLOSED_STAGES)})`,
             l.contact_id,
             fields.service_type,
             leadId
@@ -1387,7 +1389,7 @@ export class Leadloom {
       );
       if (!contact) return;
       const lead = this.s.get(
-        "SELECT id FROM leads WHERE contact_id=? AND stage NOT IN ('Won','Lost') ORDER BY updated_at DESC LIMIT 1",
+        `SELECT id FROM leads WHERE contact_id=? AND stage NOT IN (${sqlList(CLOSED_STAGES)}) ORDER BY updated_at DESC LIMIT 1`,
         contact.id
       );
       if (lead) this.invite(lead.id, `access:${lead.id}:${id()}`, false);

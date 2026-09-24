@@ -55,8 +55,8 @@ export interface ScoringRules {
   warm: number;
 }
 
-export type LeadCategory = 'Hot' | 'Warm' | 'Nurture' | 'Unqualified';
-export type LeadStage = 'New' | 'Contacted' | 'Qualified' | 'Booked' | 'Proposal' | 'Won' | 'Lost';
+import type { LeadCategory, LeadStage } from './domain.mts';
+export type { LeadCategory, LeadStage };
 
 export interface LeadEligibility {
   fields: LeadFields;

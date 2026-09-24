@@ -1,8 +1,7 @@
 import { id, hash, stable, parse } from './util.mjs';
 import { mayAutomate, mayBook } from './rules.mts';
 import { working, nextWorking } from './time.mts';
-
-const CLOSED = ['Proposal', 'Won', 'Lost'];
+import { NO_AUTOMATION_STAGES } from './domain.mts';
 
 export function beginWait(app, leadId, type) {
   const l = app.lead(leadId);
@@ -67,7 +66,7 @@ export async function followup(app, action) {
     l.waiting_at !== d.waitingAt ||
     l.last_lead_at !== d.lastLeadAt ||
     l.stage === 'Booked' ||
-    CLOSED.includes(l.stage) ||
+    NO_AUTOMATION_STAGES.includes(l.stage) ||
     !!app.s.get(
       "SELECT id FROM appointments WHERE lead_id=? AND status IN ('pending','confirmed','unknown')",
       l.id

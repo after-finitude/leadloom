@@ -3,6 +3,10 @@ import { readFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { id, redact, AppError } from './util.mjs';
+// Time comes from the service clock so injected clocks stay consistent.
+function requireTime(now) {
+  if (!Number.isFinite(now)) throw new TypeError('Pass the service clock time');
+}
 export class Store {
   constructor(path = ':memory:') {
     if (path !== ':memory:') mkdirSync(dirname(resolve(path)), { recursive: true, mode: 0o700 });
@@ -36,7 +40,8 @@ export class Store {
       this.depth--;
     }
   }
-  audit(leadId, action, details = {}, actor = 'system', correlationId = id(), now = Date.now()) {
+  audit(leadId, action, details = {}, actor = 'system', correlationId = id(), now) {
+    requireTime(now);
     this.run(
       'INSERT INTO audit_events(id,lead_id,actor,action,details,correlation_id,created_at) VALUES(?,?,?,?,?,?,?)',
       id(),
@@ -48,7 +53,8 @@ export class Store {
       now
     );
   }
-  limit(key, max, windowMs, now = Date.now()) {
+  limit(key, max, windowMs, now) {
+    requireTime(now);
     this.tx(() => {
       const row = this.get('SELECT * FROM rate_limits WHERE key=?', key);
       if (!row || row.reset_at <= now)

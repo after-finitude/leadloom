@@ -4,6 +4,7 @@ import { email, phone, isStop, id, encrypt, decrypt } from '../src/util.mjs';
 import { scoreLead, validateRules, validateSettings, mayReschedule } from '../src/rules.mts';
 import { DEFAULT_SETTINGS, newRules } from '../src/defaults.mts';
 import { availableSlots, working, nextWorking, overlaps, localParts } from '../src/time.mts';
+import { LIST_FILTERS } from '../src/domain.mts';
 import { fixture, HOT } from './helpers.mjs';
 const rules = newRules(DEFAULT_SETTINGS),
   hot = {
@@ -429,4 +430,23 @@ test('staff reschedule needs a fitting Hot or Warm lead, not AI ownership', () =
     mayReschedule({ ...booked, fields: { ...hot, service_type: 'pools' } }, DEFAULT_SETTINGS),
     false
   );
+});
+test('store audit and rate limits require the service clock', () => {
+  const f = fixture();
+  try {
+    assert.throws(() => f.store.audit(null, 'no_clock'), TypeError);
+    assert.throws(() => f.store.limit('no_clock', 1, 1000), TypeError);
+    f.store.audit(null, 'with_clock', {}, 'system', undefined, f.clock());
+    f.store.limit('with_clock', 1, 1000, f.clock());
+  } finally {
+    f.close();
+  }
+});
+test('every shared list filter is accepted by the lead list', () => {
+  const f = fixture();
+  try {
+    for (const filter of LIST_FILTERS) assert.equal(f.app.list({ filter }).total, 0);
+  } finally {
+    f.close();
+  }
 });

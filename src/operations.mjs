@@ -2,6 +2,7 @@ import { id, hash, stable, encrypt, decrypt, text, ensure } from './util.mjs';
 import { mayAutomate, mayBook, maySendAccess, mayReschedule } from './rules.mts';
 import { availableSlots, working, overlaps, timeLabel } from './time.mts';
 import { eventId } from './providers/calendar.mjs';
+import { BOOKABLE_CATEGORIES } from './domain.mts';
 
 export function operation(app, kind, leadId, key, payload) {
   const old = app.s.get('SELECT * FROM operations WHERE op_key=?', key),
@@ -352,7 +353,7 @@ export function finishOperation(app, op, result) {
     const l = app.lead(op.lead_id);
     app.bump(op.lead_id, {
       stage:
-        l.qualification === 'complete' && ['Hot', 'Warm'].includes(l.category)
+        l.qualification === 'complete' && BOOKABLE_CATEGORIES.includes(l.category)
           ? 'Qualified'
           : 'Contacted',
       followup_suppressed: 1

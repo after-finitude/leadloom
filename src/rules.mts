@@ -7,6 +7,7 @@ import type {
   ScoreResult,
   ScoringRules
 } from './types.ts';
+import { BOOKABLE_CATEGORIES, CLOSED_STAGES, NO_AUTOMATION_STAGES } from './domain.mts';
 
 export const FIELDS: (keyof LeadFields)[] = [
   'service_type',
@@ -160,18 +161,17 @@ export function mayAutomate(
     lead.owner === 'AI' &&
     !lead.paused &&
     !lead.review_reason &&
-    !['Proposal', 'Won', 'Lost'].includes(lead.stage)
+    !NO_AUTOMATION_STAGES.includes(lead.stage)
   );
 }
 export const maySendAccess = (
   lead: Pick<LeadEligibility, 'email' | 'verified_email' | 'opt_out' | 'stage'>
-) =>
-  !!lead.email && !!lead.verified_email && !lead.opt_out && !['Won', 'Lost'].includes(lead.stage);
+) => !!lead.email && !!lead.verified_email && !lead.opt_out && !CLOSED_STAGES.includes(lead.stage);
 export function mayBook(lead: LeadEligibility, settings: CompanySettings) {
   return (
     mayAutomate(lead) &&
     lead.qualification === 'complete' &&
-    ['Hot', 'Warm'].includes(lead.category) &&
+    BOOKABLE_CATEGORIES.includes(lead.category) &&
     !!lead.email &&
     lead.stage !== 'Booked' &&
     matches(settings.services, lead.fields.service_type) === true &&
@@ -185,7 +185,7 @@ export function mayReschedule(
   settings: CompanySettings
 ) {
   return (
-    ['Hot', 'Warm'].includes(lead.category) &&
+    BOOKABLE_CATEGORIES.includes(lead.category) &&
     matches(settings.services, lead.fields.service_type) === true &&
     matches(settings.areas, lead.fields.location) === true
   );

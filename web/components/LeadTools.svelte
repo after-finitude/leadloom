@@ -1,15 +1,16 @@
 <script lang="ts">
   import { ui, run, loadLeads, search, refresh } from '../lib/workspace.svelte.ts';
   import Icon from './Icon.svelte';
+  import type { ListFilter } from '../../src/domain.mts';
   let { compact = false }: { compact?: boolean } = $props();
-  const filters = [
+  const filters: [ListFilter, string][] = [
     ['all', 'All'],
     ['attention', 'Needs attention'],
     ['ai', 'AI active'],
     ['human', 'Human'],
     ['booked', 'Booked']
   ];
-  async function filter(key: string) {
+  async function filter(key: ListFilter) {
     await run(async () => {
       ui.filter = key;
       ui.page = 1;
@@ -35,7 +36,7 @@
         aria-label="Filter conversations"
         value={ui.filter}
         disabled={ui.busy}
-        onchange={(event) => filter(event.currentTarget.value)}
+        onchange={(event) => filter(event.currentTarget.value as ListFilter)}
       >
         {#each filters as [key, label] (key)}<option value={key}
             >{label}{key === ui.filter ? ` (${ui.total})` : ''}</option

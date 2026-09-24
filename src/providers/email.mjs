@@ -1,9 +1,10 @@
 import { AppError, ensure, hash, encrypt } from '../util.mjs';
 export class MockEmail {
   name = 'mock';
-  constructor(store, c) {
+  constructor(store, c, clock = Date.now) {
     this.store = store;
     this.c = c;
+    this.clock = clock;
     this.failAfterSend = false;
   }
   async send(payload, key, leadId, gate = () => {}) {
@@ -15,7 +16,7 @@ export class MockEmail {
       key,
       leadId,
       encrypt(payload, this.c.key),
-      Date.now()
+      this.clock()
     );
     if (this.failAfterSend) {
       this.failAfterSend = false;

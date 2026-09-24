@@ -2,8 +2,9 @@ import { hash, AppError, ensure } from '../util.mjs';
 export const eventId = (key) => `ll${hash(key)}`; // Lower-case base32hex-compatible characters.
 export class MockCalendar {
   name = 'mock';
-  constructor(store) {
+  constructor(store, clock = Date.now) {
     this.store = store;
+    this.clock = clock;
     this.failAfterCreate = false;
   }
   async busy(start, end) {
@@ -38,7 +39,7 @@ export class MockCalendar {
       input.leadId,
       input.start,
       input.end,
-      Date.now()
+      this.clock()
     );
     if (this.failAfterCreate) {
       this.failAfterCreate = false;
@@ -49,7 +50,7 @@ export class MockCalendar {
   async cancel(input) {
     this.store.run(
       "UPDATE calendar_events SET status='cancelled',updated_at=? WHERE id=?",
-      Date.now(),
+      this.clock(),
       input.externalId
     );
     return { cancelled: true };
@@ -60,7 +61,7 @@ export class MockCalendar {
       input.start,
       input.end,
       input.key,
-      Date.now(),
+      this.clock(),
       input.externalId
     );
     return this.get(input.externalId);

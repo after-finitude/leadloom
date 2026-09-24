@@ -2,6 +2,7 @@ import { SvelteURLSearchParams } from 'svelte/reactivity';
 import { api, ApiError, security } from './api.ts';
 import { listPath, readListState } from './list-state.ts';
 import type { User, Meta, Lead, LeadSummary, LeadList, PublicChat, Modal } from './types.ts';
+import type { ListFilter } from '../../src/domain.mts';
 export const ui = $state({
   route: location.pathname,
   ready: false,
@@ -14,7 +15,7 @@ export const ui = $state({
   page: 1,
   pageSize: 50,
   search: '',
-  filter: 'all',
+  filter: 'all' as ListFilter,
   leadId: '',
   profile: null as Lead | null,
   stats: { total: 0, open: 0, ai: 0, attention: 0, booked: 0 },
