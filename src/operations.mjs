@@ -1,5 +1,5 @@
 import { id, hash, stable, encrypt, decrypt, text, ensure } from './util.mjs';
-import { mayAutomate, mayBook, maySendAccess } from './rules.mts';
+import { mayAutomate, mayBook, maySendAccess, mayReschedule } from './rules.mts';
 import { availableSlots, working, overlaps, timeLabel } from './time.mts';
 import { eventId } from './providers/calendar.mjs';
 
@@ -191,7 +191,14 @@ export function book(app, leadId, offerId, clientKey) {
     };
     const op = app.operation('booking', leadId, key, payload);
     app.enqueue('operation', leadId, `operation:${key}`, {}, app.clock(), op.id);
-    app.s.audit(leadId, 'booking_requested', { operationId: op.id }, 'visitor');
+    app.s.audit(
+      leadId,
+      'booking_requested',
+      { operationId: op.id },
+      'visitor',
+      undefined,
+      app.clock()
+    );
     return app.operationStatus(op.id);
   });
 }
@@ -237,9 +244,7 @@ export function appointmentAction(app, appointmentId, kind, body, actor) {
       const l = app.lead(a.lead_id),
         s = app.settings();
       ensure(
-        ['Hot', 'Warm'].includes(l.category) &&
-          s.services.includes(l.fields.service_type) &&
-          s.areas.some((x) => x.toLowerCase() === String(l.fields.location).toLowerCase()),
+        mayReschedule(l, s),
         'booking_not_allowed',
         'Resolve qualification before moving this appointment',
         409
@@ -269,7 +274,14 @@ export function appointmentAction(app, appointmentId, kind, body, actor) {
     }
     const op = app.operation(kind, a.lead_id, key, payload);
     app.enqueue('operation', a.lead_id, `operation:${key}`, {}, app.clock(), op.id);
-    app.s.audit(a.lead_id, `${kind}_requested`, { appointmentId }, actor.id);
+    app.s.audit(
+      a.lead_id,
+      `${kind}_requested`,
+      { appointmentId },
+      actor.id,
+      undefined,
+      app.clock()
+    );
     return app.operationStatus(op.id);
   });
 }
@@ -450,7 +462,14 @@ export async function executeOperation(app, operationId) {
         app.clock(),
         op.id
       );
-      app.s.audit(op.lead_id, `${op.kind}_started`, { operationId: op.id });
+      app.s.audit(
+        op.lead_id,
+        `${op.kind}_started`,
+        { operationId: op.id },
+        'system',
+        undefined,
+        app.clock()
+      );
     });
     let result;
     dispatched = true;
@@ -524,7 +543,15 @@ export async function reconcile(app, operationId) {
         op.id
       );
     });
-  else app.s.audit(op.lead_id, 'reconciliation_unresolved', { operationId: op.id });
+  else
+    app.s.audit(
+      op.lead_id,
+      'reconciliation_unresolved',
+      { operationId: op.id },
+      'system',
+      undefined,
+      app.clock()
+    );
   return app.operationStatus(op.id);
 }
 
@@ -571,7 +598,7 @@ export function retry(app, actionId, actor) {
       app.clock(),
       a.id
     );
-    app.s.audit(a.lead_id, 'action_retry', { actionId }, actor.id);
+    app.s.audit(a.lead_id, 'action_retry', { actionId }, actor.id, undefined, app.clock());
     return { queued: true };
   });
 }

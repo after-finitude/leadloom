@@ -69,6 +69,22 @@ test('HTTP form creates an HttpOnly visitor session and a private chat', async (
     await f.stop();
   }
 });
+test('HTTP rate limits use the injected clock', async () => {
+  const f = await webFixture();
+  try {
+    const r = await f.request('/api/public/intake', {
+      method: 'POST',
+      body: { event_key: 'clock-limit', email: 'clock@example.test' }
+    });
+    assert.equal(r.status, 201);
+    assert.deepEqual(
+      f.store.all('SELECT key FROM rate_limits WHERE reset_at>?', f.clock() + 3600000),
+      []
+    );
+  } finally {
+    await f.stop();
+  }
+});
 test('empty enquiry explains the missing contact details on first submission and retry', async () => {
   const f = await webFixture();
   try {

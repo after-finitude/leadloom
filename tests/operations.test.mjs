@@ -462,6 +462,38 @@ test('access recovery keeps email verification and STOP restrictions', async () 
   }
 });
 
+test('audit events use the injected clock', async () => {
+  const f = fixture();
+  try {
+    const { lid } = await booking(f);
+    await f.app.tick();
+    const a = f.store.get('SELECT * FROM appointments WHERE lead_id=?', lid),
+      offers = await f.app.availability(lid, true);
+    f.app.appointmentAction(
+      a.id,
+      'reschedule',
+      { key: 'move', offerId: offers.slots[0].id },
+      f.actor
+    );
+    await f.app.tick();
+    f.app.addNote(lid, 'Clock check', f.actor);
+    const unknown = f.app.operation('invitation', lid, 'clock-unknown', { email: {} });
+    f.store.run("UPDATE operations SET state='unknown' WHERE id=?", unknown.id);
+    await f.app.reconcile(unknown.id);
+    const failing = await f.lead(null);
+    f.app.turn = async () => {
+      throw new Error('boom');
+    };
+    f.app.postMessage(failing, 'Hello', id());
+    await f.app.tick();
+    const action = f.store.get("SELECT id FROM actions WHERE state='failed'");
+    f.app.retry(action.id, f.actor);
+    const late = f.store.all('SELECT action FROM audit_events WHERE created_at>?', f.clock());
+    assert.deepEqual(late, []);
+  } finally {
+    f.close();
+  }
+});
 test('access delivery can retry and reconcile while automation stays paused', async () => {
   const f = fixture();
   try {

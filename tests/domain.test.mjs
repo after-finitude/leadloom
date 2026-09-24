@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { email, phone, isStop, id, encrypt, decrypt } from '../src/util.mjs';
-import { scoreLead, validateRules, validateSettings } from '../src/rules.mts';
+import { scoreLead, validateRules, validateSettings, mayReschedule } from '../src/rules.mts';
 import { DEFAULT_SETTINGS, newRules } from '../src/defaults.mts';
 import { availableSlots, working, nextWorking, overlaps, localParts } from '../src/time.mts';
 import { fixture, HOT } from './helpers.mjs';
@@ -416,4 +416,17 @@ test('chat link is scoped, single-use and separate from unsubscribe', async () =
   } finally {
     f.close();
   }
+});
+test('staff reschedule needs a fitting Hot or Warm lead, not AI ownership', () => {
+  const booked = { category: 'Hot', fields: { ...hot, location: ' demo city a ' } };
+  assert.equal(mayReschedule(booked, DEFAULT_SETTINGS), true);
+  assert.equal(mayReschedule({ ...booked, category: 'Nurture' }, DEFAULT_SETTINGS), false);
+  assert.equal(
+    mayReschedule({ ...booked, fields: { ...hot, location: 'Elsewhere' } }, DEFAULT_SETTINGS),
+    false
+  );
+  assert.equal(
+    mayReschedule({ ...booked, fields: { ...hot, service_type: 'pools' } }, DEFAULT_SETTINGS),
+    false
+  );
 });

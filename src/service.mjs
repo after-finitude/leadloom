@@ -636,7 +636,14 @@ export class Leadloom {
       web: false,
       resolvedContactId: contactId
     });
-    this.s.audit(result.leadId || null, 'intake_resolved', { eventId, contactId }, actor);
+    this.s.audit(
+      result.leadId || null,
+      'intake_resolved',
+      { eventId, contactId },
+      actor,
+      undefined,
+      this.clock()
+    );
     return result;
   }
   firstContact(leadId, channel) {
@@ -1219,7 +1226,7 @@ export class Leadloom {
       body,
       this.clock()
     );
-    this.s.audit(leadId, 'note_added', { noteId: nid }, actor.id);
+    this.s.audit(leadId, 'note_added', { noteId: nid }, actor.id, undefined, this.clock());
     return { id: nid };
   }
   async availability(leadId, reschedule = false) {
@@ -1338,10 +1345,14 @@ export class Leadloom {
             this.clock(),
             action.id
           );
-          this.s.audit(action.lead_id, 'action_failed', {
-            actionId: action.id,
-            code: error.code || 'action_failed'
-          });
+          this.s.audit(
+            action.lead_id,
+            'action_failed',
+            { actionId: action.id, code: error.code || 'action_failed' },
+            'system',
+            undefined,
+            this.clock()
+          );
         }
       }
     } finally {

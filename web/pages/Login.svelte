@@ -64,7 +64,7 @@
   <section class="login-hero">
     <a href="/" class="brand"><span class="brand-mark">L</span>leadloom</a>
     <div class="hero-copy">
-      <p class="eyebrow">{enquiry ? 'Acme Home Improvements' : 'Leadloom workspace'}</p>
+      <p class="eyebrow">{enquiry ? ui.meta?.company : 'Leadloom workspace'}</p>
       <h1>
         {#if enquiry}Your next project<br />starts here.{:else}Every enquiry.<br />A clear next
           step.{/if}

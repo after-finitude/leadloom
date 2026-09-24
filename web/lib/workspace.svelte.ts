@@ -119,8 +119,18 @@ export async function loadLeads() {
     rememberList();
     const id = ui.leadId;
     if (id) {
-      const profile = await api<Lead>('/leads/' + id);
-      if (request === generation && id === ui.leadId) ui.profile = profile;
+      try {
+        const profile = await api<Lead>('/leads/' + id);
+        if (request === generation && id === ui.leadId) ui.profile = profile;
+      } catch (error) {
+        // A deleted or mistyped lead must not hide a list that loaded fine.
+        if (!(error instanceof ApiError && error.status === 404)) throw error;
+        if (request === generation && id === ui.leadId) {
+          ui.leadId = '';
+          ui.profile = null;
+          rememberList();
+        }
+      }
     }
   } finally {
     if (request === generation) ui.loading = false;
@@ -244,8 +254,9 @@ export function start() {
     try {
       await refresh();
       ui.connected = true;
-    } catch {
-      ui.connected = false;
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401 && ui.user) location.assign('/login');
+      else ui.connected = false;
     } finally {
       polling = false;
     }

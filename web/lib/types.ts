@@ -14,7 +14,9 @@ export interface User {
 }
 export interface Meta {
   demo: boolean;
+  company: string;
   services: string[];
+  timezone: string;
   providers: { llm: string; calendar: string; email: string };
 }
 export interface Message {

@@ -199,7 +199,7 @@ export function createHttp(service) {
           'Invalid webhook credentials',
           401
         );
-        service.s.limit(`webhook:${hash(ip)}`, 120, 60000);
+        service.s.limit(`webhook:${hash(ip)}`, 120, 60000, service.clock());
         const result = service.intake(body, { source: body?.source || 'webhook', web: false });
         return json(
           result,
@@ -219,10 +219,11 @@ export function createHttp(service) {
             ? `public:lead:${chatSession.subject_id}`
             : `public:ip:${hash(ip)}`,
           180,
-          60000
+          60000,
+          service.clock()
         );
         if (path === '/api/public/intake' && method === 'POST') {
-          service.s.limit(`intake:${hash(ip)}`, 30, 3600000);
+          service.s.limit(`intake:${hash(ip)}`, 30, 3600000, service.clock());
           const visitor = service.auth.get(cookie.ll_visitor, 'visitor');
           const result = service.intake(body, { web: true, sessionLead: visitor?.subject_id });
           if (result.session) {
@@ -233,7 +234,7 @@ export function createHttp(service) {
         }
         if (path === '/api/public/chat/access' && method === 'POST') {
           allowKeys(body, ['token']);
-          service.s.limit(`exchange:${hash(ip)}`, 20, 60000);
+          service.s.limit(`exchange:${hash(ip)}`, 20, 60000, service.clock());
           const result = service.auth.exchange(body.token);
           setSession('visitor', result.raw);
           return json({ csrf: result.csrf });

@@ -179,6 +179,17 @@ export function mayBook(lead: LeadEligibility, settings: CompanySettings) {
     settings.questions.filter((q) => q.required).every((q) => known(lead.fields, q.field))
   );
 }
+// Staff move an already confirmed appointment, so ownership, pause and the Booked stage do not block it.
+export function mayReschedule(
+  lead: Pick<LeadEligibility, 'category' | 'fields'>,
+  settings: CompanySettings
+) {
+  return (
+    ['Hot', 'Warm'].includes(lead.category) &&
+    matches(settings.services, lead.fields.service_type) === true &&
+    matches(settings.areas, lead.fields.location) === true
+  );
+}
 export function validateSettings(s: CompanySettings): CompanySettings {
   ensure(s && typeof s === 'object' && !Array.isArray(s), 'invalid_settings');
   for (const k of ['company', 'timezone', 'currency', 'brandVoice'] as const)

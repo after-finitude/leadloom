@@ -64,5 +64,12 @@ export async function seedDemo(service) {
       }
     }
   }
-  service.s.audit(null, 'demo_seeded', { count: fixtures.length, synthetic: true });
+  service.s.audit(
+    null,
+    'demo_seeded',
+    { count: fixtures.length, synthetic: true },
+    'system',
+    undefined,
+    service.clock()
+  );
 }

@@ -14,6 +14,9 @@
     tab = $state('company');
   let form = $state<HTMLFormElement>();
   let saveError = $state('');
+  // Unpublished scoring edits survive tab switches until they are published.
+  let scoring = $state<ScoringRules | null>(null);
+  const shownRules = $derived(scoring ?? rules[0]?.data);
   const weights = ['service', 'location', 'budget', 'urgency', 'authority'] as const;
   const sequences = ['qualification_abandoned', 'qualified_not_booked'] as const;
   onMount(() => {
@@ -33,6 +36,12 @@
       active = false;
     };
   });
+  function readScoring(data: FormData): ScoringRules {
+    const next: ScoringRules = JSON.parse(JSON.stringify(rules[0].data));
+    for (const key of weights) next.weights[key] = Number(value(data, key));
+    for (const key of ['threshold', 'hot', 'warm'] as const) next[key] = Number(value(data, key));
+    return next;
+  }
   function draft(data: FormData) {
     if (!settings) return;
     if (tab === 'company') {
@@ -67,6 +76,8 @@
         settings.followup[sequence] = [0, 1, 2].map((i) => Number(value(data, `${sequence}_${i}`)));
       settings.followup.subject = value(data, 'subject');
       settings.followup.text = value(data, 'text');
+    } else if (tab === 'scoring' && rules.length) {
+      scoring = readScoring(data);
     }
   }
   function move(index: number) {
@@ -88,11 +99,8 @@
       async (data) => {
         if (!settings) return;
         if (tab === 'scoring') {
-          const next: ScoringRules = JSON.parse(JSON.stringify(rules[0].data));
-          for (const key of weights) next.weights[key] = Number(value(data, key));
-          for (const key of ['threshold', 'hot', 'warm'] as const)
-            next[key] = Number(value(data, key));
-          await post('/rules', next);
+          await post('/rules', readScoring(data));
+          scoring = null;
           rules = await api<Rule[]>('/rules');
           notify('New rules version published');
         } else {
@@ -288,7 +296,7 @@
                   name="bannedTopics"
                   value={settings.bannedTopics.join('\n')}></textarea>
               </div>
-            {:else if tab === 'scoring' && rules.length}<h2>Explain every score</h2>
+            {:else if tab === 'scoring' && shownRules}<h2>Explain every score</h2>
               <p class="description">
                 Publish a new immutable version. Existing leads keep their current rules until you
                 explicitly recalculate them.
@@ -298,23 +306,18 @@
                     label={`${key[0].toUpperCase() + key.slice(1)} weight`}
                     name={key}
                     type="number"
-                    value={rules[0].data.weights[key]}
+                    value={shownRules.weights[key]}
                   />{/each}<Field
                   label="Demo budget threshold"
                   name="threshold"
                   type="number"
-                  value={rules[0].data.threshold}
+                  value={shownRules.threshold}
                 /><Field
                   label="Hot threshold"
                   name="hot"
                   type="number"
-                  value={rules[0].data.hot}
-                /><Field
-                  label="Warm threshold"
-                  name="warm"
-                  type="number"
-                  value={rules[0].data.warm}
-                />
+                  value={shownRules.hot}
+                /><Field label="Warm threshold" name="warm" type="number" value={shownRules.warm} />
               </div>
             {:else if tab === 'followup'}<h2>Follow up, without overstepping</h2>
               <p class="description">
