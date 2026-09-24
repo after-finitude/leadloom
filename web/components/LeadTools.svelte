@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ui, run, loadLeads, search, refresh } from '../lib/workspace.svelte.ts';
+  import { ui, report, loadLeads, search, refresh } from '../lib/workspace.svelte.ts';
   import Icon from './Icon.svelte';
   import type { ListFilter } from '../../src/domain.mts';
   let { compact = false }: { compact?: boolean } = $props();
@@ -10,12 +10,8 @@
     ['human', 'Human'],
     ['booked', 'Booked']
   ];
-  async function filter(key: ListFilter) {
-    await run(async () => {
-      ui.filter = key;
-      ui.page = 1;
-      await loadLeads();
-    });
+  function filter(key: ListFilter) {
+    loadLeads({ filter: key, page: 1 }).catch(report);
   }
 </script>
 
@@ -35,7 +31,6 @@
       <select
         aria-label="Filter conversations"
         value={ui.filter}
-        disabled={ui.busy}
         onchange={(event) => filter(event.currentTarget.value as ListFilter)}
       >
         {#each filters as [key, label] (key)}<option value={key}
@@ -46,8 +41,8 @@
         class="icon-btn"
         aria-label="Refresh conversations"
         title="Refresh conversations"
-        disabled={ui.busy || ui.loading}
-        onclick={() => run(refresh)}><Icon name="refresh" /></button
+        disabled={ui.loading}
+        onclick={() => refresh().catch(report)}><Icon name="refresh" /></button
       >
     </div>
   {:else}

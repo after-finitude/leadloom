@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { readDraft, writeDraft } from '../web/lib/drafts.ts';
 import { listPath, readListState } from '../web/lib/list-state.ts';
 import { messageDay, sameMessageGroup } from '../web/lib/format.ts';
+import { diffLeadFields } from '../web/lib/lead-fields.ts';
+import { readSettingsTab, readScoring, changed } from '../web/lib/settings-form.ts';
 
 test('drafts survive navigation, isolate users and conversations, and tolerate blocked storage', () => {
   const original = Object.getOwnPropertyDescriptor(globalThis, 'sessionStorage');
@@ -70,4 +72,79 @@ test('message groups break at midnight, author changes, system events and long p
     false
   );
   assert.equal(sameMessageGroup(undefined, message), false);
+});
+
+test('the fields form sends only changed values, typed, with blanks as unknown', () => {
+  const form = (values) => {
+    const data = new FormData();
+    for (const [key, value] of Object.entries(values)) data.set(key, value);
+    return data;
+  };
+  const current = {
+    service_type: 'roofing',
+    location: 'Leeds',
+    budget_min: 5000,
+    budget_max: null,
+    timeline: 3,
+    decision_maker: true
+  };
+  const { fields, unlock } = diffLeadFields(
+    current,
+    form({
+      service_type: 'roofing',
+      location: '',
+      budget_min: '5000',
+      budget_max: '12000',
+      timeline: '3',
+      decision_maker: 'false',
+      preferred_contact: '',
+      unlock_budget_min: 'on'
+    })
+  );
+  assert.deepEqual(fields, { location: null, budget_max: 12000, decision_maker: false });
+  assert.deepEqual(unlock, ['budget_min']);
+});
+
+test('a settings tab reads only its own settings and reports real changes', () => {
+  const saved = {
+    services: ['roofing'],
+    areas: ['Leeds'],
+    questions: [
+      { field: 'service_type', required: true, text: 'What service?' },
+      { field: 'budget', required: false, text: 'Budget?' }
+    ]
+  };
+  const data = new FormData();
+  data.set('question_0', 'What service?');
+  data.set('question_1', 'Your budget?');
+  data.set('required_1', 'on');
+  const draft = readSettingsTab('questions', data, saved);
+  assert.deepEqual(Object.keys(draft), ['questions']);
+  assert.deepEqual(draft.questions[1], { field: 'budget', required: true, text: 'Your budget?' });
+  assert.equal(changed(draft, saved), true);
+  const same = new FormData();
+  same.set('question_0', 'What service?');
+  same.set('question_1', 'Budget?');
+  assert.equal(changed(readSettingsTab('questions', same, saved), saved), false);
+});
+
+test('scoring edits copy the published rules instead of changing them', () => {
+  const base = {
+    weights: { service: 30, location: 20, budget: 20, urgency: 15, authority: 15 },
+    threshold: 10000,
+    hot: 80,
+    warm: 50
+  };
+  const data = new FormData();
+  for (const [key, value] of Object.entries({
+    ...base.weights,
+    threshold: 5000,
+    hot: 85,
+    warm: 50
+  }))
+    data.set(key, String(value));
+  const next = readScoring(data, base);
+  assert.equal(next.threshold, 5000);
+  assert.equal(next.hot, 85);
+  assert.equal(base.threshold, 10000);
 });

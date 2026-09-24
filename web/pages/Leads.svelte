@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ui, navigate } from '../lib/workspace.svelte.ts';
+  import { ui, follow } from '../lib/workspace.svelte.ts';
   import { dateTime } from '../lib/format.ts';
   import Heading from '../components/Heading.svelte';
   import Badge from '../components/Badge.svelte';
@@ -27,8 +27,7 @@
       ><tbody>
         {#each ui.leads as lead (lead.id)}<tr
             ><td
-              ><button class="link table-name" onclick={() => navigate('/leads/' + lead.id)}
-                >{lead.name}</button
+              ><a class="link table-name" href={'/leads/' + lead.id} onclick={follow}>{lead.name}</a
               >
               <div class="table-sub">{lead.email || lead.phone || ''}</div></td
             ><td>{lead.fields.service_type || 'Unknown'}</td><td

@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { ui, navigate, run, refresh, notify } from '../lib/workspace.svelte.ts';
+  import { ui, follow, run, busy, refresh, notify } from '../lib/workspace.svelte.ts';
+  import { tabKeydown } from '../lib/tabs.ts';
   import { api, post } from '../lib/api.ts';
   import type { Appointment, Availability } from '../lib/types.ts';
   import { dateTime } from '../lib/format.ts';
@@ -10,10 +11,17 @@
   import Fields from '../components/Fields.svelte';
   import Score from '../components/Score.svelte';
   import LeadControls from '../components/LeadControls.svelte';
-  let tab = $state('timeline');
+  const tabs = [
+    ['timeline', 'Timeline'],
+    ['data', 'Data'],
+    ['score', 'Score'],
+    ['appointments', 'Meetings']
+  ] as const;
+  type Tab = (typeof tabs)[number][0];
+  let tab = $state<Tab>('timeline');
   let lead = $derived(ui.profile);
   async function move(appointment: Appointment) {
-    await run(async () => {
+    await run('appointment', async () => {
       const data = await api<Availability>(`/appointments/${appointment.id}/availability`);
       ui.modal = { kind: 'reschedule', appointment, ...data };
     });
@@ -22,8 +30,7 @@
 
 {#if lead}
   <Heading title={lead.name} description={`${lead.email || lead.phone || ''} · ${lead.source}`}
-    ><button class="btn" onclick={() => navigate('/')}><Icon name="back" /> Conversations</button
-    ></Heading
+    ><a class="btn" href="/" onclick={follow}><Icon name="back" /> Conversations</a></Heading
   >
   <div class="profile-grid">
     <section class="panel">
@@ -40,102 +47,123 @@
           }}>Change stage</button
         >
       </div>
-      <div class="tabs form-footer">
-        {#each [['timeline', 'Timeline'], ['data', 'Data'], ['score', 'Score'], ['appointments', 'Meetings']] as [key, label] (key)}<button
+      <div
+        class="tabs form-footer"
+        role="tablist"
+        aria-label="Lead sections"
+        tabindex="-1"
+        onkeydown={(event) =>
+          tabKeydown(
+            event,
+            tabs.map(([key]) => key),
+            tab,
+            (key) => (tab = key)
+          )}
+      >
+        {#each tabs as [key, label] (key)}<button
             class="tab"
             class:active={tab === key}
-            aria-pressed={tab === key}
+            role="tab"
+            id={`lead-tab-${key}`}
+            data-tab={key}
+            aria-selected={tab === key}
+            aria-controls="lead-panel"
+            tabindex={tab === key ? 0 : -1}
             onclick={() => {
               tab = key;
             }}>{label}</button
           >{/each}
       </div>
-      {#if tab === 'data'}<Fields {lead} />
-        <div class="form-footer">
-          <button
-            class="btn primary"
-            onclick={() => {
-              if (lead) ui.modal = { kind: 'fields', lead };
-            }}><Icon name="edit" /> Edit fields</button
-          >
-        </div>
-        <hr class="form-divider" />
-        <h3>Field history</h3>
-        {#each lead.revisions as revision (revision.id)}<div class="timeline-item">
-            <span class="timeline-dot"></span>
-            <div>
-              <p>{revision.field} {revision.proposed ? '· Proposed conflict' : ''}</p>
-              <small
-                >{revision.old_value} → {revision.new_value} · {dateTime(revision.created_at)}
-                {revision.locked ? '· Locked' : ''}</small
-              >
-            </div>
-          </div>{:else}<p class="muted small">No field revisions yet.</p>{/each}
-      {:else if tab === 'score'}<Score {lead} />
-        <div class="form-footer">
-          <button
-            class="btn"
-            disabled={ui.busy}
-            onclick={() =>
-              run(async () => {
-                await post(`/leads/${lead?.id}/recalculate`);
-                notify('Recalculated using the latest published rules');
-                await refresh();
-              })}>Recalculate with latest rules</button
-          >
-        </div>
-        <hr class="form-divider" />
-        <h3>Evaluation history</h3>
-        {#each lead.evaluations as evaluation (evaluation.id)}<div class="timeline-item">
-            <span class="timeline-dot"></span>
-            <div>
-              <p>{evaluation.score}/100 · {evaluation.category}</p>
-              <small>{dateTime(evaluation.created_at)}</small>
-            </div>
-          </div>{/each}
-      {:else if tab === 'appointments'}{#each lead.appointments as appointment (appointment.id)}<section
-            class="context-section"
-          >
-            <div class="between">
-              <h3>{dateTime(appointment.start_at, false, appointment.timezone)}</h3>
-              <Badge value={appointment.status} />
-            </div>
-            <p class="muted small">
-              {appointment.timezone} · {ui.meta?.providers.calendar} calendar
-            </p>
-            <p class="mono muted">
-              {appointment.external_id || 'Waiting for calendar confirmation'}
-            </p>
-            {#if appointment.external_url && /^https?:\/\//.test(appointment.external_url)}<a
-                class="link small"
-                href={appointment.external_url}
-                target="_blank"
-                rel="noopener">Open calendar event ↗</a
-              >{/if}{#if appointment.status === 'confirmed'}<div class="form-footer">
-                <button class="btn" disabled={ui.busy} onclick={() => move(appointment)}
-                  >Reschedule</button
-                ><button
-                  class="btn danger"
-                  onclick={() => {
-                    ui.modal = { kind: 'cancel', appointment };
-                  }}>Cancel appointment</button
+      <div role="tabpanel" id="lead-panel" aria-labelledby={`lead-tab-${tab}`}>
+        {#if tab === 'data'}<Fields {lead} />
+          <div class="form-footer">
+            <button
+              class="btn primary"
+              onclick={() => {
+                if (lead) ui.modal = { kind: 'fields', lead };
+              }}><Icon name="edit" /> Edit fields</button
+            >
+          </div>
+          <hr class="form-divider" />
+          <h3>Field history</h3>
+          {#each lead.revisions as revision (revision.id)}<div class="timeline-item">
+              <span class="timeline-dot"></span>
+              <div>
+                <p>{revision.field} {revision.proposed ? '· Proposed conflict' : ''}</p>
+                <small
+                  >{revision.old_value} → {revision.new_value} · {dateTime(revision.created_at)}
+                  {revision.locked ? '· Locked' : ''}</small
                 >
-              </div>{/if}
-          </section>{:else}<Empty
-            title="No appointment yet"
-            description="A qualified visitor can choose a time in their chat."
-          />{/each}
-      {:else}{#each lead.timeline as event (event.id)}<div class="timeline-item">
-            <span class="timeline-dot"></span>
-            <div class="flex">
-              <div class="between">
-                <p>{event.action.replaceAll('_', ' ')}</p>
-                <small>{dateTime(event.created_at)}</small>
               </div>
-              <small class="mono">{event.correlation_id}</small>
-              <pre>{JSON.stringify(event.details, null, 2)}</pre>
-            </div>
-          </div>{/each}{/if}
+            </div>{:else}<p class="muted small">No field revisions yet.</p>{/each}
+        {:else if tab === 'score'}<Score {lead} />
+          <div class="form-footer">
+            <button
+              class="btn"
+              disabled={busy(`lead:${lead.id}`)}
+              onclick={() =>
+                run(`lead:${lead?.id}`, async () => {
+                  await post(`/leads/${lead?.id}/recalculate`);
+                  notify('Recalculated using the latest published rules');
+                  await refresh();
+                })}>Recalculate with latest rules</button
+            >
+          </div>
+          <hr class="form-divider" />
+          <h3>Evaluation history</h3>
+          {#each lead.evaluations as evaluation (evaluation.id)}<div class="timeline-item">
+              <span class="timeline-dot"></span>
+              <div>
+                <p>{evaluation.score}/100 · {evaluation.category}</p>
+                <small>{dateTime(evaluation.created_at)}</small>
+              </div>
+            </div>{/each}
+        {:else if tab === 'appointments'}{#each lead.appointments as appointment (appointment.id)}<section
+              class="context-section"
+            >
+              <div class="between">
+                <h3>{dateTime(appointment.start_at, false, appointment.timezone)}</h3>
+                <Badge value={appointment.status} />
+              </div>
+              <p class="muted small">
+                {appointment.timezone} · {ui.meta?.providers.calendar} calendar
+              </p>
+              <p class="mono muted">
+                {appointment.external_id || 'Waiting for calendar confirmation'}
+              </p>
+              {#if appointment.external_url && /^https?:\/\//.test(appointment.external_url)}<a
+                  class="link small"
+                  href={appointment.external_url}
+                  target="_blank"
+                  rel="noopener">Open calendar event ↗</a
+                >{/if}{#if appointment.status === 'confirmed'}<div class="form-footer">
+                  <button
+                    class="btn"
+                    disabled={busy('appointment')}
+                    onclick={() => move(appointment)}>Reschedule</button
+                  ><button
+                    class="btn danger"
+                    onclick={() => {
+                      ui.modal = { kind: 'cancel', appointment };
+                    }}>Cancel appointment</button
+                  >
+                </div>{/if}
+            </section>{:else}<Empty
+              title="No appointment yet"
+              description="A qualified visitor can choose a time in their chat."
+            />{/each}
+        {:else}{#each lead.timeline as event (event.id)}<div class="timeline-item">
+              <span class="timeline-dot"></span>
+              <div class="flex">
+                <div class="between">
+                  <p>{event.action.replaceAll('_', ' ')}</p>
+                  <small>{dateTime(event.created_at)}</small>
+                </div>
+                <small class="mono">{event.correlation_id}</small>
+                <pre>{JSON.stringify(event.details, null, 2)}</pre>
+              </div>
+            </div>{/each}{/if}
+      </div>
     </section>
     <aside class="stack">
       <section class="panel">

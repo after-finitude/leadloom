@@ -1,5 +1,5 @@
 import { SvelteURLSearchParams } from 'svelte/reactivity';
-import { api, ApiError, security } from './api.ts';
+import { api, ApiError, security, isAbort, errorMessage } from './api.ts';
 import { listPath, readListState } from './list-state.ts';
 import type { User, Meta, Lead, LeadSummary, LeadList, PublicChat, Modal } from './types.ts';
 import type { ListFilter } from '../../src/domain.mts';
@@ -24,21 +24,37 @@ export const ui = $state({
   unsubscribed: false,
   changeCount: 0,
   modal: null as Modal | null,
-  busy: false,
+  // Mutations in progress, by lock name (see run).
+  locks: {} as Record<string, boolean>,
   loading: false,
+  loadingProfile: false,
   connected: true,
   toast: '',
   toastError: false
 });
-let generation = 0;
+type Resource = 'list' | 'profile' | 'chat';
+// A newer request for a resource aborts the older one, so a late response never overwrites it.
+const controllers: Partial<Record<Resource, AbortController>> = {};
 let navigation = 0;
-let publicRequest = 0;
-let searchTimer: ReturnType<typeof setTimeout>;
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
 let toastTimer: ReturnType<typeof setTimeout>;
 const listLocations: Record<string, string> = {};
+const listRoutes = ['/', '/conversations', '/leads'];
+const publicRoutes = ['/enquire', '/login', '/chat', '/unsubscribe'];
 const listRoute = (path: string) => (path === '/conversations' ? '/' : path);
+function begin(resource: Resource) {
+  controllers[resource]?.abort();
+  const controller = new AbortController();
+  controllers[resource] = controller;
+  return controller;
+}
+function abortAll() {
+  for (const controller of Object.values(controllers)) controller?.abort();
+  clearTimeout(searchTimer);
+  searchTimer = undefined;
+}
 export function rememberList(push = false) {
-  if (!['/', '/conversations', '/leads'].includes(ui.route)) return;
+  if (!listRoutes.includes(ui.route)) return;
   const path = listPath(ui.route, ui);
   listLocations[listRoute(ui.route)] = path;
   if (path !== location.pathname + location.search)
@@ -52,30 +68,56 @@ export function notify(message: string, error = false) {
     ui.toast = '';
   }, 6000);
 }
-export async function run(work: () => Promise<void>, onError?: (error: unknown) => void) {
-  // ponytail: serialize UI mutations; use per-form locks if independent concurrent edits are needed.
-  if (ui.busy) return false;
-  ui.busy = true;
+// Staff sessions expire on the server; a 401 on a staff page goes back to sign-in.
+function sessionExpired(error: unknown) {
+  if (!(error instanceof ApiError && error.status === 401) || publicRoutes.includes(ui.route))
+    return false;
+  location.assign('/login');
+  return true;
+}
+export function report(error: unknown) {
+  if (isAbort(error) || sessionExpired(error)) return;
+  notify(errorMessage(error), true);
+}
+export const busy = (lock: string) => !!ui.locks[lock];
+const anyBusy = () => Object.values(ui.locks).some(Boolean);
+// Runs one mutation per lock at a time; other locks stay usable meanwhile.
+export async function run(
+  lock: string,
+  work: () => Promise<void>,
+  onError?: (error: unknown) => void
+) {
+  if (ui.locks[lock]) return false;
+  ui.locks[lock] = true;
   try {
     await work();
     return true;
   } catch (error) {
-    if (onError) onError(error);
-    else notify(error instanceof Error ? error.message : 'Request failed', true);
-    if (error instanceof ApiError && error.status === 401 && ui.user) location.assign('/login');
+    if (onError && !isAbort(error)) {
+      onError(error);
+      sessionExpired(error);
+    } else report(error);
     return false;
   } finally {
-    ui.busy = false;
+    ui.locks[lock] = false;
   }
 }
 export async function submit(
   event: SubmitEvent,
+  lock: string,
   work: (data: FormData) => Promise<void>,
   onError?: (error: unknown) => void
 ) {
   event.preventDefault();
   const data = new FormData(event.currentTarget as HTMLFormElement);
-  return run(() => work(data), onError);
+  return run(lock, () => work(data), onError);
+}
+// Same-page navigation for app links; modified clicks (new tab, download) are left alone.
+export function follow(event: MouseEvent) {
+  if (event.button || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  event.preventDefault();
+  const link = event.currentTarget as HTMLAnchorElement;
+  navigate(link.pathname + link.search);
 }
 export function navigate(path: string) {
   rememberList();
@@ -83,34 +125,39 @@ export function navigate(path: string) {
   void boot();
 }
 export async function refreshPublic() {
-  const request = generation,
-    current = ++publicRequest;
+  const controller = begin('chat');
   try {
-    const chat = await api<PublicChat>('/public/chat');
-    if (request !== generation || current !== publicRequest) return;
+    const chat = await api<PublicChat>('/public/chat', { signal: controller.signal });
+    if (controller.signal.aborted) return;
     ui.chat = chat;
     security.visitor = chat.csrf;
   } catch (error) {
-    if (request !== generation || current !== publicRequest) return;
+    if (controller.signal.aborted) return;
     if (error instanceof ApiError && error.status === 401) ui.chat = null;
     else throw error;
   }
 }
-export async function loadLeads() {
-  const request = ++generation;
-  rememberList();
+// The list state (search, filter, page) changes only when the new list arrives.
+export async function loadLeads(
+  query: { search?: string; filter?: ListFilter; page?: number } = {}
+) {
+  const next = { search: ui.search, filter: ui.filter, page: ui.page, ...query };
+  const controller = begin('list');
   ui.loading = true;
   try {
     const data = await api<LeadList>(
       '/leads?' +
         new SvelteURLSearchParams({
-          q: ui.search,
-          filter: ui.filter,
-          page: String(ui.page),
+          q: next.search,
+          filter: next.filter,
+          page: String(next.page),
           pageSize: String(ui.pageSize)
-        })
+        }),
+      { signal: controller.signal }
     );
-    if (request !== generation) return;
+    if (controller.signal.aborted) return;
+    ui.search = next.search;
+    ui.filter = next.filter;
     ui.leads = data.items;
     ui.total = data.total;
     ui.page = data.page;
@@ -118,76 +165,71 @@ export async function loadLeads() {
     if (!ui.leadId && ui.route !== '/leads' && data.items.length && innerWidth > 700)
       ui.leadId = data.items[0].id;
     rememberList();
-    const id = ui.leadId;
-    if (id) {
-      try {
-        const profile = await api<Lead>('/leads/' + id);
-        if (request === generation && id === ui.leadId) ui.profile = profile;
-      } catch (error) {
-        // A deleted or mistyped lead must not hide a list that loaded fine.
-        if (!(error instanceof ApiError && error.status === 404)) throw error;
-        if (request === generation && id === ui.leadId) {
-          ui.leadId = '';
-          ui.profile = null;
-          rememberList();
-        }
-      }
+  } catch (error) {
+    if (controller.signal.aborted) return;
+    throw error;
+  } finally {
+    if (controllers.list === controller) ui.loading = false;
+  }
+  if (ui.leadId) await loadProfile(ui.leadId);
+}
+// On a list page a deleted or mistyped lead clears the selection instead of hiding the list.
+async function loadProfile(id: string) {
+  const controller = begin('profile');
+  ui.loadingProfile = true;
+  try {
+    const profile = await api<Lead>('/leads/' + id, { signal: controller.signal });
+    if (!controller.signal.aborted && id === ui.leadId) ui.profile = profile;
+  } catch (error) {
+    if (controller.signal.aborted) return;
+    if (!(error instanceof ApiError && error.status === 404 && listRoutes.includes(ui.route)))
+      throw error;
+    if (id === ui.leadId) {
+      ui.leadId = '';
+      ui.profile = null;
+      rememberList();
     }
   } finally {
-    if (request === generation) ui.loading = false;
+    if (controllers.profile === controller) ui.loadingProfile = false;
   }
 }
 export async function selectLead(id: string) {
   if (id === ui.leadId && ui.profile) return;
-  const request = ++generation;
   ui.leadId = id;
   ui.profile = null;
   rememberList(true);
-  if (!id) {
-    ui.loading = false;
-    return;
-  }
-  ui.loading = true;
-  try {
-    const profile = await api<Lead>('/leads/' + id);
-    if (request === generation && id === ui.leadId) ui.profile = profile;
-  } finally {
-    if (request === generation) ui.loading = false;
+  if (id) await loadProfile(id);
+  else {
+    controllers.profile?.abort();
+    ui.loadingProfile = false;
   }
 }
 export function search(text: string) {
-  ui.search = text;
-  ui.page = 1;
-  rememberList();
-  generation++;
+  controllers.list?.abort();
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => {
-    void loadLeads().catch((error) => notify(error.message, true));
+    searchTimer = undefined;
+    loadLeads({ search: text, page: 1 }).catch(report);
   }, 250);
 }
 export async function refresh() {
   if (ui.route === '/chat') return refreshPublic();
-  if (ui.route.startsWith('/leads/')) {
-    const request = ++generation,
-      id = ui.leadId;
-    const profile = await api<Lead>('/leads/' + id);
-    if (request === generation && id === ui.leadId) ui.profile = profile;
-  } else if (ui.route === '/' || ui.route === '/conversations' || ui.route === '/leads')
-    await loadLeads();
+  if (ui.route.startsWith('/leads/')) await loadProfile(ui.leadId);
+  else if (listRoutes.includes(ui.route)) await loadLeads();
 }
 export async function boot() {
-  const request = ++generation,
-    visit = ++navigation;
-  clearTimeout(searchTimer);
+  const visit = ++navigation;
+  abortAll();
   Object.assign(listLocations, history.state?.lists || {});
   ui.route = location.pathname;
   ui.error = '';
-  const publicRoute = ['/enquire', '/login', '/chat', '/unsubscribe'].includes(ui.route);
+  const publicRoute = publicRoutes.includes(ui.route);
   if (!ui.user || publicRoute) ui.ready = false;
   ui.navigating = true;
   ui.modal = null;
   ui.loading = false;
-  if (['/', '/conversations', '/leads'].includes(ui.route)) {
+  ui.loadingProfile = false;
+  if (listRoutes.includes(ui.route)) {
     Object.assign(ui, readListState(location.search));
     if (ui.profile?.id !== ui.leadId) ui.profile = null;
   } else {
@@ -195,7 +237,7 @@ export async function boot() {
   }
   try {
     if (!ui.meta) ui.meta = await api<Meta>('/meta');
-    if (request !== generation) return;
+    if (visit !== navigation) return;
     if (['/enquire', '/login'].includes(ui.route)) {
       ui.user = null;
       return;
@@ -210,21 +252,17 @@ export async function boot() {
       return;
     }
     const me = await api<{ user: User; csrf: string }>('/me');
-    if (request !== generation) return;
+    if (visit !== navigation) return;
     ui.user = me.user;
     security.staff = me.csrf;
     const match = ui.route.match(/^\/leads\/([\w-]+)$/);
     if (match) {
       ui.leadId = match[1];
       await refresh();
-    } else if (['/', '/conversations', '/leads'].includes(ui.route)) await loadLeads();
+    } else if (listRoutes.includes(ui.route)) await loadLeads();
   } catch (error) {
-    if (visit !== navigation) return;
-    if (error instanceof ApiError && error.status === 401) {
-      location.assign('/login');
-      return;
-    }
-    ui.error = error instanceof Error ? error.message : 'Cannot open the workspace';
+    if (visit !== navigation || isAbort(error) || sessionExpired(error)) return;
+    ui.error = errorMessage(error) || 'Cannot open the workspace';
   } finally {
     if (visit === navigation) {
       ui.ready = true;
@@ -243,8 +281,10 @@ export function start() {
     if (
       document.hidden ||
       ui.modal ||
-      ui.busy ||
+      anyBusy() ||
       ui.loading ||
+      ui.loadingProfile ||
+      searchTimer ||
       ui.navigating ||
       !ui.ready ||
       polling ||
@@ -256,8 +296,7 @@ export function start() {
       await refresh();
       ui.connected = true;
     } catch (error) {
-      if (error instanceof ApiError && error.status === 401 && ui.user) location.assign('/login');
-      else ui.connected = false;
+      if (!isAbort(error) && !sessionExpired(error)) ui.connected = false;
     } finally {
       polling = false;
     }
@@ -265,8 +304,7 @@ export function start() {
   return () => {
     window.removeEventListener('popstate', pop);
     clearInterval(timer);
-    clearTimeout(searchTimer);
     clearTimeout(toastTimer);
-    generation++;
+    abortAll();
   };
 }

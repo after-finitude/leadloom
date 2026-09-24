@@ -42,6 +42,44 @@ test('a missing selected lead keeps the list and clears the selection', async ()
   assert.equal(ui.profile, null);
 });
 
+test('a late response for an older list request is discarded', async () => {
+  const pending = [];
+  globalThis.fetch = (url) =>
+    new Promise((resolve) => {
+      const q = new URL(String(url), 'http://x').searchParams.get('q');
+      pending.push(() =>
+        resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ ...list, items: [{ id: q }] })
+        })
+      );
+    });
+  Object.assign(ui, { route: '/leads', leadId: '', search: '' });
+  const older = loadLeads({ search: 'older' }),
+    newer = loadLeads({ search: 'newer' });
+  pending[1]();
+  await newer;
+  pending[0]();
+  await older;
+  assert.equal(ui.search, 'newer');
+  assert.deepEqual(
+    ui.leads.map((lead) => lead.id),
+    ['newer']
+  );
+  assert.equal(ui.loading, false);
+});
+
+test('a failed list request keeps the current page, filter and search', async () => {
+  serve(() => [500, { error: 'internal_error', message: 'Server failed' }]);
+  Object.assign(ui, { route: '/leads', page: 2, filter: 'ai', search: 'kept' });
+  await assert.rejects(loadLeads({ page: 3, filter: 'human', search: 'lost' }), /Server failed/);
+  assert.equal(ui.page, 2);
+  assert.equal(ui.filter, 'ai');
+  assert.equal(ui.search, 'kept');
+  assert.equal(ui.loading, false);
+});
+
 test('polling sends staff to sign in when the session expires', async () => {
   mock.timers.enable({ apis: ['setInterval'] });
   const user = { id: 'u', email: 'a@example.test', name: 'A', role: 'admin' };

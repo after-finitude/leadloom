@@ -1,113 +1,97 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { api, post, errorMessage } from '../lib/api.ts';
-  import { ui, submit, notify } from '../lib/workspace.svelte.ts';
+  import { onMount, untrack } from 'svelte';
+  import { api, errorMessage } from '../lib/api.ts';
+  import { ui, submit, busy, notify } from '../lib/workspace.svelte.ts';
+  import { resource } from '../lib/resource.svelte.ts';
   import type { CompanySettings, Rule, ScoringRules } from '../lib/types.ts';
-  import { value, list, dateTime } from '../lib/format.ts';
+  import { SEQUENCES, readSettingsTab, changed, type SettingsTab } from '../lib/settings-form.ts';
+  import { tabKeydown } from '../lib/tabs.ts';
   import Heading from '../components/Heading.svelte';
   import Field from '../components/Field.svelte';
   import Badge from '../components/Badge.svelte';
   import Icon from '../components/Icon.svelte';
-  let settings = $state<CompanySettings | null>(null),
-    rules = $state<Rule[]>([]),
-    error = $state(''),
-    tab = $state('company');
+  import ScoringForm from '../components/settings/ScoringForm.svelte';
+  type Saved = CompanySettings & { revision: number };
+  type Tab = SettingsTab | 'scoring';
+  const tabs: [Tab, string][] = [
+    ['company', 'Company & availability'],
+    ['questions', 'Qualification'],
+    ['faq', 'Knowledge & safety'],
+    ['scoring', 'Scoring rules'],
+    ['followup', 'Email follow-up']
+  ];
+  const saved = resource<Saved>('/settings'),
+    rules = resource<Rule[]>('/rules');
+  let tab = $state<Tab>('company');
+  // Each tab keeps its own unsaved edits until that tab is saved.
+  let drafts = $state<Partial<Record<SettingsTab, Partial<CompanySettings>>>>({});
+  let scoring = $state<ScoringRules | null>(null);
+  // What the open form displays: taken when the tab opens or its layout changes, not on
+  // every keystroke, so normalising a draft never rewrites what is being typed.
+  let shown = $state<Saved | null>(null);
   let form = $state<HTMLFormElement>();
   let saveError = $state('');
-  // Unpublished scoring edits survive tab switches until they are published.
-  let scoring = $state<ScoringRules | null>(null);
-  const shownRules = $derived(scoring ?? rules[0]?.data);
-  const weights = ['service', 'location', 'budget', 'urgency', 'authority'] as const;
-  const sequences = ['qualification_abandoned', 'qualified_not_booked'] as const;
+  const error = $derived(saved.error || rules.error);
   onMount(() => {
-    let active = true;
-    if (ui.user?.role === 'admin')
-      Promise.all([api<CompanySettings>('/settings'), api<Rule[]>('/rules')])
-        .then(([s, r]) => {
-          if (active) {
-            settings = s;
-            rules = r;
-          }
-        })
-        .catch((e) => {
-          if (active) error = e.message;
-        });
+    if (ui.user?.role !== 'admin') return;
+    const stopSettings = saved.mount(),
+      stopRules = rules.mount();
     return () => {
-      active = false;
+      stopSettings();
+      stopRules();
     };
   });
-  function readScoring(data: FormData): ScoringRules {
-    const next: ScoringRules = JSON.parse(JSON.stringify(rules[0].data));
-    for (const key of weights) next.weights[key] = Number(value(data, key));
-    for (const key of ['threshold', 'hot', 'warm'] as const) next[key] = Number(value(data, key));
-    return next;
+  function show() {
+    if (saved.data) shown = { ...saved.data, ...(tab === 'scoring' ? {} : drafts[tab]) };
   }
-  function draft(data: FormData) {
-    if (!settings) return;
-    if (tab === 'company') {
-      for (const key of ['company', 'timezone', 'currency', 'brandVoice'] as const)
-        settings[key] = value(data, key);
-      settings.deduplication = value(data, 'deduplication') as CompanySettings['deduplication'];
-      settings.services = list(value(data, 'services')).map((s) => s.toLowerCase());
-      settings.areas = list(value(data, 'areas'), '\n');
-      settings.hours = {
-        start: value(data, 'hours_start'),
-        end: value(data, 'hours_end'),
-        days: [0, 1, 2, 3, 4, 5, 6].filter((day) => data.has(`day_${day}`))
-      };
-      for (const key of ['duration', 'buffer', 'horizon', 'minimumNotice'] as const)
-        settings[key] = Number(value(data, key));
-    } else if (tab === 'questions') {
-      settings.questions = settings.questions.map((q, i) => ({
-        ...q,
-        text: value(data, `question_${i}`),
-        required: ['service_type', 'location'].includes(q.field) || data.has(`required_${i}`)
-      }));
-    } else if (tab === 'faq') {
-      settings.faq = settings.faq.map((faq, i) => ({
-        ...faq,
-        question: value(data, `faq_question_${i}`),
-        answer: value(data, `faq_answer_${i}`),
-        keywords: list(value(data, `faq_keywords_${i}`))
-      }));
-      settings.bannedTopics = list(value(data, 'bannedTopics'), '\n');
-    } else if (tab === 'followup') {
-      for (const sequence of sequences)
-        settings.followup[sequence] = [0, 1, 2].map((i) => Number(value(data, `${sequence}_${i}`)));
-      settings.followup.subject = value(data, 'subject');
-      settings.followup.text = value(data, 'text');
-    } else if (tab === 'scoring' && rules.length) {
-      scoring = readScoring(data);
-    }
+  $effect(() => {
+    if (saved.data) untrack(show);
+  });
+  function edit() {
+    if (form && shown && tab !== 'scoring')
+      drafts[tab] = readSettingsTab(tab, new FormData(form), shown);
+  }
+  const dirty = (key: Tab) =>
+    key === 'scoring' ? changed(scoring, rules.data?.[0]?.data) : changed(drafts[key], saved.data);
+  function select(key: Tab) {
+    tab = key;
+    saveError = '';
+    show();
   }
   function move(index: number) {
-    if (form) draft(new FormData(form));
-    if (!settings) return;
-    [settings.questions[index - 1], settings.questions[index]] = [
-      settings.questions[index],
-      settings.questions[index - 1]
-    ];
+    edit();
+    if (!shown) return;
+    const questions = [...(drafts.questions?.questions ?? shown.questions)];
+    [questions[index - 1], questions[index]] = [questions[index], questions[index - 1]];
+    drafts.questions = { questions };
+    show();
   }
   function addFaq() {
-    if (form) draft(new FormData(form));
-    settings?.faq.push({ id: crypto.randomUUID(), question: '', answer: '', keywords: [] });
+    edit();
+    if (!shown) return;
+    const faq = [
+      ...(drafts.faq?.faq ?? shown.faq),
+      { id: crypto.randomUUID(), question: '', answer: '', keywords: [] }
+    ];
+    drafts.faq = { ...drafts.faq, faq };
+    show();
   }
   async function save(event: SubmitEvent) {
     saveError = '';
+    if (tab === 'scoring') return;
+    const current = tab;
     await submit(
       event,
+      'settings',
       async (data) => {
-        if (!settings) return;
-        if (tab === 'scoring') {
-          await post('/rules', readScoring(data));
-          scoring = null;
-          rules = await api<Rule[]>('/rules');
-          notify('New rules version published');
-        } else {
-          draft(data);
-          settings = await api<CompanySettings>('/settings', { method: 'PUT', body: settings });
-          notify('Workspace settings saved');
-        }
+        if (!saved.data || !shown) return;
+        const draft = readSettingsTab(current, data, shown);
+        saved.data = await api<Saved>('/settings', {
+          method: 'PUT',
+          body: { ...saved.data, ...draft }
+        });
+        delete drafts[current];
+        notify('Workspace settings saved');
       },
       (cause) => {
         saveError = errorMessage(cause);
@@ -121,18 +105,31 @@
   description="Manage services, qualification rules and follow-ups."
 />
 <div class="settings-layout">
-  <nav class="settings-nav" aria-label="Settings sections">
-    {#each [['company', 'Company & availability'], ['questions', 'Qualification'], ['faq', 'Knowledge & safety'], ['scoring', 'Scoring rules'], ['followup', 'Email follow-up']] as [key, label] (key)}<button
+  <div
+    class="settings-nav"
+    role="tablist"
+    aria-label="Settings sections"
+    tabindex="-1"
+    onkeydown={(event) =>
+      tabKeydown(
+        event,
+        tabs.map(([key]) => key),
+        tab,
+        select
+      )}
+  >
+    {#each tabs as [key, label] (key)}<button
+        role="tab"
+        id={`settings-tab-${key}`}
+        data-tab={key}
+        aria-selected={tab === key}
+        aria-controls="settings-panel"
+        tabindex={tab === key ? 0 : -1}
         class:active={tab === key}
-        disabled={ui.busy}
-        aria-pressed={tab === key}
-        onclick={() => {
-          if (form) draft(new FormData(form));
-          tab = key;
-          saveError = '';
-        }}>{label}</button
+        onclick={() => select(key)}
+        >{label}{#if dirty(key)}<span class="unsaved"> · unsaved</span>{/if}</button
       >{/each}
-  </nav>
+  </div>
   <div>
     <div class="provider-grid">
       {#each Object.entries(ui.meta?.providers || {}) as [key, provider] (key)}<div
@@ -143,48 +140,56 @@
           <p class="table-sub">Configured via environment</p>
         </div>{/each}
     </div>
-    <section class="settings-card">
+    <div
+      class="settings-card"
+      role="tabpanel"
+      id="settings-panel"
+      aria-labelledby={`settings-tab-${tab}`}
+    >
       {#if ui.user?.role !== 'admin'}<div class="attention">
           An administrator is required to edit settings.
-        </div>{:else if error}<p class="attention" role="alert">{error}</p>{:else if !settings}<p
-          class="muted"
-          role="status"
-        >
+        </div>{:else if error}<p class="attention" role="alert">
+          {error}
+        </p>{:else if !shown || !rules.data}<p class="muted" role="status">
           Loading settings…
-        </p>{:else}
-        {#key tab}<form bind:this={form} onsubmit={save}>
+        </p>{:else if tab === 'scoring'}<ScoringForm
+          rules={rules.data}
+          bind:draft={scoring}
+          onpublished={rules.load}
+        />{:else}
+        {#key tab}<form bind:this={form} onsubmit={save} oninput={edit}>
             {#if tab === 'company'}<h2>Make it your workspace</h2>
               <p class="description">
                 Company details, service coverage and consultation availability. Demo cities and
                 budget thresholds are synthetic.
               </p>
               <div class="form-grid">
-                <Field label="Company name" name="company" value={settings.company} /><Field
+                <Field label="Company name" name="company" value={shown.company} /><Field
                   label="IANA time zone"
                   name="timezone"
-                  value={settings.timezone}
+                  value={shown.timezone}
                   help="For example Asia/Manila or America/New_York"
-                /><Field label="Currency" name="currency" value={settings.currency} /><Field
+                /><Field label="Currency" name="currency" value={shown.currency} /><Field
                   label="Services, comma-separated"
                   name="services"
-                  value={settings.services.join(', ')}
+                  value={shown.services.join(', ')}
                 />
                 <div class="field full-width">
                   <label for="areas">Service cities / postcodes, one per line</label><textarea
                     id="areas"
                     name="areas"
-                    value={settings.areas.join('\n')}></textarea>
+                    value={shown.areas.join('\n')}></textarea>
                 </div>
                 <Field
                   label="Working day begins"
                   name="hours_start"
                   type="time"
-                  value={settings.hours.start}
+                  value={shown.hours.start}
                 /><Field
                   label="Working day ends"
                   name="hours_end"
                   type="time"
-                  value={settings.hours.end}
+                  value={shown.hours.end}
                 />
                 <div class="field full-width">
                   <span>Working days</span>
@@ -194,7 +199,7 @@
                         ><input
                           type="checkbox"
                           name={`day_${i}`}
-                          checked={settings.hours.days.includes(i)}
+                          checked={shown.hours.days.includes(i)}
                         />{day}</label
                       >{/each}
                   </div>
@@ -203,28 +208,28 @@
                   label="Consultation duration (minutes)"
                   name="duration"
                   type="number"
-                  value={settings.duration}
+                  value={shown.duration}
                 /><Field
                   label="Buffer between meetings (minutes)"
                   name="buffer"
                   type="number"
-                  value={settings.buffer}
+                  value={shown.buffer}
                 /><Field
                   label="Booking horizon (days)"
                   name="horizon"
                   type="number"
-                  value={settings.horizon}
+                  value={shown.horizon}
                 /><Field
                   label="Minimum notice (minutes)"
                   name="minimumNotice"
                   type="number"
-                  value={settings.minimumNotice}
+                  value={shown.minimumNotice}
                 />
                 <div class="field full-width">
                   <label for="deduplication">Active deal policy</label><select
                     id="deduplication"
                     name="deduplication"
-                    value={settings.deduplication}
+                    value={shown.deduplication}
                     ><option value="one_active_per_contact">One active deal per contact</option
                     ><option value="one_active_per_contact_service"
                       >One active deal per contact and service</option
@@ -235,7 +240,7 @@
                   <label for="brandVoice">Brand voice</label><textarea
                     id="brandVoice"
                     name="brandVoice"
-                    value={settings.brandVoice}></textarea>
+                    value={shown.brandVoice}></textarea>
                 </div>
               </div>
             {:else if tab === 'questions'}<h2>Qualification questions</h2>
@@ -243,7 +248,7 @@
                 One question at a time. Service and location are always required. Unknown optional
                 answers are never invented.
               </p>
-              {#each settings.questions as question, i (question.field)}<div class="question-item">
+              {#each shown.questions as question, i (question.field)}<div class="question-item">
                   <div class="between">
                     <span class="micro muted">{i + 1} · {question.field.replaceAll('_', ' ')}</span
                     ><label class="check-row"
@@ -271,7 +276,7 @@
                 Only these approved answers are used. Questions beyond the FAQ are passed to a
                 person.
               </p>
-              {#each settings.faq as faq, i (faq.id)}<div class="faq-item">
+              {#each shown.faq as faq, i (faq.id)}<div class="faq-item">
                   <Field
                     label={`Question ${i + 1}`}
                     name={`faq_question_${i}`}
@@ -294,43 +299,20 @@
                 ><textarea
                   id="bannedTopics"
                   name="bannedTopics"
-                  value={settings.bannedTopics.join('\n')}></textarea>
-              </div>
-            {:else if tab === 'scoring' && shownRules}<h2>Explain every score</h2>
-              <p class="description">
-                Publish a new immutable version. Existing leads keep their current rules until you
-                explicitly recalculate them.
-              </p>
-              <div class="form-grid">
-                {#each weights as key (key)}<Field
-                    label={`${key[0].toUpperCase() + key.slice(1)} weight`}
-                    name={key}
-                    type="number"
-                    value={shownRules.weights[key]}
-                  />{/each}<Field
-                  label="Demo budget threshold"
-                  name="threshold"
-                  type="number"
-                  value={shownRules.threshold}
-                /><Field
-                  label="Hot threshold"
-                  name="hot"
-                  type="number"
-                  value={shownRules.hot}
-                /><Field label="Warm threshold" name="warm" type="number" value={shownRules.warm} />
+                  value={shown.bannedTopics.join('\n')}></textarea>
               </div>
             {:else if tab === 'followup'}<h2>Follow up, without overstepping</h2>
               <p class="description">
                 Three touches per sequence, per lead. Replies, takeover, booking, pause and opt-out
                 stop pending outreach. Times below are minutes from the start of a waiting period.
               </p>
-              {#each sequences as sequence (sequence)}<h3>
+              {#each SEQUENCES as sequence (sequence)}<h3>
                   {sequence === 'qualification_abandoned'
                     ? 'Unfinished qualification'
                     : 'Qualified, not yet booked'}
                 </h3>
                 <div class="form-grid faq-item">
-                  {#each settings.followup[sequence] as minutes, i (i)}<Field
+                  {#each shown.followup[sequence] as minutes, i (i)}<Field
                       label={`Touch ${i + 1} (minutes)`}
                       name={`${sequence}_${i}`}
                       value={minutes}
@@ -339,48 +321,36 @@
                 </div>{/each}<Field
                 label="Email subject"
                 name="subject"
-                value={settings.followup.subject}
+                value={shown.followup.subject}
               />
               <div class="field">
                 <label for="followup-text">Message</label><textarea
                   id="followup-text"
                   name="text"
-                  value={settings.followup.text}></textarea>
+                  value={shown.followup.text}></textarea>
                 <p class="help">
                   A secure return link and a separate unsubscribe link are added automatically.
                 </p>
               </div>{/if}
+
             {#if saveError}<p class="form-error" role="alert">{saveError}</p>{/if}
             <div class="form-footer">
               {#if tab === 'faq'}<button
                   class="btn"
                   type="button"
-                  disabled={ui.busy}
+                  disabled={busy('settings')}
                   onclick={addFaq}><Icon name="plus" /> Add FAQ</button
-                >{/if}<button
-                class="btn primary"
-                disabled={ui.busy || (tab === 'scoring' && !rules.length)}
-                >{tab === 'scoring'
-                  ? `Publish rules v${(rules[0]?.version || 0) + 1}`
-                  : {
-                      company: 'Save company settings',
-                      questions: 'Save questions',
-                      faq: 'Save knowledge',
-                      followup: 'Save follow-up settings'
-                    }[tab as 'company' | 'questions' | 'faq' | 'followup']}</button
+                >{/if}<button class="btn primary" disabled={busy('settings')}
+                >{{
+                  company: 'Save company settings',
+                  questions: 'Save questions',
+                  faq: 'Save knowledge',
+                  followup: 'Save follow-up settings'
+                }[tab]}</button
               >
             </div>
           </form>{/key}
-        {#if tab === 'scoring'}<hr class="form-divider" />
-          <h3>Published versions</h3>
-          {#each rules as rule (rule.id)}<div class="timeline-item">
-              <span class="timeline-dot"></span>
-              <div>
-                <p>Version {rule.version}</p>
-                <small>{dateTime(rule.created_at)} · {rule.content_hash.slice(0, 16)}</small>
-              </div>
-            </div>{/each}{/if}
       {/if}
-    </section>
+    </div>
   </div>
 </div>

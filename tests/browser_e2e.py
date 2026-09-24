@@ -9,7 +9,7 @@ import os,uuid,json,re
 from datetime import datetime,timezone
 from zoneinfo import ZoneInfo
 from pathlib import Path
-from playwright.sync_api import sync_playwright,expect
+from playwright.sync_api import sync_playwright,expect,Error as PlaywrightError
 ROOT=Path(__file__).resolve().parents[1];base=os.getenv('APP_ORIGIN','http://localhost:3000')
 errors=[]
 with sync_playwright() as p:
@@ -40,9 +40,12 @@ with sync_playwright() as p:
     expect(page.get_by_role('textbox',name='Your message')).to_have_value('')
     issue_message='Sorry, that time was taken before we could confirm your booking. No appointment was created.'
     def failed_booking_state(route):
-        response=route.fetch();data=response.json()
-        data['booking_issue']={'id':'background-booking-failure','message':issue_message}
-        route.fulfill(response=response,json=data)
+        # The page aborts a superseded chat request, and a reload aborts any in flight.
+        try:
+            response=route.fetch();data=response.json()
+            data['booking_issue']={'id':'background-booking-failure','message':issue_message}
+            route.fulfill(response=response,json=data)
+        except PlaywrightError:pass
     page.route('**/api/public/chat',failed_booking_state)
     page.reload()
     expect(page.get_by_role('alert')).to_have_text(issue_message)
@@ -83,14 +86,16 @@ with sync_playwright() as p:
     expect(manager.locator('#chat-panel .conversation-identity h2')).to_have_text(name)
     manager.get_by_label('Filter conversations').select_option('booked')
     expect(manager.locator('.lead-card')).to_have_count(1)
+    # The list URL changes when the filtered list arrives.
+    expect(manager).to_have_url(re.compile(r'filter=booked'))
     inbox_url=manager.url
     assert 'lead=' in inbox_url and 'q=' in inbox_url and 'filter=booked' in inbox_url
     manager.get_by_role('textbox',name='Manager reply').fill('Saved staff draft')
     sidebar=manager.locator('.sidebar').element_handle()
-    manager.get_by_role('button',name='Settings',exact=True).click()
+    manager.get_by_role('link',name='Settings',exact=True).click()
     expect(manager.get_by_role('heading',name='Workspace settings',exact=True)).to_be_visible()
     assert sidebar.evaluate('(element) => element.isConnected'), 'Navigation replaced the sidebar'
-    manager.get_by_role('button',name='Inbox',exact=True).click()
+    manager.get_by_role('link',name='Inbox',exact=True).click()
     expect(manager).to_have_url(inbox_url)
     expect(manager.get_by_role('textbox',name='Manager reply')).to_have_value('Saved staff draft')
     manager.reload()
@@ -112,17 +117,17 @@ with sync_playwright() as p:
     expect(source.locator('time')).to_contain_text(name)
     source.locator('summary').press('Enter')
     expect(source.locator('blockquote')).not_to_be_visible()
-    manager.get_by_role('button',name='Open lead',exact=True).click()
+    manager.get_by_role('link',name='Open lead',exact=True).click()
     expect(manager.get_by_role('heading',name=name,exact=True)).to_be_visible()
     expect(manager).to_have_url(re.compile(r'/leads/[\w-]+$'))
     manager.reload()
-    manager.get_by_role('button',name='Conversations',exact=True).click()
+    manager.get_by_role('link',name='Conversations',exact=True).click()
     expect(manager).to_have_url(inbox_url)
     expect(manager.get_by_role('textbox',name='Manager reply')).to_have_value('')
     manager.get_by_role('button',name='Lead details',exact=True).click()
-    manager.get_by_role('button',name='Open lead',exact=True).click()
+    manager.get_by_role('link',name='Open lead',exact=True).click()
     expect(manager.get_by_role('heading',name=name,exact=True)).to_be_visible()
-    manager.get_by_role('button',name='Data',exact=True).click()
+    manager.get_by_role('tab',name='Data',exact=True).click()
     manager.locator('details[data-field="location"] summary').click()
     expect(manager.locator('details[data-field="location"] blockquote')).to_have_text(qualification_reply)
     manager.get_by_role('button',name='Edit fields',exact=True).click()
@@ -136,7 +141,7 @@ with sync_playwright() as p:
     profile=manager.request.get(base+'/api'+manager.url.removeprefix(base)).json()
     appointment=next(a for a in profile['appointments'] if a['status']=='confirmed')
     expected_time=datetime.fromtimestamp(appointment['start_at']/1000,ZoneInfo(appointment['timezone'])).strftime('%H:%M')
-    manager.get_by_role('button',name='Meetings',exact=True).click()
+    manager.get_by_role('tab',name='Meetings',exact=True).click()
     expect(manager.locator('.context-section').filter(has_text=appointment['external_id']).get_by_role('heading')).to_contain_text(expected_time)
     page.get_by_role('textbox',name='Your message').fill('STOP');page.get_by_role('button',name='Send message').click()
     expect(page.get_by_text('Automation is stopped. New messages will not restore consent.',exact=True)).to_be_visible()
