@@ -103,7 +103,7 @@ If time is short: phase 0 → phase 6, items 18–19 (user-visible bugs) → pha
 
 ### Phase 2. Data layer
 
-5. Add repositories on top of `Store`: `leads`, `contacts`, `messages`, `actions`, `operations`, `appointments`, `audit`. Move all SQL into them, including the SQL in `http.mjs`. Cache `prepare()` by query text.
+5. Cache `prepare()` by query text and move the SQL out of `http.mjs` into service methods. Repositories moved to phase 3 (item 10): each extracted module gets its own, so no query is rewritten twice.
 6. Remove N+1 queries:
    - Rewrite `list()` as one query with a subquery for `last_message`.
    - `bump()` should return the updated row without calling `lead()` again.
@@ -117,7 +117,7 @@ Check: tests pass; `EXPLAIN QUERY PLAN` for the `profile` and `list` queries use
 
 ### Phase 3. Split `Leadloom`
 
-10. Extract modules with explicit dependencies `{ repos, providers, clock, config }` instead of `app`:
+10. Extract modules with explicit dependencies `{ repos, providers, clock, config }` instead of `app`. Move each module's SQL into repositories on top of `Store` (`leads`, `contacts`, `messages`, `actions`, `operations`, `appointments`, `audit`) as it is extracted:
     - `intake.mjs`: `intake`, `resolveIntake`, `requestAccess`.
     - `conversation.mjs`: `postMessage`, `turn`, `askNext`, `handoff`, `manualMessage`.
     - `qualification.mjs`: `score` as a pure calculation plus persistence; whoever calls score calls `beginWait` explicitly.

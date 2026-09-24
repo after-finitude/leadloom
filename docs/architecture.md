@@ -4,7 +4,7 @@ Svelte browser app → Node HTTP API → Leadloom service → SQLite. A backgrou
 
 ## Components
 
-`config.mjs` reads ENV and validates modes and secrets; `db.mjs` contains prepared SQL statements and synchronous BEGIN IMMEDIATE transactions; `schema.sql` creates the schema idempotently. There is no versioned migration framework: this is the initial schema for this version.
+`config.mjs` reads ENV and validates modes and secrets; `db.mjs` wraps SQLite with cached prepared statements, synchronous BEGIN IMMEDIATE transactions and a minimal migration runner: each numbered file in `src/migrations/` runs once, in order, and is recorded in the `migrations` table. Add schema changes as a new numbered file; never edit one that has been released.
 
 `service.mjs` manages intake, CRM, conversations, revisions, and the action queue. Its methods preserve a single `Leadloom` interface for the HTTP API and worker. `operations.mjs` contains slot availability, reservations, booking, rescheduling, cancellation, and the lifecycle of external calendar and email operations: execution, confirmation, errors, reconciliation of uncertain results, and retries. `followups.mjs` schedules and sends follow-ups while checking eligibility, working hours, and touch limits. Both modules receive the service instance as an argument and use its store, providers, and clock.
 

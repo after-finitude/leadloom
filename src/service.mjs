@@ -71,6 +71,18 @@ const LEAD_COLUMNS = new Set([
   'first_contact_status',
   'service_key'
 ]);
+const LEAD_SELECT =
+  'SELECT l.*,c.name,c.email,c.phone,c.opt_out,c.verified_email,v.id AS conversation_id';
+const LEAD_FROM =
+  'FROM leads l JOIN contacts c ON c.id=l.contact_id JOIN conversations v ON v.lead_id=l.id';
+const parseLead = (row) => ({
+  ...row,
+  fields: parse(row.fields),
+  meta: parse(row.meta),
+  asked: parse(row.asked),
+  skipped: parse(row.skipped, []),
+  reasons: parse(row.reasons, [])
+});
 export class Leadloom {
   constructor(store, c, providers = {}, clock = Date.now) {
     this.s = store;
@@ -102,6 +114,9 @@ export class Leadloom {
       this.auth.seed();
     });
   }
+  ping() {
+    this.s.get('SELECT 1');
+  }
   settings() {
     const row = this.s.get('SELECT * FROM settings WHERE id=1');
     return { ...parse(row.data), revision: row.revision };
@@ -113,22 +128,29 @@ export class Leadloom {
     ensure(row, 'rules_not_found', 'Rules version not found', 404);
     return { ...row, data: parse(row.data) };
   }
+  ruleVersions() {
+    return this.s
+      .all('SELECT * FROM rule_versions ORDER BY version DESC')
+      .map((r) => ({ ...r, data: JSON.parse(r.data) }));
+  }
   publishRules(data, actor) {
-    validateRules(data);
-    const s = this.settings();
-    const content = { ...data, services: s.services, areas: s.areas, currency: s.currency };
-    const version = (this.s.get('SELECT MAX(version) AS n FROM rule_versions')?.n || 0) + 1,
-      rid = id();
-    this.s.run(
-      'INSERT INTO rule_versions(id,version,data,content_hash,created_at) VALUES(?,?,?,?,?)',
-      rid,
-      version,
-      JSON.stringify(content),
-      hash(stable(content)),
-      this.clock()
-    );
-    this.s.audit(null, 'rules_published', { version }, actor, undefined, this.clock());
-    return this.rules(rid);
+    return this.s.tx(() => {
+      validateRules(data);
+      const s = this.settings();
+      const content = { ...data, services: s.services, areas: s.areas, currency: s.currency };
+      const version = (this.s.get('SELECT MAX(version) AS n FROM rule_versions')?.n || 0) + 1,
+        rid = id();
+      this.s.run(
+        'INSERT INTO rule_versions(id,version,data,content_hash,created_at) VALUES(?,?,?,?,?)',
+        rid,
+        version,
+        JSON.stringify(content),
+        hash(stable(content)),
+        this.clock()
+      );
+      this.s.audit(null, 'rules_published', { version }, actor, undefined, this.clock());
+      return this.rules(rid);
+    });
   }
   updateSettings(data, actor) {
     const allowed = Object.keys(DEFAULT_SETTINGS);
@@ -169,46 +191,37 @@ export class Leadloom {
     });
   }
   lead(leadId) {
-    const row = this.s.get(
-      'SELECT l.*,c.name,c.email,c.phone,c.opt_out,c.verified_email,v.id AS conversation_id FROM leads l JOIN contacts c ON c.id=l.contact_id JOIN conversations v ON v.lead_id=l.id WHERE l.id=?',
-      leadId
-    );
+    const row = this.s.get(`${LEAD_SELECT} ${LEAD_FROM} WHERE l.id=?`, leadId);
     ensure(row, 'lead_not_found', 'Lead not found', 404);
-    return {
-      ...row,
-      fields: parse(row.fields),
-      meta: parse(row.meta),
-      asked: parse(row.asked),
-      skipped: parse(row.skipped, []),
-      reasons: parse(row.reasons, [])
-    };
+    return parseLead(row);
   }
-  save(leadId, patch) {
+  save(leadId, patch, bump = false) {
     const items = Object.entries(patch);
     ensure(
       items.every(([k]) => LEAD_COLUMNS.has(k)),
       'invalid_internal_field'
     );
-    if (!items.length) return;
+    if (!items.length && !bump) return;
+    const set = [...items.map(([k]) => `${k}=?`), ...(bump ? ['revision=revision+1'] : [])];
     this.s.run(
-      `UPDATE leads SET ${items.map(([k]) => `${k}=?`).join(',')},updated_at=? WHERE id=?`,
+      `UPDATE leads SET ${set.join(',')},updated_at=? WHERE id=?`,
       ...items.map(([, v]) => (v && typeof v === 'object' ? JSON.stringify(v) : v)),
       this.clock(),
       leadId
     );
   }
   bump(leadId, patch = {}) {
-    const l = this.lead(leadId);
-    this.save(leadId, { ...patch, revision: l.revision + 1 });
+    this.save(leadId, patch, true);
     return this.lead(leadId);
   }
   message(leadId, author, body, clientKey = null) {
-    const l = this.lead(leadId),
+    const conversation = this.s.get('SELECT id FROM conversations WHERE lead_id=?', leadId),
       mid = id();
+    ensure(conversation, 'lead_not_found', 'Lead not found', 404);
     this.s.run(
       'INSERT INTO messages(id,conversation_id,author,body,client_key,created_at) VALUES(?,?,?,?,?,?)',
       mid,
-      l.conversation_id,
+      conversation.id,
       author,
       body,
       clientKey,
@@ -216,21 +229,29 @@ export class Leadloom {
     );
     return mid;
   }
+  history(conversationId) {
+    return this.s.all(
+      'SELECT id,author,body,created_at FROM messages WHERE conversation_id=? ORDER BY seq',
+      conversationId
+    );
+  }
   summary(leadId) {
-    const l = this.lead(leadId);
+    const l = this.lead(leadId),
+      rules = this.rules(l.rule_id);
     return `${l.name} · ${l.fields.service_type ?? 'service unknown'} · ${
       l.fields.location ?? 'location unknown'
     }\nBudget: ${l.fields.budget_min ?? '?'}–${l.fields.budget_max ?? '?'} ${
-      this.rules(l.rule_id).data.currency
+      rules.data.currency
     }\nTimeline: ${l.fields.timeline ?? '?'} months; authority: ${
       l.fields.decision_maker ?? 'unknown'
-    }\n${l.category} (${l.score}/100), rules v${this.rules(l.rule_id).version}\nReview: ${
+    }\n${l.category} (${l.score}/100), rules v${rules.version}\nReview: ${
       l.review_reason || 'none'
     }`;
   }
   score(leadId) {
     const l = this.lead(leadId),
-      result = scoreLead(l.fields, this.rules(l.rule_id).data),
+      rules = this.rules(l.rule_id).data,
+      result = scoreLead(l.fields, rules),
       s = this.settings();
     const complete =
       result.category === 'Unqualified' ||
@@ -239,7 +260,7 @@ export class Leadloom {
       );
     const stage =
       complete &&
-      result.score >= this.rules(l.rule_id).data.warm &&
+      result.score >= rules.warm &&
       result.serviceFit &&
       result.locationFit &&
       !l.review_reason &&
@@ -252,13 +273,14 @@ export class Leadloom {
               result.category === 'Nurture')
           ? 'Contacted'
           : l.stage;
-    this.save(leadId, {
+    const patch = {
       score: result.score,
       category: result.category,
       reasons: result.reasons,
       qualification: complete ? 'complete' : 'collecting',
       stage
-    });
+    };
+    this.save(leadId, patch);
     this.s.run(
       'INSERT INTO score_evaluations(id,lead_id,rule_id,inputs,score,category,reasons,created_at) VALUES(?,?,?,?,?,?,?,?)',
       id(),
@@ -270,7 +292,7 @@ export class Leadloom {
       JSON.stringify(result.reasons),
       this.clock()
     );
-    const updated = this.lead(leadId);
+    const updated = { ...l, ...patch };
     if (mayBook(updated, s) && updated.followup_type !== 'qualified_not_booked')
       this.beginWait(leadId, 'qualified_not_booked');
     return this.lead(leadId);
@@ -950,10 +972,7 @@ export class Leadloom {
                     : 'We could not confirm your booking. No appointment was created.'
             }
           : null,
-      messages: this.s.all(
-        'SELECT id,author,body,created_at FROM messages WHERE conversation_id=? ORDER BY seq',
-        l.conversation_id
-      ),
+      messages: this.history(l.conversation_id),
       demo: this.c.mode === 'demo',
       providers: { llm: this.llm.name, calendar: this.calendar.name, email: this.email.name }
     };
@@ -1002,31 +1021,33 @@ export class Leadloom {
       coalesce(sum(${filters.booked}),0) AS booked ${from}`);
     const items = this.s
       .all(
-        `SELECT l.id ${from} ${where} ORDER BY l.updated_at DESC,l.id DESC LIMIT ? OFFSET ?`,
+        `${LEAD_SELECT},m.body AS last_body,m.author AS last_author ${LEAD_FROM} LEFT JOIN messages m ON m.seq=(SELECT max(seq) FROM messages WHERE conversation_id=v.id) ${where} ORDER BY l.updated_at DESC,l.id DESC LIMIT ? OFFSET ?`,
         q.trim(),
         pageSize,
         (page - 1) * pageSize
       )
-      .map((row) => {
-        const l = this.lead(row.id);
-        return {
-          ...l,
-          last_message:
-            this.s.get(
-              'SELECT body,author FROM messages WHERE conversation_id=? ORDER BY seq DESC LIMIT 1',
-              l.conversation_id
-            ) || null
-        };
-      });
+      .map(({ last_body, last_author, ...row }) => ({
+        ...parseLead(row),
+        last_message: last_author ? { body: last_body, author: last_author } : null
+      }));
     return { items, total, page, pageSize, stats };
   }
+  users() {
+    return this.s.all('SELECT id,name,email,role FROM users WHERE active=1');
+  }
+  contacts() {
+    return this.s.all(
+      'SELECT id,name,email,phone FROM contacts ORDER BY created_at DESC LIMIT 300'
+    );
+  }
   profile(leadId) {
-    const l = this.lead(leadId);
+    const l = this.lead(leadId),
+      rules = this.rules(l.rule_id);
     return {
       ...l,
-      currency: this.rules(l.rule_id).data.currency,
-      rule_version: this.rules(l.rule_id).version,
-      messages: this.publicState(leadId).messages,
+      currency: rules.data.currency,
+      rule_version: rules.version,
+      messages: this.history(l.conversation_id),
       appointments: this.s.all(
         'SELECT * FROM appointments WHERE lead_id=? ORDER BY created_at DESC',
         leadId
@@ -1234,6 +1255,11 @@ export class Leadloom {
   async availability(leadId, reschedule = false) {
     return operations.availability(this, leadId, reschedule);
   }
+  async appointmentAvailability(appointmentId) {
+    const a = this.s.get('SELECT lead_id FROM appointments WHERE id=?', appointmentId);
+    ensure(a, 'appointment_not_found', undefined, 404);
+    return this.availability(a.lead_id, true);
+  }
   reserve(leadId, key, start, end, appointmentId = null) {
     return operations.reserve(this, leadId, key, start, end, appointmentId);
   }
@@ -1261,12 +1287,25 @@ export class Leadloom {
   async followup(action) {
     return followups.followup(this, action);
   }
+  // Expired rows are already ignored by their readers; this only keeps the tables small.
+  cleanup() {
+    const now = this.clock();
+    if (now - (this.cleanedAt ?? -Infinity) < 10 * 60000) return;
+    this.cleanedAt = now;
+    this.s.tx(() => {
+      this.s.run('DELETE FROM sessions WHERE expires_at<=?', now);
+      this.s.run('DELETE FROM access_tokens WHERE expires_at<=?', now);
+      this.s.run('DELETE FROM slot_offers WHERE expires_at<=?', now);
+      this.s.run('DELETE FROM rate_limits WHERE reset_at<=?', now);
+    });
+  }
   async tick(max = 25) {
     if (this.ticking) return 0;
     this.ticking = true;
     const workerId = id();
     let processed = 0;
     try {
+      this.cleanup();
       const expired = this.s.all(
         "SELECT * FROM actions WHERE state='running' AND lease_until<?",
         this.clock()

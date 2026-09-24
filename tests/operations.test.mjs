@@ -529,3 +529,27 @@ test('access delivery can retry and reconcile while automation stays paused', as
     f.close();
   }
 });
+test('the worker deletes expired sessions, links, offers and rate limits', async () => {
+  const f = fixture();
+  try {
+    const lid = await f.lead(),
+      lead = f.app.lead(lid);
+    await f.app.availability(lid);
+    f.app.auth.create('visitor', lid);
+    f.app.auth.issue('unsubscribe', lid, lead.contact_id);
+    f.store.limit('cleanup', 1, 60000, f.clock());
+    f.advance(91 * 86400000);
+    const live = f.app.auth.create('visitor', lid);
+    await f.app.tick();
+    // The same tick may send follow-ups that issue fresh links, so count only expired rows.
+    const expired = (table, column = 'expires_at') =>
+      f.store.get(`SELECT count(*) AS n FROM ${table} WHERE ${column}<=?`, f.clock()).n;
+    assert.equal(expired('slot_offers'), 0);
+    assert.equal(expired('access_tokens'), 0);
+    assert.equal(expired('rate_limits', 'reset_at'), 0);
+    assert.equal(f.store.get('SELECT count(*) AS n FROM sessions').n, 1);
+    assert.ok(f.app.auth.get(live.raw, 'visitor'));
+  } finally {
+    f.close();
+  }
+});

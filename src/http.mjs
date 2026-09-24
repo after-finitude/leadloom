@@ -152,7 +152,7 @@ export function createHttp(service) {
         return;
       }
       if (path === '/api/health' && method === 'GET') {
-        service.s.get('SELECT 1');
+        service.ping();
         return json({
           ok: true,
           version: '1.2.0',
@@ -282,16 +282,10 @@ export function createHttp(service) {
         setSession('staff', '', true);
         return json({ ok: true });
       }
-      if (path === '/api/users' && method === 'GET')
-        return json(service.s.all('SELECT id,name,email,role FROM users WHERE active=1'));
+      if (path === '/api/users' && method === 'GET') return json(service.users());
       if ((path === '/api/leads' || path === '/api/conversations') && method === 'GET')
         return json(service.list(Object.fromEntries(url.searchParams)));
-      if (path === '/api/contacts' && method === 'GET')
-        return json(
-          service.s.all(
-            'SELECT id,name,email,phone FROM contacts ORDER BY created_at DESC LIMIT 300'
-          )
-        );
+      if (path === '/api/contacts' && method === 'GET') return json(service.contacts());
       let match;
       if ((match = path.match(/^\/api\/leads\/([\w-]+)$/))) {
         if (method === 'GET') return json(service.profile(match[1]));
@@ -312,14 +306,8 @@ export function createHttp(service) {
         method === 'POST'
       )
         return json(service.control(match[1], match[2], body, user));
-      if (
-        (match = path.match(/^\/api\/appointments\/([\w-]+)\/availability$/)) &&
-        method === 'GET'
-      ) {
-        const a = service.s.get('SELECT lead_id FROM appointments WHERE id=?', match[1]);
-        ensure(a, 'appointment_not_found', undefined, 404);
-        return json(await service.availability(a.lead_id, true));
-      }
+      if ((match = path.match(/^\/api\/appointments\/([\w-]+)\/availability$/)) && method === 'GET')
+        return json(await service.appointmentAvailability(match[1]));
       if (
         (match = path.match(/^\/api\/appointments\/([\w-]+)\/(cancel|reschedule)$/)) &&
         method === 'POST'
@@ -335,22 +323,14 @@ export function createHttp(service) {
         return json(service.resolveIntake(match[1], body.contactId, user.id));
       }
       if (path === '/api/settings' && method === 'GET') return json(service.settings());
-      if (path === '/api/rules' && method === 'GET')
-        return json(
-          service.s
-            .all('SELECT * FROM rule_versions ORDER BY version DESC')
-            .map((r) => ({ ...r, data: JSON.parse(r.data) }))
-        );
+      if (path === '/api/rules' && method === 'GET') return json(service.ruleVersions());
       if (path === '/api/settings' && method === 'PUT') {
         ensure(user.role === 'admin', 'forbidden', 'Administrator required', 403);
         return json(service.updateSettings(body, user.id));
       }
       if (path === '/api/rules' && method === 'POST') {
         ensure(user.role === 'admin', 'forbidden', 'Administrator required', 403);
-        return json(
-          service.s.tx(() => service.publishRules(body, user.id)),
-          201
-        );
+        return json(service.publishRules(body, user.id), 201);
       }
       if (path === '/api/outbox' && method === 'GET') {
         ensure(user.role === 'admin', 'forbidden', 'Administrator required', 403);

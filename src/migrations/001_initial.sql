@@ -1,7 +1,4 @@
-PRAGMA foreign_keys=ON;
-PRAGMA journal_mode=WAL;
-PRAGMA synchronous=FULL;
-CREATE TABLE IF NOT EXISTS migrations(version INTEGER PRIMARY KEY, applied_at INTEGER NOT NULL);
+-- Schema of the first release. Databases created before versioned migrations already record version 1.
 CREATE TABLE IF NOT EXISTS settings(id INTEGER PRIMARY KEY CHECK(id=1), data TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 1);
 CREATE TABLE IF NOT EXISTS rule_versions(id TEXT PRIMARY KEY, version INTEGER NOT NULL UNIQUE, data TEXT NOT NULL, content_hash TEXT NOT NULL, created_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, name TEXT NOT NULL, password_hash TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN ('admin','manager')), active INTEGER NOT NULL DEFAULT 1);
@@ -45,6 +42,4 @@ CREATE TABLE IF NOT EXISTS calendar_events(id TEXT PRIMARY KEY, operation_key TE
 CREATE TABLE IF NOT EXISTS outbox(id TEXT PRIMARY KEY, operation_key TEXT NOT NULL UNIQUE, lead_id TEXT, payload TEXT NOT NULL, created_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS rate_limits(key TEXT PRIMARY KEY, count INTEGER NOT NULL, reset_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS runtime_locks(name TEXT PRIMARY KEY, owner TEXT NOT NULL, expires_at INTEGER NOT NULL);
-INSERT OR IGNORE INTO migrations(version,applied_at) VALUES(1,CAST(strftime('%s','now') AS INTEGER)*1000);
-
 CREATE TABLE IF NOT EXISTS app_metadata(key TEXT PRIMARY KEY,value TEXT NOT NULL);
