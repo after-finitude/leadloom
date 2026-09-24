@@ -199,7 +199,7 @@ export function validateSettings(s: CompanySettings): CompanySettings {
   } catch {
     ensure(false, 'invalid_timezone');
   }
-  ensure(/^[A-Z]{3}$/.test(s.currency), 'invalid_currency');
+  ensure(Intl.supportedValuesOf('currency').includes(s.currency), 'invalid_currency');
   for (const k of ['services', 'areas', 'bannedTopics'] as const) {
     ensure(
       Array.isArray(s[k]) && s[k].length <= 100 && (k === 'bannedTopics' || s[k].length > 0),

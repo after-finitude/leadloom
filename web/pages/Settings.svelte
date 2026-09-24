@@ -20,6 +20,11 @@
     ['scoring', 'Scoring rules'],
     ['followup', 'Email follow-up']
   ];
+  // Suggestions only: the browser list has no UTC alias, and the server accepts any zone
+  // that Intl understands.
+  const timezones = ['UTC', ...Intl.supportedValuesOf('timeZone')];
+  const currencyNames = new Intl.DisplayNames(['en'], { type: 'currency' });
+  const currencyCodes = Intl.supportedValuesOf('currency');
   const saved = resource<Saved>('/settings'),
     rules = resource<Rule[]>('/rules');
   let tab = $state<Tab>('company');
@@ -29,6 +34,12 @@
   // What the open form displays: taken when the tab opens or its layout changes, not on
   // every keystroke, so normalising a draft never rewrites what is being typed.
   let shown = $state<Saved | null>(null);
+  // A saved code the browser does not know stays selectable until it is changed.
+  const currencies = $derived(
+    shown && !currencyCodes.includes(shown.currency)
+      ? [shown.currency, ...currencyCodes]
+      : currencyCodes
+  );
   let form = $state<HTMLFormElement>();
   let saveError = $state('');
   const error = $derived(saved.error || rules.error);
@@ -127,7 +138,7 @@
         tabindex={tab === key ? 0 : -1}
         class:active={tab === key}
         onclick={() => select(key)}
-        >{label}{#if dirty(key)}<span class="unsaved"> · unsaved</span>{/if}</button
+        >{label}{#if dirty(key)}<span class="unsaved">· unsaved</span>{/if}</button
       >{/each}
   </div>
   <div>
@@ -168,8 +179,23 @@
                   label="IANA time zone"
                   name="timezone"
                   value={shown.timezone}
-                  help="For example Asia/Manila or America/New_York"
-                /><Field label="Currency" name="currency" value={shown.currency} /><Field
+                  list="timezones"
+                  help="Start typing a region or city, for example Asia/Manila or America/New_York"
+                />
+                <datalist id="timezones">
+                  {#each timezones as zone (zone)}<option value={zone}></option>{/each}
+                </datalist>
+                <div class="field">
+                  <label for="currency">Currency</label><select
+                    id="currency"
+                    name="currency"
+                    value={shown.currency}
+                    >{#each currencies as code (code)}<option value={code}
+                        >{code} — {currencyNames.of(code)}</option
+                      >{/each}</select
+                  >
+                </div>
+                <Field
                   label="Services, comma-separated"
                   name="services"
                   value={shown.services.join(', ')}

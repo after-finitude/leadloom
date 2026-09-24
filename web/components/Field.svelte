@@ -9,7 +9,8 @@
     required = false,
     error = '',
     min,
-    max
+    max,
+    list
   }: {
     label: string;
     name: string;
@@ -20,6 +21,8 @@
     error?: string;
     min?: number;
     max?: number;
+    // Id of a <datalist> with suggestions.
+    list?: string;
   } = $props();
   let validation = $state('');
   const problem = $derived(error || validation);
@@ -34,6 +37,7 @@
     {required}
     {min}
     {max}
+    {list}
     aria-invalid={problem ? 'true' : undefined}
     aria-describedby={problem ? `${name}-error` : help ? `${name}-help` : undefined}
     oninvalid={(event) => {

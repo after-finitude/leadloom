@@ -98,6 +98,11 @@ test('DST fall-back does not duplicate UTC instants and preserves offsets', () =
 test('invalid configuration and scoring weights are rejected', () => {
   assert.throws(() => validateRules({ ...rules, weights: { ...rules.weights, service: 100 } }));
   assert.throws(() => validateSettings({ ...DEFAULT_SETTINGS, timezone: 'Not/AZone' }));
+  assert.throws(
+    () => validateSettings({ ...DEFAULT_SETTINGS, currency: 'XYZ' }),
+    /invalid_currency/
+  );
+  assert.doesNotThrow(() => validateSettings({ ...DEFAULT_SETTINGS, currency: 'EUR' }));
   assert.throws(() => validateSettings({ ...DEFAULT_SETTINGS, questions: [] }));
 });
 test('encrypted payload is authenticated and not plaintext', () => {
