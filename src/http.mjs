@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
 import { isIP } from 'node:net';
 import { AppError, ensure, allowKeys, sameSecret, hash } from './util.mjs';
+import { VERSION } from './config.mjs';
 
 function cookies(req) {
   const out = {};
@@ -61,6 +62,317 @@ async function readBody(req) {
     throw new AppError('invalid_json', 'Malformed JSON request');
   }
 }
+function providersInfo(app) {
+  return { llm: app.llm.name, calendar: app.calendar.name, email: app.email.name };
+}
+
+// [method, path, options]. `:name` matches one path segment, `:name(a|b)` one of the listed
+// values. `auth` is public, webhook, visitor, staff or admin; the dispatcher checks Origin
+// and CSRF for mutations and rejects body properties outside `keys`. Handlers return the
+// JSON response and may set `r.status`.
+const routes = [
+  [
+    'GET',
+    '/api/health',
+    {
+      auth: 'public',
+      handler: ({ app }) => {
+        app.ping();
+        return {
+          ok: true,
+          version: VERSION,
+          mode: app.c.mode,
+          database: 'SQLite',
+          providers: providersInfo(app)
+        };
+      }
+    }
+  ],
+  [
+    'GET',
+    '/api/meta',
+    {
+      auth: 'public',
+      handler: ({ app }) => {
+        const s = app.settings();
+        return {
+          demo: app.c.mode === 'demo',
+          company: s.company,
+          services: s.services,
+          timezone: s.timezone,
+          providers: providersInfo(app)
+        };
+      }
+    }
+  ],
+  [
+    'POST',
+    '/api/auth/login',
+    {
+      auth: 'public',
+      keys: ['email', 'password'],
+      handler: (r) => {
+        const result = r.app.auth.login(r.body, r.ip);
+        r.setSession('staff', result.raw);
+        return { user: result.user, csrf: result.csrf };
+      }
+    }
+  ],
+  [
+    'POST',
+    '/api/leads/intake',
+    {
+      auth: 'webhook',
+      handler: (r) => {
+        r.limit(`webhook:${hash(r.ip)}`, 120, 60000);
+        const result = r.app.intake(r.body, { source: r.body?.source || 'webhook', web: false });
+        r.status =
+          result.status === 'rejected' ? 422 : result.status === 'needs_resolution' ? 202 : 200;
+        return result;
+      }
+    }
+  ],
+  [
+    'POST',
+    '/api/public/intake',
+    {
+      auth: 'public',
+      handler: (r) => {
+        r.limit(`intake:${hash(r.ip)}`, 30, 3600000);
+        const visitor = r.app.auth.get(r.cookie.ll_visitor, 'visitor');
+        const result = r.app.intake(r.body, { web: true, sessionLead: visitor?.subject_id });
+        if (result.session) {
+          r.setSession('visitor', result.session.raw);
+          r.status = 201;
+          return { status: result.status, csrf: result.session.csrf };
+        }
+        r.status = result.status === 'rejected' ? 422 : 202;
+        return result;
+      }
+    }
+  ],
+  [
+    'POST',
+    '/api/public/chat/access',
+    {
+      auth: 'public',
+      keys: ['token'],
+      handler: (r) => {
+        r.limit(`exchange:${hash(r.ip)}`, 20, 60000);
+        const result = r.app.auth.exchange(r.body.token);
+        r.setSession('visitor', result.raw);
+        return { csrf: result.csrf };
+      }
+    }
+  ],
+  [
+    'POST',
+    '/api/public/unsubscribe',
+    {
+      auth: 'public',
+      keys: ['token'],
+      handler: ({ app, body }) =>
+        app.stop(app.auth.unsubscribeToken(body.token).contact_id, 'email')
+    }
+  ],
+  [
+    'POST',
+    '/api/public/chat/request-access',
+    {
+      auth: 'public',
+      keys: ['email'],
+      handler: ({ app, body }) => app.requestAccess(body.email)
+    }
+  ],
+  [
+    'GET',
+    '/api/public/chat',
+    {
+      auth: 'visitor',
+      handler: ({ app, visitor }) => ({
+        ...app.publicState(visitor.subject_id),
+        csrf: visitor.csrf
+      })
+    }
+  ],
+  [
+    'POST',
+    '/api/public/chat/messages',
+    {
+      auth: 'visitor',
+      keys: ['body', 'key'],
+      status: 202,
+      handler: ({ app, visitor, body }) => app.postMessage(visitor.subject_id, body.body, body.key)
+    }
+  ],
+  [
+    'GET',
+    '/api/public/chat/availability',
+    { auth: 'visitor', handler: ({ app, visitor }) => app.availability(visitor.subject_id) }
+  ],
+  [
+    'POST',
+    '/api/public/chat/appointments',
+    {
+      auth: 'visitor',
+      keys: ['offerId', 'key'],
+      status: 202,
+      handler: ({ app, visitor, body }) => app.book(visitor.subject_id, body.offerId, body.key)
+    }
+  ],
+  [
+    'GET',
+    '/api/me',
+    {
+      auth: 'staff',
+      handler: ({ app, user, session }) => ({
+        user,
+        csrf: session.csrf,
+        demo: app.c.mode === 'demo',
+        providers: providersInfo(app)
+      })
+    }
+  ],
+  [
+    'POST',
+    '/api/auth/logout',
+    {
+      auth: 'staff',
+      handler: (r) => {
+        r.app.auth.logout(r.cookie.ll_staff);
+        r.setSession('staff', '', true);
+        return { ok: true };
+      }
+    }
+  ],
+  ['GET', '/api/users', { auth: 'staff', handler: ({ app }) => app.users() }],
+  ['GET', '/api/leads', { auth: 'staff', handler: ({ app, query }) => app.list(query) }],
+  ['GET', '/api/conversations', { auth: 'staff', handler: ({ app, query }) => app.list(query) }],
+  ['GET', '/api/contacts', { auth: 'staff', handler: ({ app }) => app.contacts() }],
+  [
+    'GET',
+    '/api/leads/:id',
+    { auth: 'staff', handler: ({ app, params }) => app.profile(params.id) }
+  ],
+  [
+    'PATCH',
+    '/api/leads/:id',
+    {
+      auth: 'staff',
+      handler: ({ app, params, body, user }) => app.editFields(params.id, body, user)
+    }
+  ],
+  [
+    'POST',
+    '/api/leads/:id/messages',
+    {
+      auth: 'staff',
+      keys: ['body', 'key'],
+      status: 201,
+      handler: ({ app, params, body, user }) =>
+        app.manualMessage(params.id, body.body, body.key, user)
+    }
+  ],
+  [
+    'POST',
+    '/api/leads/:id/notes',
+    {
+      auth: 'staff',
+      keys: ['body'],
+      status: 201,
+      handler: ({ app, params, body, user }) => app.addNote(params.id, body.body, user)
+    }
+  ],
+  [
+    'POST',
+    '/api/leads/:id/:command(takeover|return-to-ai|pause|resume|restore-consent|stage|assign|recalculate)',
+    {
+      auth: 'staff',
+      handler: ({ app, params, body, user }) => app.control(params.id, params.command, body, user)
+    }
+  ],
+  [
+    'GET',
+    '/api/appointments/:id/availability',
+    { auth: 'staff', handler: ({ app, params }) => app.appointmentAvailability(params.id) }
+  ],
+  [
+    'POST',
+    '/api/appointments/:id/:kind(cancel|reschedule)',
+    {
+      auth: 'staff',
+      status: 202,
+      handler: ({ app, params, body, user }) =>
+        app.appointmentAction(params.id, params.kind, body, user)
+    }
+  ],
+  ['GET', '/api/runs', { auth: 'staff', handler: ({ app }) => app.runs() }],
+  [
+    'POST',
+    '/api/runs/:id/retry',
+    { auth: 'staff', status: 202, handler: ({ app, params, user }) => app.retry(params.id, user) }
+  ],
+  [
+    'POST',
+    '/api/operations/:id/reconcile',
+    { auth: 'staff', handler: ({ app, params }) => app.reconcile(params.id) }
+  ],
+  [
+    'POST',
+    '/api/intake-events/:id/resolve',
+    {
+      auth: 'staff',
+      keys: ['contactId'],
+      handler: ({ app, params, body, user }) =>
+        app.resolveIntake(params.id, body.contactId, user.id)
+    }
+  ],
+  ['GET', '/api/settings', { auth: 'staff', handler: ({ app }) => app.settings() }],
+  ['GET', '/api/rules', { auth: 'staff', handler: ({ app }) => app.ruleVersions() }],
+  [
+    'PUT',
+    '/api/settings',
+    { auth: 'admin', handler: ({ app, body, user }) => app.updateSettings(body, user.id) }
+  ],
+  [
+    'POST',
+    '/api/rules',
+    {
+      auth: 'admin',
+      status: 201,
+      handler: ({ app, body, user }) => app.publishRules(body, user.id)
+    }
+  ],
+  ['GET', '/api/outbox', { auth: 'admin', handler: ({ app }) => app.demoOutbox() }]
+].map(([method, path, options]) => ({
+  method,
+  pattern: new RegExp(
+    `^${path.replace(/:(\w+)(?:\(([^)]*)\))?/g, (_, name, values) => `(?<${name}>${values || '[\\w-]+'})`)}$`
+  ),
+  ...options
+}));
+
+function findRoute(method, path) {
+  for (const route of routes) {
+    const match = route.method === method && route.pattern.exec(path);
+    if (match) return { route, params: match.groups || {} };
+  }
+  return {};
+}
+
+const pages = [
+  '/',
+  '/login',
+  '/chat',
+  '/enquire',
+  '/unsubscribe',
+  '/conversations',
+  '/leads',
+  '/settings',
+  '/activity',
+  '/outbox'
+];
+
 export function createHttp(service) {
   const c = service.c;
   const trustedProxies = new Set((c.trustedProxies || []).map(normalizeIp));
@@ -74,6 +386,16 @@ export function createHttp(service) {
     css: 'text/css',
     svg: 'image/svg+xml',
     woff2: 'font/woff2'
+  };
+  // Built files are read once; a new build is served after a restart.
+  const files = new Map();
+  const readStatic = (name) => {
+    if (!files.has(name)) {
+      const file = new URL(name, assetRoot);
+      if (!existsSync(file)) return null;
+      files.set(name, readFileSync(file));
+    }
+    return files.get(name);
   };
   return createServer(async (req, res) => {
     const requestId = crypto.randomUUID();
@@ -114,234 +436,97 @@ export function createHttp(service) {
         ensure(method === 'GET' || method === 'HEAD', 'method_not_allowed', undefined, 405);
         const asset = path.match(/^\/assets\/[A-Za-z0-9_-]+\.(js|css|svg|woff2)$/);
         if (asset || path === '/favicon.svg') {
-          const file = new URL(path.slice(1), assetRoot);
-          ensure(existsSync(file), 'not_found', 'Asset not found', 404);
+          const data = readStatic(path.slice(1));
+          ensure(data, 'not_found', 'Asset not found', 404);
           res.setHeader('Content-Type', asset ? assetTypes[asset[1]] : 'image/svg+xml');
           res.setHeader(
             'Cache-Control',
             asset ? 'public, max-age=31536000, immutable' : 'public, max-age=300'
           );
-          res.end(method === 'HEAD' ? undefined : readFileSync(file));
+          res.end(method === 'HEAD' ? undefined : data);
           return;
         }
         ensure(
-          [
-            '/',
-            '/login',
-            '/chat',
-            '/enquire',
-            '/unsubscribe',
-            '/conversations',
-            '/leads',
-            '/settings',
-            '/activity',
-            '/outbox'
-          ].includes(path) || /^\/leads\/[a-f0-9-]+$/.test(path),
+          pages.includes(path) || /^\/leads\/[a-f0-9-]+$/.test(path),
           'not_found',
           'Page not found',
           404
         );
+        const html = readStatic('index.html');
         ensure(
-          existsSync(new URL('index.html', assetRoot)),
+          html,
           'frontend_not_built',
           'Run npm run build before npm start, or use npm run dev.',
           503
         );
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.end(method === 'HEAD' ? undefined : readFileSync(new URL('index.html', assetRoot)));
+        res.end(method === 'HEAD' ? undefined : html);
         return;
       }
-      if (path === '/api/health' && method === 'GET') {
-        service.ping();
-        return json({
-          ok: true,
-          version: '1.2.0',
-          mode: c.mode,
-          database: 'SQLite',
-          providers: {
-            llm: service.llm.name,
-            calendar: service.calendar.name,
-            email: service.email.name
-          }
-        });
-      }
-      if (path === '/api/meta' && method === 'GET')
-        return json({
-          demo: c.mode === 'demo',
-          company: service.settings().company,
-          services: service.settings().services,
-          timezone: service.settings().timezone,
-          providers: {
-            llm: service.llm.name,
-            calendar: service.calendar.name,
-            email: service.email.name
-          }
-        });
-      const mutating = !['GET', 'HEAD'].includes(method);
-      if (mutating && path !== '/api/leads/intake')
+      const { route, params } = findRoute(method, path);
+      ensure(route, 'not_found', 'API route not found', 404);
+      const mutating = method !== 'GET';
+      if (mutating && route.auth !== 'webhook')
         ensure(
           req.headers.origin === c.origin,
           'origin_not_allowed',
           'Open the app at its configured APP_ORIGIN',
           403
         );
-      let body = mutating ? await readBody(req) : {};
-      if (path === '/api/auth/login' && method === 'POST') {
-        allowKeys(body, ['email', 'password']);
-        const result = service.auth.login(body, ip);
-        setSession('staff', result.raw);
-        return json({ user: result.user, csrf: result.csrf });
+      const r = {
+        app: service,
+        params,
+        query: Object.fromEntries(url.searchParams),
+        body: mutating ? await readBody(req) : {},
+        cookie,
+        ip,
+        status: route.status || 200,
+        setSession,
+        limit: (key, max, windowMs) => service.s.limit(key, max, windowMs, service.clock())
+      };
+      let visitor = null;
+      if (path.startsWith('/api/public/')) {
+        // A visitor's chat is limited per lead, so visitors behind one address do not collide.
+        if (route.auth === 'visitor') visitor = service.auth.get(cookie.ll_visitor, 'visitor');
+        r.limit(
+          visitor ? `public:lead:${visitor.subject_id}` : `public:ip:${hash(ip)}`,
+          180,
+          60000
+        );
       }
-      if (path === '/api/leads/intake' && method === 'POST') {
+      if (route.auth === 'webhook')
         ensure(
           sameSecret(req.headers.authorization || '', `Bearer ${c.webhookSecret}`),
           'unauthorized',
           'Invalid webhook credentials',
           401
         );
-        service.s.limit(`webhook:${hash(ip)}`, 120, 60000, service.clock());
-        const result = service.intake(body, { source: body?.source || 'webhook', web: false });
-        return json(
-          result,
-          result.status === 'rejected' ? 422 : result.status === 'needs_resolution' ? 202 : 200
-        );
+      if (route.auth === 'visitor') {
+        r.visitor = visitor || service.auth.visitor(cookie.ll_visitor);
+        if (mutating) service.auth.csrf(r.visitor, req.headers['x-csrf-token']);
       }
-      if (path.startsWith('/api/public/')) {
-        const chatSession = service.auth.get(cookie.ll_visitor, 'visitor');
-        const chatRoute = [
-          '/api/public/chat',
-          '/api/public/chat/messages',
-          '/api/public/chat/availability',
-          '/api/public/chat/appointments'
-        ].includes(path);
-        service.s.limit(
-          chatRoute && chatSession
-            ? `public:lead:${chatSession.subject_id}`
-            : `public:ip:${hash(ip)}`,
-          180,
-          60000,
-          service.clock()
-        );
-        if (path === '/api/public/intake' && method === 'POST') {
-          service.s.limit(`intake:${hash(ip)}`, 30, 3600000, service.clock());
-          const visitor = service.auth.get(cookie.ll_visitor, 'visitor');
-          const result = service.intake(body, { web: true, sessionLead: visitor?.subject_id });
-          if (result.session) {
-            setSession('visitor', result.session.raw);
-            return json({ status: result.status, csrf: result.session.csrf }, 201);
-          }
-          return json(result, result.status === 'rejected' ? 422 : 202);
-        }
-        if (path === '/api/public/chat/access' && method === 'POST') {
-          allowKeys(body, ['token']);
-          service.s.limit(`exchange:${hash(ip)}`, 20, 60000, service.clock());
-          const result = service.auth.exchange(body.token);
-          setSession('visitor', result.raw);
-          return json({ csrf: result.csrf });
-        }
-        if (path === '/api/public/unsubscribe' && method === 'POST') {
-          allowKeys(body, ['token']);
-          const access = service.auth.unsubscribeToken(body.token);
-          return json(service.stop(access.contact_id, 'email'));
-        }
-        if (path === '/api/public/chat/request-access' && method === 'POST') {
-          allowKeys(body, ['email']);
-          return json(service.requestAccess(body.email));
-        }
-        const visitor = chatSession || service.auth.visitor(cookie.ll_visitor);
-        if (mutating) service.auth.csrf(visitor, req.headers['x-csrf-token']);
-        if (path === '/api/public/chat' && method === 'GET')
-          return json({ ...service.publicState(visitor.subject_id), csrf: visitor.csrf });
-        if (path === '/api/public/chat/messages' && method === 'POST') {
-          allowKeys(body, ['body', 'key']);
-          return json(service.postMessage(visitor.subject_id, body.body, body.key), 202);
-        }
-        if (path === '/api/public/chat/availability' && method === 'GET')
-          return json(await service.availability(visitor.subject_id));
-        if (path === '/api/public/chat/appointments' && method === 'POST') {
-          allowKeys(body, ['offerId', 'key']);
-          return json(service.book(visitor.subject_id, body.offerId, body.key), 202);
-        }
-        throw new AppError('not_found', 'Public API route not found', 404);
+      if (route.auth === 'staff' || route.auth === 'admin') {
+        Object.assign(r, service.auth.staff(cookie.ll_staff));
+        if (mutating) service.auth.csrf(r.session, req.headers['x-csrf-token']);
+        if (route.auth === 'admin')
+          ensure(r.user.role === 'admin', 'forbidden', 'Administrator required', 403);
       }
-      const { session, user } = service.auth.staff(cookie.ll_staff);
-      if (mutating) service.auth.csrf(session, req.headers['x-csrf-token']);
-      if (path === '/api/me' && method === 'GET')
-        return json({
-          user,
-          csrf: session.csrf,
-          demo: c.mode === 'demo',
-          providers: {
-            llm: service.llm.name,
-            calendar: service.calendar.name,
-            email: service.email.name
-          }
-        });
-      if (path === '/api/auth/logout' && method === 'POST') {
-        service.auth.logout(cookie.ll_staff);
-        setSession('staff', '', true);
-        return json({ ok: true });
-      }
-      if (path === '/api/users' && method === 'GET') return json(service.users());
-      if ((path === '/api/leads' || path === '/api/conversations') && method === 'GET')
-        return json(service.list(Object.fromEntries(url.searchParams)));
-      if (path === '/api/contacts' && method === 'GET') return json(service.contacts());
-      let match;
-      if ((match = path.match(/^\/api\/leads\/([\w-]+)$/))) {
-        if (method === 'GET') return json(service.profile(match[1]));
-        if (method === 'PATCH') return json(service.editFields(match[1], body, user));
-      }
-      if ((match = path.match(/^\/api\/leads\/([\w-]+)\/messages$/)) && method === 'POST') {
-        allowKeys(body, ['body', 'key']);
-        return json(service.manualMessage(match[1], body.body, body.key, user), 201);
-      }
-      if ((match = path.match(/^\/api\/leads\/([\w-]+)\/notes$/)) && method === 'POST') {
-        allowKeys(body, ['body']);
-        return json(service.addNote(match[1], body.body, user), 201);
-      }
-      if (
-        (match = path.match(
-          /^\/api\/leads\/([\w-]+)\/(takeover|return-to-ai|pause|resume|restore-consent|stage|assign|recalculate)$/
-        )) &&
-        method === 'POST'
-      )
-        return json(service.control(match[1], match[2], body, user));
-      if ((match = path.match(/^\/api\/appointments\/([\w-]+)\/availability$/)) && method === 'GET')
-        return json(await service.appointmentAvailability(match[1]));
-      if (
-        (match = path.match(/^\/api\/appointments\/([\w-]+)\/(cancel|reschedule)$/)) &&
-        method === 'POST'
-      )
-        return json(service.appointmentAction(match[1], match[2], body, user), 202);
-      if (path === '/api/runs' && method === 'GET') return json(service.runs());
-      if ((match = path.match(/^\/api\/runs\/([\w-]+)\/retry$/)) && method === 'POST')
-        return json(service.retry(match[1], user), 202);
-      if ((match = path.match(/^\/api\/operations\/([\w-]+)\/reconcile$/)) && method === 'POST')
-        return json(await service.reconcile(match[1]));
-      if ((match = path.match(/^\/api\/intake-events\/([\w-]+)\/resolve$/)) && method === 'POST') {
-        allowKeys(body, ['contactId']);
-        return json(service.resolveIntake(match[1], body.contactId, user.id));
-      }
-      if (path === '/api/settings' && method === 'GET') return json(service.settings());
-      if (path === '/api/rules' && method === 'GET') return json(service.ruleVersions());
-      if (path === '/api/settings' && method === 'PUT') {
-        ensure(user.role === 'admin', 'forbidden', 'Administrator required', 403);
-        return json(service.updateSettings(body, user.id));
-      }
-      if (path === '/api/rules' && method === 'POST') {
-        ensure(user.role === 'admin', 'forbidden', 'Administrator required', 403);
-        return json(service.publishRules(body, user.id), 201);
-      }
-      if (path === '/api/outbox' && method === 'GET') {
-        ensure(user.role === 'admin', 'forbidden', 'Administrator required', 403);
-        return json(service.demoOutbox());
-      }
-      throw new AppError('not_found', 'API route not found', 404);
+      if (route.keys) allowKeys(r.body, route.keys);
+      return json(await route.handler(r), r.status);
     } catch (error) {
-      // Never log request bodies, query strings, tokens or provider response bodies.
+      // Never log request bodies, query strings, tokens or provider response bodies. Error
+      // messages may quote them, so only the stack frames are logged.
       if (!(error instanceof AppError))
         console.error(
-          JSON.stringify({ requestId, code: 'internal_error', type: error?.constructor?.name })
+          JSON.stringify({
+            requestId,
+            code: 'internal_error',
+            type: error?.constructor?.name,
+            stack: String(error?.stack ?? '')
+              .split('\n')
+              .map((line) => line.trim())
+              .filter((line) => line.startsWith('at '))
+          })
         );
       if (!res.headersSent)
         json(

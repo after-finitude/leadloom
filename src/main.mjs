@@ -1,4 +1,4 @@
-import { readEnv, config } from './config.mjs';
+import { readEnv, config, VERSION } from './config.mjs';
 import { Store } from './db.mjs';
 import { Leadloom } from './service.mjs';
 import { createHttp } from './http.mjs';
@@ -15,7 +15,7 @@ server.requestTimeout = 20000;
 server.headersTimeout = 10000;
 server.keepAliveTimeout = 5000;
 server.listen(c.port, c.host, () => {
-  console.log(`Leadloom 1.2.0 · ${c.mode} · ${c.origin}`);
+  console.log(`Leadloom ${VERSION} · ${c.mode} · ${c.origin}`);
   console.log(
     `Providers: LLM=${app.llm.name}, calendar=${app.calendar.name}, email=${app.email.name}`
   );

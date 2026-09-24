@@ -3,6 +3,11 @@ import { resolve, dirname } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { isIP } from 'node:net';
 
+// Release archives keep package.json one level above src, as in the repository.
+export const VERSION = JSON.parse(
+  readFileSync(new URL('../package.json', import.meta.url), 'utf8')
+).version;
+
 // Only local .env is read. Values already supplied by the environment win.
 export function readEnv(path = resolve('.env')) {
   if (!existsSync(path)) return;
