@@ -65,7 +65,7 @@ HTTP tests that load pages require `npm run build` first. The optional native br
 
 These are available commands, not a statement that they were just run. Backup, separate-worker and real-provider procedures are documented in the runbook/integration guide.
 
-Generated output, saved evidence/evaluation reports and archived documentation are excluded from formatting. GitHub Actions runs `npm run check` for pull requests and before deployment from `main`. Run formatting and address lint findings when changing code. No Git hooks run commands during commits.
+Generated output, saved evidence/evaluation reports and archived documentation are excluded from formatting. `npm run check` passes `--no-save` to the build and the mock evaluation, so it does not rewrite `evidence/build.json` or `evaluation/last-run.*`; run `npm run build` or `npm run eval` directly to record new ones. GitHub Actions runs `npm run check` for pull requests and before deployment from `main`. Run formatting and address lint findings when changing code. No Git hooks run commands during commits.
 
 ## Source layout
 

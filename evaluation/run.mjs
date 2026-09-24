@@ -7,6 +7,8 @@ import { id, hash } from '../src/util.mjs';
 import { PROMPT_VERSION } from '../src/providers/llm.mjs';
 readEnv();
 const mock = process.argv.includes('--mock');
+// Routine checks must not replace the tracked report of the last deliberate run.
+const save = !process.argv.includes('--no-save');
 const llmProvider = mock
   ? 'mock'
   : !process.env.LLM_PROVIDER || process.env.LLM_PROVIDER === 'mock'
@@ -144,13 +146,17 @@ const metadata = {
   results
 };
 const report = `# Leadloom evaluation — ${mock ? 'MOCK, not real AI' : `real ${metadata.provider}, controlled mock calendar/email`}\n\nDate: ${metadata.date}\nNode: ${metadata.node}\nModel: ${metadata.model}\nPrompt: ${metadata.prompt}\nFixture SHA-256: ${metadata.fixtureHash}\nService SHA-256: ${metadata.runtimeSourceHash}\n\n## Results\n\n- Scenario assertions passed: ${passed}/${results.length}.\n- Declared field assertions: ${sum('fieldCorrect')}/${sum('fieldTotal')}. These are selected golden fields, not a population estimate.\n- Category matches: ${categoryCorrect}/${results.length}.\n- Expected valid bookings: ${expectedBookings.filter((r) => r.booked).length}/${expectedBookings.length}.\n- False bookings: ${results.filter((r) => r.falseBooking).length}.\n- First chat contact median: ${times[Math.floor(times.length / 2)] ?? 'N/A'} ms; p90: ${times[Math.ceil(times.length * 0.9) - 1] ?? 'N/A'} ms.\n\n${mock ? 'The deterministic parser run does not establish real model accuracy, live email delivery, Google Calendar behavior or production SLA.' : 'Only the LLM is live in this run. Email and calendar remain controlled mocks. No live integration acceptance is implied.'}\n\n| Scenario | Result | Observed category | Notes |\n|---|---|---|---|\n${results.map((r) => `| ${r.id} | ${r.passed ? 'PASS' : 'FAIL'} | ${r.category} | ${r.failures.join('; ').replaceAll('|', '/')} |`).join('\n')}\n`;
-if (existsSync('evaluation/last-run.json')) {
+if (save && existsSync('evaluation/last-run.json')) {
   mkdirSync('evaluation/history', { recursive: true });
   const suffix = Date.now();
   writeFileSync(`evaluation/history/${suffix}.json`, readFileSync('evaluation/last-run.json'));
   writeFileSync(`evaluation/history/${suffix}.md`, readFileSync('evaluation/last-run.md'));
 }
-writeFileSync('evaluation/last-run.json', JSON.stringify(metadata, null, 2));
-writeFileSync('evaluation/last-run.md', report);
-console.log(`\n${passed}/${results.length} scenarios passed. Reports saved in evaluation/.`);
+if (save) {
+  writeFileSync('evaluation/last-run.json', JSON.stringify(metadata, null, 2));
+  writeFileSync('evaluation/last-run.md', report);
+}
+console.log(
+  `\n${passed}/${results.length} scenarios passed. ${save ? 'Reports saved in evaluation/.' : 'Reports not saved (--no-save).'}`
+);
 if (passed !== results.length) process.exitCode = 1;
