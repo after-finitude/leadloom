@@ -52,7 +52,7 @@ export function list(ctx, options = {}) {
       coalesce(sum(${filters.booked}),0) AS booked ${from}`);
   const items = ctx.store
     .all(
-      `${LEAD_SELECT},m.body AS last_body,m.author AS last_author ${LEAD_FROM} LEFT JOIN messages m ON m.seq=(SELECT max(seq) FROM messages WHERE conversation_id=v.id) ${where} ORDER BY l.updated_at DESC,l.id DESC LIMIT ? OFFSET ?`,
+      `${LEAD_SELECT},m.body AS last_body,m.author AS last_author ${LEAD_FROM} LEFT JOIN messages m ON m.seq=(SELECT max(seq) FROM messages WHERE conversation_id=v.id AND pending=0) ${where} ORDER BY l.updated_at DESC,l.id DESC LIMIT ? OFFSET ?`,
       q.trim(),
       pageSize,
       (page - 1) * pageSize

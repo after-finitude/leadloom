@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ResponsesLLM } from '../src/providers/llm.mjs';
+import { ResponsesLLM, validateReply } from '../src/providers/llm.mjs';
 import { config } from '../src/config.mjs';
 import { Store } from '../src/db.mjs';
 import { Leadloom } from '../src/service.mjs';
@@ -222,4 +222,33 @@ test('Resend adapter reuses the provided idempotency key and enforces demo allow
   assert.equal((await mail.send(payload, 'stable-key', 'lead')).id, 'message-id');
   assert.equal(request.headers['Idempotency-Key'], 'stable-key');
   assert.equal(request.body, JSON.stringify(payload));
+});
+test('reply composition uses a strict schema and keeps what the plan requires', async () => {
+  let body;
+  const llm = new ResponsesLLM(
+    { llmKey: 'test-key', llmModel: 'test-model', llmTimeout: 1000 },
+    async (url, options) => {
+      body = JSON.parse(options.body);
+      return json({
+        output: [{ content: [{ type: 'output_text', text: '{"reply":"Где будут работы?"}' }] }]
+      });
+    }
+  );
+  const plan = { planned: 'Which city?', keep: [], history: [], settings: DEFAULT_SETTINGS };
+  assert.deepEqual(await llm.compose(plan), { reply: 'Где будут работы?' });
+  assert.equal(body.text.format.name, 'assistant_reply');
+  assert.equal(body.text.format.strict, true);
+  assert.deepEqual(JSON.parse(body.input[1].content[0].text).planned_message, 'Which city?');
+  const areas = { ...plan, keep: ['Demo City A'] };
+  assert.equal(validateReply({ reply: ' In Demo City A? ' }, areas), 'In Demo City A?');
+  for (const [reply, code] of [
+    ['Somewhere nearby?', 'reply_missing'],
+    ['Demo City A.', 'reply_question'],
+    ['Demo City A? See https://example.test', 'reply_link'],
+    ['', 'reply_length']
+  ])
+    assert.throws(
+      () => validateReply({ reply }, areas),
+      (e) => e.code === code
+    );
 });

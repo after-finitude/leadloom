@@ -1,8 +1,8 @@
-# Leadloom evaluation — MOCK, not real AI
+# Leadloom evaluation — real openrouter, controlled mock calendar/email
 
-Date: 2026-09-25T04:19:20.067Z
+Date: 2026-09-25T04:39:42.660Z
 Node: v24.14.1
-Model: deterministic-parser-1.2
+Model: google/gemini-2.5-flash-lite
 Prompt: leadloom-extraction-1.2.3
 Fixture SHA-256: 37490d82e44936994ccd455049a8c50ac7406a4b5ce117a9a43a6140b560082b
 Service SHA-256: bdc610096442eb8bed3c52260b2a5853293648cf797a52906e298272570a4f12
@@ -16,7 +16,7 @@ Service SHA-256: bdc610096442eb8bed3c52260b2a5853293648cf797a52906e298272570a4f1
 - False bookings: 0.
 - First chat contact median: 1 ms; p90: 1 ms.
 
-The deterministic parser run does not establish real model accuracy, live email delivery, Google Calendar behavior or production SLA.
+Only the LLM is live in this run. Email and calendar remain controlled mocks. No live integration acceptance is implied.
 
 | Scenario | Result | Observed category | Notes |
 |---|---|---|---|

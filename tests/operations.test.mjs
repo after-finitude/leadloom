@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fixture, HOT } from './helpers.mjs';
 import { id, AppError, decrypt } from '../src/util.mjs';
+import { MockLLM } from '../src/providers/llm.mjs';
 async function booking(f) {
   const lid = await f.lead(),
     offers = await f.app.availability(lid);
@@ -267,6 +268,65 @@ test('configured replies reach the chat, and settings saved before replies get d
       f.app.publicState(lid).messages.at(-1).body,
       /Which city.* Our cities: Demo City A and Demo City B\.$/
     );
+  } finally {
+    f.close();
+  }
+});
+test('the model phrases replies, and the planned text is used when it drops a must-keep name', async () => {
+  const plans = [];
+  let reply = 'Отлично, кровля. Мы работаем в Demo City A и Demo City B. В каком городе работы?';
+  const mock = new MockLLM();
+  const f = fixture({
+    providers: {
+      llm: {
+        name: 'phrasing',
+        extract: (input) => mock.extract(input),
+        compose: async (input) => {
+          plans.push(input);
+          return { reply };
+        }
+      }
+    }
+  });
+  try {
+    const lid = await f.lead(null);
+    assert.equal(plans.length, 0, 'the first question is written before any customer message');
+    f.app.postMessage(lid, 'Roofing', id());
+    await f.app.tick();
+    assert.equal(f.app.publicState(lid).messages.at(-1).body, reply);
+    assert.match(plans[0].planned, /^Which city.*Demo City A and Demo City B\.$/);
+    assert.deepEqual(plans[0].keep, ['Demo City A', 'Demo City B']);
+    assert.equal(plans[0].history.at(-1).body, 'Roofing');
+    reply = 'Какой у вас бюджет?';
+    f.app.postMessage(lid, 'Demo City A', id());
+    await f.app.tick();
+    assert.equal(f.app.publicState(lid).messages.at(-1).body, reply);
+    assert.match(plans[1].planned, /^What budget range/);
+    reply = 'Where exactly?';
+    f.app.postMessage(lid, 'Sorry, it is located in Paris', id());
+    await f.app.tick();
+    assert.match(f.app.publicState(lid).messages.at(-1).body, /^Sorry, that location/);
+    assert.ok(
+      f.store.get(
+        "SELECT id FROM audit_events WHERE lead_id=? AND action='reply_template_used' AND details LIKE '%reply_missing%'",
+        lid
+      )
+    );
+  } finally {
+    f.close();
+  }
+});
+test('a hidden reply stays out of the chat until published, even after a crash', async () => {
+  const f = fixture();
+  try {
+    const lid = await f.lead(null);
+    f.app.postMessage(lid, 'Roofing', id());
+    f.app.ctx.messages.add(lid, 'AI', 'Which city?', null, true);
+    assert.equal(f.app.publicState(lid).messages.at(-1).body, 'Roofing');
+    assert.equal(f.app.publicState(lid).typing, true);
+    f.advance(121000);
+    f.app.ctx.messages.publishStale(f.clock() - 120000);
+    assert.equal(f.app.publicState(lid).messages.at(-1).body, 'Which city?');
   } finally {
     f.close();
   }

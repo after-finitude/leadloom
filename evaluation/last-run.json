@@ -1,8 +1,8 @@
 {
-  "date": "2026-09-25T04:19:20.067Z",
+  "date": "2026-09-25T04:39:42.660Z",
   "node": "v24.14.1",
-  "provider": "mock",
-  "model": "deterministic-parser-1.2",
+  "provider": "openrouter",
+  "model": "google/gemini-2.5-flash-lite",
   "prompt": "leadloom-extraction-1.2.3",
   "calendar": "mock",
   "email": "mock",
@@ -36,7 +36,7 @@
       "expectedBooking": true,
       "falseBooking": false,
       "firstContactMs": 12,
-      "elapsedMs": 82
+      "elapsedMs": 2830
     },
     {
       "id": "warm-unknown-budget",
@@ -59,8 +59,8 @@
       "booked": true,
       "expectedBooking": true,
       "falseBooking": false,
-      "firstContactMs": 0,
-      "elapsedMs": 64
+      "firstContactMs": 1,
+      "elapsedMs": 3667
     },
     {
       "id": "unsupported-service",
@@ -79,7 +79,7 @@
       "expectedBooking": false,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 61
+      "elapsedMs": 2063
     },
     {
       "id": "outside-service-area",
@@ -92,8 +92,8 @@
         "location": "Outside City",
         "budget_min": 50000,
         "budget_max": 50000,
-        "timeline": 2,
-        "decision_maker": true
+        "decision_maker": true,
+        "timeline": 2
       },
       "fieldTotal": 1,
       "fieldCorrect": 1,
@@ -103,7 +103,7 @@
       "expectedBooking": false,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 65
+      "elapsedMs": 2248
     },
     {
       "id": "optional-budget-unknown",
@@ -127,7 +127,7 @@
       "expectedBooking": true,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 64
+      "elapsedMs": 7265
     },
     {
       "id": "critical-location-unknown",
@@ -145,8 +145,8 @@
       "booked": false,
       "expectedBooking": false,
       "falseBooking": false,
-      "firstContactMs": 1,
-      "elapsedMs": 64
+      "firstContactMs": 0,
+      "elapsedMs": 6228
     },
     {
       "id": "multi-field-extraction",
@@ -159,8 +159,8 @@
         "location": "Demo City B",
         "budget_min": 15000,
         "budget_max": 25000,
-        "timeline": 5,
-        "decision_maker": true
+        "decision_maker": true,
+        "timeline": 5
       },
       "fieldTotal": 6,
       "fieldCorrect": 6,
@@ -170,7 +170,7 @@
       "expectedBooking": null,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 61
+      "elapsedMs": 2239
     },
     {
       "id": "budget-correction",
@@ -194,7 +194,7 @@
       "expectedBooking": true,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 63
+      "elapsedMs": 4438
     },
     {
       "id": "manual-lock-conflict",
@@ -218,7 +218,7 @@
       "expectedBooking": false,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 61
+      "elapsedMs": 3407
     },
     {
       "id": "human-request",
@@ -235,7 +235,7 @@
       "expectedBooking": false,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 60
+      "elapsedMs": 940
     },
     {
       "id": "negative-sentiment",
@@ -251,8 +251,8 @@
       "booked": false,
       "expectedBooking": false,
       "falseBooking": false,
-      "firstContactMs": 1,
-      "elapsedMs": 59
+      "firstContactMs": 0,
+      "elapsedMs": 928
     },
     {
       "id": "approved-faq",
@@ -276,7 +276,7 @@
       "expectedBooking": null,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 61
+      "elapsedMs": 4241
     },
     {
       "id": "outside-faq",
@@ -293,7 +293,7 @@
       "expectedBooking": false,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 60
+      "elapsedMs": 1873
     },
     {
       "id": "banned-topic",
@@ -310,7 +310,7 @@
       "expectedBooking": false,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 59
+      "elapsedMs": 1310
     },
     {
       "id": "negative-authority",
@@ -333,8 +333,8 @@
       "booked": true,
       "expectedBooking": true,
       "falseBooking": false,
-      "firstContactMs": 0,
-      "elapsedMs": 61
+      "firstContactMs": 1,
+      "elapsedMs": 2341
     },
     {
       "id": "unknown-timeline",
@@ -357,8 +357,8 @@
       "booked": true,
       "expectedBooking": true,
       "falseBooking": false,
-      "firstContactMs": 1,
-      "elapsedMs": 62
+      "firstContactMs": 0,
+      "elapsedMs": 4080
     },
     {
       "id": "no-repeat-known-fields",
@@ -381,8 +381,8 @@
       "booked": false,
       "expectedBooking": null,
       "falseBooking": false,
-      "firstContactMs": 0,
-      "elapsedMs": 60
+      "firstContactMs": 1,
+      "elapsedMs": 2183
     },
     {
       "id": "stop-after-qualification",
@@ -406,7 +406,7 @@
       "expectedBooking": false,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 60
+      "elapsedMs": 2248
     },
     {
       "id": "nurture-no-booking",
@@ -429,8 +429,8 @@
       "booked": false,
       "expectedBooking": false,
       "falseBooking": false,
-      "firstContactMs": 0,
-      "elapsedMs": 59
+      "firstContactMs": 1,
+      "elapsedMs": 2508
     },
     {
       "id": "email-required",
@@ -454,7 +454,7 @@
       "expectedBooking": false,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 61
+      "elapsedMs": 2098
     },
     {
       "id": "prompt-injection-blocked",
@@ -471,7 +471,7 @@
       "expectedBooking": false,
       "falseBooking": false,
       "firstContactMs": 0,
-      "elapsedMs": 60
+      "elapsedMs": 985
     },
     {
       "id": "unknown-authority",
@@ -495,7 +495,7 @@
       "expectedBooking": true,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 62
+      "elapsedMs": 3843
     },
     {
       "id": "service-correction-hard-reject",
@@ -519,7 +519,7 @@
       "expectedBooking": false,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 61
+      "elapsedMs": 4315
     },
     {
       "id": "budget-crosses-threshold",
@@ -532,8 +532,8 @@
         "location": "Demo City A",
         "budget_min": 5000,
         "budget_max": 15000,
-        "timeline": 2,
-        "decision_maker": true
+        "decision_maker": true,
+        "timeline": 2
       },
       "fieldTotal": 2,
       "fieldCorrect": 2,
@@ -543,7 +543,7 @@
       "expectedBooking": true,
       "falseBooking": false,
       "firstContactMs": 0,
-      "elapsedMs": 61
+      "elapsedMs": 2256
     }
   ]
 }

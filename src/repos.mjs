@@ -96,20 +96,41 @@ export class Messages {
     this.s = store;
     this.clock = clock;
   }
-  add(leadId, author, body, clientKey = null) {
+  add(leadId, author, body, clientKey = null, pending = false) {
     const conversation = this.s.get('SELECT id FROM conversations WHERE lead_id=?', leadId),
       mid = id();
     ensure(conversation, 'lead_not_found', 'Lead not found', 404);
     this.s.run(
-      'INSERT INTO messages(id,conversation_id,author,body,client_key,created_at) VALUES(?,?,?,?,?,?)',
+      'INSERT INTO messages(id,conversation_id,author,body,client_key,pending,created_at) VALUES(?,?,?,?,?,?,?)',
       mid,
       conversation.id,
       author,
       body,
       clientKey,
+      pending ? 1 : 0,
       this.clock()
     );
     return mid;
+  }
+  // The same repository, except that assistant messages are saved hidden until published.
+  drafts() {
+    return Object.assign(Object.create(this), {
+      add: (leadId, author, body, clientKey = null) =>
+        this.add(leadId, author, body, clientKey, author === 'AI')
+    });
+  }
+  pending(conversationId) {
+    return this.s.all(
+      'SELECT id,body FROM messages WHERE conversation_id=? AND pending=1 ORDER BY seq',
+      conversationId
+    );
+  }
+  publish(messageId, body) {
+    this.s.run('UPDATE messages SET body=?,pending=0 WHERE id=? AND pending=1', body, messageId);
+  }
+  // Drafts a crashed worker left behind are shown with their planned text.
+  publishStale(before) {
+    this.s.run('UPDATE messages SET pending=0 WHERE pending=1 AND created_at<?', before);
   }
   byClientKey(conversationId, key) {
     return this.s.get(
@@ -120,7 +141,7 @@ export class Messages {
   }
   history(conversationId) {
     return this.s.all(
-      'SELECT id,author,body,created_at FROM messages WHERE conversation_id=? ORDER BY seq',
+      'SELECT id,author,body,created_at FROM messages WHERE conversation_id=? AND pending=0 ORDER BY seq',
       conversationId
     );
   }

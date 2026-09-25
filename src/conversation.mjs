@@ -8,7 +8,7 @@ import {
   maySendAccess,
   scoreLead
 } from './rules.mts';
-import { validateExtraction } from './providers/llm.mjs';
+import { validateExtraction, validateReply } from './providers/llm.mjs';
 import { BOOKABLE_CATEGORIES } from './domain.mts';
 import { score } from './qualification.mjs';
 import {
@@ -199,7 +199,38 @@ export async function turn(ctx, leadId) {
       return { handoff: true };
     });
   }
-  return ctx.store.tx(() => applyExtraction(ctx, leadId, l.revision, messages, result));
+  // Replies from this turn stay hidden until composeReplies has phrased and published them.
+  const drafting = { ...ctx, messages: ctx.messages.drafts() };
+  const applied = ctx.store.tx(() =>
+    applyExtraction(drafting, leadId, l.revision, messages, result)
+  );
+  await composeReplies(ctx, leadId);
+  return applied;
+}
+
+// Lets the model phrase this turn's replies in the customer's language and the brand voice.
+// The planned text is published instead whenever the model fails or drops what it must keep.
+async function composeReplies(ctx, leadId) {
+  const l = ctx.leads.get(leadId);
+  for (const draft of ctx.messages.pending(l.conversation_id)) {
+    let body = draft.body;
+    if (ctx.llm.compose)
+      try {
+        const input = {
+          planned: draft.body,
+          keep: ctx.workspace.rules(l.rule_id).data.areas.filter((a) => draft.body.includes(a)),
+          history: ctx.messages
+            .history(l.conversation_id)
+            .slice(-12)
+            .map(({ author, body }) => ({ author, body })),
+          settings: ctx.workspace.settings()
+        };
+        body = validateReply(await ctx.llm.compose(input), input);
+      } catch (error) {
+        ctx.audit.add(leadId, 'reply_template_used', { code: error.code || 'compose_failed' });
+      }
+    ctx.messages.publish(draft.id, body);
+  }
 }
 
 function applyExtraction(ctx, leadId, snapshot, messages, result) {

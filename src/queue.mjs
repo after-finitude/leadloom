@@ -19,6 +19,7 @@ export class Worker {
     try {
       this.cleanup();
       this.recoverLeases();
+      this.ctx.messages.publishStale(this.ctx.clock() - 120000);
       while (processed < max) {
         const action = this.claim(workerId);
         if (!action) break;
