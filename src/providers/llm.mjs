@@ -139,6 +139,19 @@ export class MockLLM {
     else if (/\b(?:plumbing|electrical|painting|car repair|gardening)\b/i.test(body)) {
       const found = body.match(/\b(?:plumbing|electrical|painting|car repair|gardening)\b/i)[0];
       add('service_type', found.toLowerCase(), found);
+    } else if (
+      currentField === 'service_type' &&
+      /^[a-z][a-z -]{2,50}$/i.test(body.trim()) &&
+      !settings.areas.some((a) => lower.includes(a.toLowerCase())) &&
+      !/know|sure|maybe|unknown|rather|skip|no idea|^(?:hello|hey|thanks|thank you|ok|okay)\b/i.test(
+        body.trim()
+      )
+    ) {
+      // A short reply to the service question is the requested service, supported or not.
+      const found = body
+        .trim()
+        .replace(/^(?:i (?:want|need)|looking for)\s+(?:(?:a|an|some)\s+)?/i, '');
+      add('service_type', found.toLowerCase(), found);
     }
     for (const area of settings.areas)
       if (lower.includes(area.toLowerCase())) {

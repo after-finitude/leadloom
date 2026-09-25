@@ -177,6 +177,22 @@ test('unsupported location names the service area and a corrected city requalifi
     f.close();
   }
 });
+test('an unsupported free-text service names the offered services', async () => {
+  const f = fixture();
+  try {
+    const lid = await f.lead('I want beer');
+    assert.equal(f.app.lead(lid).fields.service_type, 'beer');
+    assert.equal(f.app.lead(lid).category, 'Unqualified');
+    assert.equal(f.app.lead(lid).current_field, 'service_type');
+    assert.match(f.app.publicState(lid).messages.at(-1).body, /roofing, extensions/);
+    f.app.postMessage(lid, 'Roofing', id());
+    await f.app.tick();
+    assert.equal(f.app.lead(lid).fields.service_type, 'roofing');
+    assert.equal(f.app.lead(lid).current_field, 'location');
+  } finally {
+    f.close();
+  }
+});
 test('email is required before automatic booking', async () => {
   const f = fixture();
   try {
