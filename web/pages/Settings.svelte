@@ -339,13 +339,15 @@
                 Fixed messages in the customer chat. Questions and FAQ answers are edited in their
                 own sections.
               </p>
-              {#each Object.entries(REPLIES) as [key, [label, hint]] (key)}<div class="field">
-                  <label for={`reply_${key}`}>{label}</label><textarea
-                    id={`reply_${key}`}
-                    name={`reply_${key}`}
-                    value={shown.replies[key as keyof typeof REPLIES]}></textarea>
-                  {#if hint}<p class="help">{hint}</p>{/if}
-                </div>{/each}
+              <div class="stack">
+                {#each Object.entries(REPLIES) as [key, [label, hint]] (key)}<div class="field">
+                    <label for={`reply_${key}`}>{label}</label><textarea
+                      id={`reply_${key}`}
+                      name={`reply_${key}`}
+                      value={shown.replies[key as keyof typeof REPLIES]}></textarea>
+                    {#if hint}<p class="help">{hint}</p>{/if}
+                  </div>{/each}
+              </div>
             {:else if tab === 'followup'}<h2>Follow up, without overstepping</h2>
               <p class="description">
                 Three touches per sequence, per lead. Replies, takeover, booking, pause and opt-out
