@@ -210,7 +210,7 @@ export function manualMessage(ctx, leadId, body, key, actor) {
       );
       return { id: previous.id };
     }
-    ctx.leads.bump(leadId, { owner: 'HUMAN', owner_id: actor.id });
+    ctx.leads.bump(leadId, { owner: 'HUMAN', owner_id: actor.id, open_question: null });
     cancelPending(ctx, leadId, 'manual_reply');
     const mid = ctx.messages.add(leadId, 'manager', body, key);
     ctx.audit.add(leadId, 'manual_reply', { messageId: mid }, { actor: actor.id });
@@ -257,7 +257,7 @@ function applyExtraction(ctx, leadId, snapshot, messages, result) {
     return { stale: true };
   }
   const processed = { processed_seq: messages.at(-1).seq };
-  if (result.handoff) {
+  if (result.handoff && result.handoff !== 'outside_faq') {
     ctx.leads.update(leadId, processed);
     handoff(ctx, leadId, result.handoff);
     return { handoff: true };
@@ -286,13 +286,22 @@ function applyExtraction(ctx, leadId, snapshot, messages, result) {
     ctx.leads.serviceTaken(latest.contact_id, fields.service_type, leadId)
   )
     conflict = true;
+  // A question the FAQ cannot answer waits for staff while qualification continues.
+  const question = result.handoff === 'outside_faq';
   ctx.leads.update(leadId, {
     fields,
     meta,
     skipped: [...skipped],
     ...processed,
-    service_key: fields.service_type || latest.service_key
+    service_key: fields.service_type || latest.service_key,
+    ...(question && {
+      open_question: [latest.open_question, ...messages.map((m) => m.body)]
+        .filter(Boolean)
+        .join('\n')
+        .slice(0, 2000)
+    })
   });
+  if (question) ctx.audit.add(leadId, 'question_for_team', {}, { actor: 'AI' });
   if (conflict) {
     remindIfBookable(ctx, score(ctx, leadId));
     handoff(ctx, leadId, 'locked_field_conflict');
@@ -375,7 +384,15 @@ function continueQualification(ctx, latest, fields, skipped, result) {
     (q.field === 'email'
       ? !!ctx.leads.get(leadId).email
       : known(fields, q.field) || skipped.has(q.field));
-  if (q && !answered && !result.faq_id && (latest.asked[q.field] || 0) >= 3) {
+  const faq = result.faq_id
+      ? ctx.workspace.settings().faq.find((f) => f.id === result.faq_id)
+      : null,
+    reply = faq
+      ? faq.answer
+      : result.handoff === 'outside_faq'
+        ? 'I cannot answer that here, so I have passed your question to our team. A team member will reply in this chat.'
+        : null;
+  if (q && !answered && !reply && (latest.asked[q.field] || 0) >= 3) {
     if (q.required) {
       remindIfBookable(ctx, score(ctx, leadId));
       handoff(ctx, leadId, `required_${q.field}_unknown`);
@@ -387,14 +404,11 @@ function continueQualification(ctx, latest, fields, skipped, result) {
   }
   ctx.leads.bump(leadId);
   remindIfBookable(ctx, score(ctx, leadId));
-  const faq = result.faq_id
-    ? ctx.workspace.settings().faq.find((f) => f.id === result.faq_id)
-    : null;
-  // FAQ answers do not spend a clarification attempt or re-ask the current question.
-  if (faq && q && !answered) {
-    ctx.messages.add(leadId, 'AI', faq.answer);
+  // FAQ answers and questions for the team do not spend a clarification attempt or re-ask the current question.
+  if (reply && q && !answered) {
+    ctx.messages.add(leadId, 'AI', reply);
     beginWait(ctx, leadId, 'qualification_abandoned');
-  } else askNext(ctx, leadId, false, faq ? `${faq.answer} ` : '');
+  } else askNext(ctx, leadId, false, reply ? `${reply} ` : '');
   ctx.audit.add(
     leadId,
     'qualification_updated',

@@ -1020,6 +1020,17 @@ textarea[aria-invalid='true'] {
   font-size: 12px;
   line-height: 1.6;
 }
+.attention.question {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.inbox .attention.question {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
 .attention.red {
   background: var(--alert-surface);
   border-color: var(--alert-line);

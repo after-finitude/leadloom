@@ -179,6 +179,8 @@
               }}>Restore consent separately</button
             >{/if}{#if lead.review_reason}<div class="attention">
               {lead.review_reason.replaceAll('_', ' ')}
+            </div>{/if}{#if lead.open_question}<div class="attention question">
+              Question for the team: {lead.open_question}
             </div>{/if}
         </div>
       </section>

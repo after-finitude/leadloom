@@ -8,6 +8,7 @@ const LEAD_COLUMNS = new Set([
   'owner_id',
   'paused',
   'review_reason',
+  'open_question',
   'lost_reason',
   'revision',
   'fields',

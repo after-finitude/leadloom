@@ -65,6 +65,8 @@ export interface LeadEligibility {
   opt_out: boolean | 0 | 1;
   verified_email: boolean | 0 | 1;
   review_reason: string | null;
+  // A visitor question the FAQ could not answer; it waits for staff without stopping automation.
+  open_question: string | null;
   stage: LeadStage;
   qualification: 'collecting' | 'complete';
   category: LeadCategory;
@@ -198,6 +200,7 @@ export type LeadSummary = Pick<
   | 'stage'
   | 'category'
   | 'review_reason'
+  | 'open_question'
   | 'last_message'
 >;
 export interface LeadList {

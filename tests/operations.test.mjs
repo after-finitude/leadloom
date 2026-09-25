@@ -216,6 +216,36 @@ test('questions name the covered options and a repeated question admits the miss
     f.close();
   }
 });
+test('a question outside the FAQ waits for the team while qualification continues', async () => {
+  const f = fixture();
+  try {
+    const attention = () => f.app.list({ filter: 'attention' }).items.map((l) => l.id);
+    const lid = await f.lead('Do you work on weekends?');
+    let l = f.app.lead(lid);
+    assert.equal(l.owner, 'AI');
+    assert.equal(l.review_reason, null);
+    assert.equal(l.open_question, 'Do you work on weekends?');
+    assert.match(f.app.publicState(lid).messages.at(-1).body, /passed your question to our team/);
+    assert.ok(attention().includes(lid));
+    f.app.postMessage(lid, 'Roofing', id());
+    await f.app.tick();
+    l = f.app.lead(lid);
+    assert.equal(l.current_field, 'location');
+    assert.equal(l.asked.service_type, 1);
+    f.app.control(lid, 'answered', {}, f.actor);
+    assert.equal(f.app.lead(lid).open_question, null);
+    assert.equal(f.app.lead(lid).owner, 'AI');
+    assert.ok(!attention().includes(lid));
+    assert.ok(f.store.get("SELECT id FROM actions WHERE lead_id=? AND state='pending'", lid));
+    f.app.postMessage(lid, 'Is there a warranty?', id());
+    await f.app.tick();
+    assert.equal(f.app.lead(lid).open_question, 'Is there a warranty?');
+    f.app.manualMessage(lid, 'Yes, five years.', id(), f.actor);
+    assert.equal(f.app.lead(lid).open_question, null);
+  } finally {
+    f.close();
+  }
+});
 test('email is required before automatic booking', async () => {
   const f = fixture();
   try {

@@ -36,6 +36,11 @@
     This contact has opted out. Automated and manual outreach are blocked.
   </div>{:else if lead.review_reason}<div class="attention">
     Needs a team member · {lead.review_reason.replaceAll('_', ' ')}
+  </div>{/if}{#if lead.open_question && !lead.opt_out}<div
+    class="attention question"
+    title={lead.open_question}
+  >
+    Question for the team · {lead.open_question}
   </div>{/if}
 <Messages messages={lead.messages} name={lead.name} />
 <Composer

@@ -20,6 +20,7 @@ All routes use the `/api` prefix. The public client does not supply trusted lead
 | POST /leads/:id/messages                              | Manual reply {body,key} with Take over                                                                             |
 | POST /leads/:id/notes                                 | Internal note {body}                                                                                               |
 | POST /leads/:id/takeover, return-to-ai, pause, resume | Independent controls; reason required when resolving a review                                                      |
+| POST /leads/:id/answered                              | Clears the visitor question waiting for the team; pending automation is kept                                       |
 | POST /leads/:id/restore-consent                       | Admin only: reason, confirmed:true                                                                                 |
 | POST /leads/:id/stage, assign, recalculate            | Stage / manager / explicit switch to the current scoring version                                                   |
 | GET /appointments/:id/availability                    | Allowed intervals for staff rescheduling                                                                           |

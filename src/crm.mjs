@@ -30,7 +30,8 @@ export function list(ctx, options = {}) {
   );
   const filters = {
     all: '1',
-    attention: "l.review_reason IS NOT NULL AND l.review_reason<>'' AND c.opt_out=0",
+    attention:
+      "((l.review_reason IS NOT NULL AND l.review_reason<>'') OR l.open_question IS NOT NULL) AND c.opt_out=0",
     ai: `l.owner='AI' AND l.paused=0 AND c.opt_out=0 AND (l.review_reason IS NULL OR l.review_reason='') AND l.stage NOT IN (${sqlList(['Booked', ...NO_AUTOMATION_STAGES])})`,
     human: "l.owner='HUMAN'",
     booked: "l.stage='Booked'",
@@ -115,7 +116,7 @@ export function profile(ctx, leadId) {
   };
 }
 
-// Staff commands. Each runs after pending automation for the lead is cancelled.
+// Staff commands. Each except `answered` runs after pending automation for the lead is cancelled.
 const commands = {
   takeover(ctx, l, body, actor) {
     ctx.leads.bump(l.id, { owner: 'HUMAN', owner_id: actor.id });
@@ -133,6 +134,11 @@ const commands = {
   },
   resume(ctx, l) {
     ctx.leads.bump(l.id, { paused: 0 });
+  },
+  // No revision bump: a reply the assistant is preparing stays valid.
+  answered(ctx, l) {
+    ensure(l.open_question, 'no_open_question', 'No question is waiting for the team', 409);
+    ctx.leads.update(l.id, { open_question: null });
   },
   'restore-consent'(ctx, l, body, actor) {
     ensure(actor.role === 'admin', 'forbidden', 'Administrator required', 403);
@@ -175,7 +181,8 @@ export function control(ctx, leadId, command, body, actor) {
   ensure(Object.hasOwn(commands, command), 'invalid_command', 'Unknown action', 404);
   return ctx.store.tx(() => {
     const l = ctx.leads.get(leadId);
-    cancelPending(ctx, leadId, `staff_${command}`);
+    // Marking a question answered leaves the conversation to the assistant.
+    if (command !== 'answered') cancelPending(ctx, leadId, `staff_${command}`);
     commands[command](ctx, l, body, actor);
     ctx.audit.add(
       leadId,

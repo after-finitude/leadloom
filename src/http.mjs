@@ -311,7 +311,7 @@ const table = [
   ],
   [
     'POST',
-    '/api/leads/:id/:command(takeover|return-to-ai|pause|resume|restore-consent|stage|assign|recalculate)',
+    '/api/leads/:id/:command(takeover|return-to-ai|pause|resume|answered|restore-consent|stage|assign|recalculate)',
     {
       auth: 'staff',
       handler: ({ app, params, body, user }) => app.control(params.id, params.command, body, user)

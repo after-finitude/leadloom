@@ -28,4 +28,9 @@
   disabled={busy(`lead:${lead.id}`)}
   onclick={() => control(lead.paused ? 'resume' : 'pause')}
   >{lead.paused ? 'Resume' : compact ? 'Pause' : 'Pause automation'}</button
->
+>{#if lead.open_question}<button
+    class="btn"
+    class:subtle={compact}
+    disabled={busy(`lead:${lead.id}`)}
+    onclick={() => control('answered')}>Mark question answered</button
+  >{/if}
