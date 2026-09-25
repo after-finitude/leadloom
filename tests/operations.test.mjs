@@ -248,6 +248,29 @@ test('a question outside the FAQ waits for the team while qualification continue
     f.close();
   }
 });
+test('configured replies reach the chat, and settings saved before replies get defaults', async () => {
+  const f = fixture();
+  try {
+    const { replies, ...stored } = f.app.settings();
+    delete stored.revision;
+    f.store.run('UPDATE settings SET data=? WHERE id=1', JSON.stringify(stored));
+    assert.deepEqual(f.app.settings().replies, replies);
+    f.app.updateSettings(
+      {
+        ...f.app.settings(),
+        replies: { ...replies, area_options: 'Our cities: {areas}.' }
+      },
+      f.actor.id
+    );
+    const lid = await f.lead('Roofing');
+    assert.match(
+      f.app.publicState(lid).messages.at(-1).body,
+      /Which city.* Our cities: Demo City A and Demo City B\.$/
+    );
+  } finally {
+    f.close();
+  }
+});
 test('email is required before automatic booking', async () => {
   const f = fixture();
   try {

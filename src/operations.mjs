@@ -4,7 +4,7 @@ import { availableSlots, working, overlaps, timeLabel } from './time.mts';
 import { eventId } from './providers/calendar.mjs';
 import { BOOKABLE_CATEGORIES } from './domain.mts';
 import { summary } from './qualification.mjs';
-import { cancelPending, handoff, firstContact, beginWait } from './lifecycle.mjs';
+import { cancelPending, handoff, firstContact, beginWait, reply } from './lifecycle.mjs';
 
 /** @returns {Promise<import('./types.ts').Availability>} */
 export async function availability(ctx, leadId, reschedule = false) {
@@ -302,7 +302,9 @@ export function finishOperation(ctx, op, result) {
       ctx.messages.add(
         op.lead_id,
         'system',
-        `Your consultation is confirmed for ${timeLabel(p.start, p.timezone)} (${p.timezone}).`
+        reply(ctx, 'booking_confirmed', {
+          time: `${timeLabel(p.start, p.timezone)} (${p.timezone})`
+        })
       );
     ctx.store.run(
       'INSERT INTO notes(id,lead_id,body,created_at) VALUES(?,?,?,?)',

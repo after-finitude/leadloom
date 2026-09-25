@@ -4,7 +4,13 @@
   import { ui, submit, busy, notify } from '../lib/workspace.svelte.ts';
   import { resource } from '../lib/resource.svelte.ts';
   import type { CompanySettings, Rule, ScoringRules } from '../lib/types.ts';
-  import { SEQUENCES, readSettingsTab, changed, type SettingsTab } from '../lib/settings-form.ts';
+  import {
+    SEQUENCES,
+    REPLIES,
+    readSettingsTab,
+    changed,
+    type SettingsTab
+  } from '../lib/settings-form.ts';
   import { tabKeydown } from '../lib/tabs.ts';
   import Heading from '../components/Heading.svelte';
   import Field from '../components/Field.svelte';
@@ -17,6 +23,7 @@
     ['company', 'Company & availability'],
     ['questions', 'Qualification'],
     ['faq', 'Knowledge & safety'],
+    ['replies', 'Assistant replies'],
     ['scoring', 'Scoring rules'],
     ['followup', 'Email follow-up']
   ];
@@ -299,8 +306,8 @@
                 </div>{/each}
             {:else if tab === 'faq'}<h2>Answers grounded in your business</h2>
               <p class="description">
-                Only these approved answers are used. Questions beyond the FAQ are passed to a
-                person.
+                Only these approved answers are used. Questions beyond the FAQ are flagged for the
+                team while the assistant continues.
               </p>
               {#each shown.faq as faq, i (faq.id)}<div class="faq-item">
                   <Field
@@ -327,6 +334,18 @@
                   name="bannedTopics"
                   value={shown.bannedTopics.join('\n')}></textarea>
               </div>
+            {:else if tab === 'replies'}<h2>What the assistant says</h2>
+              <p class="description">
+                Fixed messages in the customer chat. Questions and FAQ answers are edited in their
+                own sections.
+              </p>
+              {#each Object.entries(REPLIES) as [key, [label, hint]] (key)}<div class="field">
+                  <label for={`reply_${key}`}>{label}</label><textarea
+                    id={`reply_${key}`}
+                    name={`reply_${key}`}
+                    value={shown.replies[key as keyof typeof REPLIES]}></textarea>
+                  {#if hint}<p class="help">{hint}</p>{/if}
+                </div>{/each}
             {:else if tab === 'followup'}<h2>Follow up, without overstepping</h2>
               <p class="description">
                 Three touches per sequence, per lead. Replies, takeover, booking, pause and opt-out
@@ -371,6 +390,7 @@
                   company: 'Save company settings',
                   questions: 'Save questions',
                   faq: 'Save knowledge',
+                  replies: 'Save replies',
                   followup: 'Save follow-up settings'
                 }[tab]}</button
               >

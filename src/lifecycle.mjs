@@ -4,6 +4,13 @@ import { id, hash, stable, parse, ensure, escapeHtml } from './util.mjs';
 import { mayAutomate, mayBook } from './rules.mts';
 import { summary } from './qualification.mjs';
 
+// A configured chat message with its {placeholders} filled in.
+export function reply(ctx, key, values = {}) {
+  return ctx.workspace
+    .settings()
+    .replies[key].replace(/\{(\w+)\}/g, (token, name) => values[name] ?? token);
+}
+
 // Stops queued work for a lead. Access links survive everything except an opt-out.
 export function cancelPending(ctx, leadId, reason) {
   const queued = ctx.store.all("SELECT * FROM actions WHERE lead_id=? AND state='pending'", leadId);
@@ -48,11 +55,7 @@ export function handoff(ctx, leadId, reason) {
     note,
     ctx.clock()
   );
-  ctx.messages.add(
-    leadId,
-    'system',
-    'Your conversation has been passed to our team. A team member will continue here during working hours.'
-  );
+  ctx.messages.add(leadId, 'system', reply(ctx, 'handoff'));
   ctx.audit.add(leadId, 'handoff', { reason });
 }
 

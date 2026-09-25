@@ -1,4 +1,5 @@
-import { ensure, text, email } from './util.mjs';
+import { ensure, text, email, allowKeys } from './util.mjs';
+import { DEFAULT_SETTINGS } from './defaults.mts';
 import type {
   CompanySettings,
   LeadEligibility,
@@ -282,6 +283,19 @@ export function validateSettings(s: CompanySettings): CompanySettings {
   }
   text(s.followup.subject, 200);
   text(s.followup.text, 2000);
+  const replies = Object.keys(DEFAULT_SETTINGS.replies) as (keyof CompanySettings['replies'])[];
+  allowKeys(s.replies, replies);
+  for (const key of replies) text(s.replies[key], 1000);
+  for (const [key, token] of [
+    ['service_options', '{services}'],
+    ['area_options', '{areas}'],
+    ['booking_confirmed', '{time}']
+  ] as const)
+    ensure(
+      s.replies[key].includes(token),
+      'invalid_replies',
+      `Keep ${token} in the ${key.replaceAll('_', ' ')} reply`
+    );
   return s;
 }
 export function validateRules(r: ScoringRules): ScoringRules {

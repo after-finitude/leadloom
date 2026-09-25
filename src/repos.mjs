@@ -1,6 +1,7 @@
 // Data access shared by more than one module. Queries used by a single module stay there.
 import { id, hash, stable, parse, encrypt, decrypt, ensure } from './util.mjs';
 import { CLOSED_STAGES, sqlList } from './domain.mts';
+import { DEFAULT_SETTINGS } from './defaults.mts';
 
 const LEAD_COLUMNS = new Set([
   'stage',
@@ -225,8 +226,14 @@ export class Workspace {
   }
   /** @returns {import('./types.ts').CompanySettings & { revision: number }} */
   settings() {
-    const row = this.s.get('SELECT * FROM settings WHERE id=1');
-    return { ...parse(row.data), revision: row.revision };
+    const row = this.s.get('SELECT * FROM settings WHERE id=1'),
+      data = parse(row.data);
+    // Settings saved before a reply existed get its default text.
+    return {
+      ...data,
+      replies: { ...DEFAULT_SETTINGS.replies, ...data.replies },
+      revision: row.revision
+    };
   }
   /** @returns {import('./types.ts').Rule} */
   rules(ruleId) {

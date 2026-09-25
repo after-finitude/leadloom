@@ -105,6 +105,21 @@ test('invalid configuration and scoring weights are rejected', () => {
   assert.doesNotThrow(() => validateSettings({ ...DEFAULT_SETTINGS, currency: 'EUR' }));
   assert.throws(() => validateSettings({ ...DEFAULT_SETTINGS, questions: [] }));
 });
+test('assistant replies keep their placeholders and known keys', () => {
+  const replies = (patch) => ({
+    ...DEFAULT_SETTINGS,
+    replies: { ...DEFAULT_SETTINGS.replies, ...patch }
+  });
+  assert.throws(
+    () => validateSettings(replies({ area_options: 'We work nearby.' })),
+    (e) => e.code === 'invalid_replies'
+  );
+  assert.throws(
+    () => validateSettings(replies({ greeting: 'Hi' })),
+    (e) => e.code === 'unknown_field'
+  );
+  assert.doesNotThrow(() => validateSettings(replies({ area_options: 'Our cities: {areas}.' })));
+});
 test('encrypted payload is authenticated and not plaintext', () => {
   const key = 'a'.repeat(64),
     cipher = encrypt({ token: 'secret-value' }, key);

@@ -21,6 +21,22 @@ export interface AvailabilitySettings {
   minimumNotice: number;
 }
 
+// Fixed messages in the customer chat. {services}, {areas} and {time} are filled in when sent.
+export interface Replies {
+  not_understood: string;
+  service_options: string;
+  area_options: string;
+  service_unsupported: string;
+  area_unsupported: string;
+  out_of_scope: string;
+  question_for_team: string;
+  email_question: string;
+  ready_to_book: string;
+  details_saved: string;
+  handoff: string;
+  booking_confirmed: string;
+}
+
 export interface CompanySettings extends AvailabilitySettings {
   company: string;
   currency: string;
@@ -37,6 +53,7 @@ export interface CompanySettings extends AvailabilitySettings {
     text: string;
   };
   bannedTopics: string[];
+  replies: Replies;
 }
 
 export interface ScoringRules {

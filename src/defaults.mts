@@ -54,7 +54,26 @@ export const DEFAULT_SETTINGS: CompanySettings = {
     subject: 'Your home improvement enquiry',
     text: 'Ready to continue? You can return to your secure conversation using the link below.'
   },
-  bannedTopics: ['weapons', 'illegal drugs', 'money laundering']
+  bannedTopics: ['weapons', 'illegal drugs', 'money laundering'],
+  replies: {
+    not_understood: "Sorry, I didn't catch that.",
+    service_options: 'We offer {services}.',
+    area_options: 'We currently work in {areas}.',
+    service_unsupported: 'Sorry, that is not a service we offer.',
+    area_unsupported: 'Sorry, that location is outside our service area.',
+    out_of_scope:
+      'If your project fits, just tell me and we will continue. Otherwise your enquiry is saved for our team.',
+    question_for_team:
+      'I cannot answer that here, so I have passed your question to our team. A team member will reply in this chat.',
+    email_question: 'What email address should we use for your consultation details?',
+    ready_to_book:
+      'Thanks — I have the project details. Use “Choose a consultation time” below to see current availability.',
+    details_saved:
+      'Thank you — your project details are saved. Our team can review the next steps with you.',
+    handoff:
+      'Your conversation has been passed to our team. A team member will continue here during working hours.',
+    booking_confirmed: 'Your consultation is confirmed for {time}.'
+  }
 };
 export function newRules(
   settings: CompanySettings,

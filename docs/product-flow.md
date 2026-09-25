@@ -133,13 +133,14 @@ Emails contain separate chat and unsubscribe links:
 
 ## 6. Configuration and operational exceptions
 
-| Settings area          | Configure                                                                                                                                          |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Company & availability | Name, IANA zone, currency, services/coverage, hours/days, duration, buffer, horizon, notice, deduplication and brand voice. No overnight schedule. |
-| Qualification          | Question wording/order and required flags; service/location remain required.                                                                       |
-| Knowledge & safety     | Approved FAQ answers, matching phrases and topics requiring a person. **Add FAQ** creates a draft; populate and save.                              |
-| Scoring rules          | Weights summing to 100, budget threshold and Hot/Warm cutoffs. Publishing creates an immutable version with current coverage/currency.             |
-| Email follow-up        | Three ascending delays per sequence and shared subject/body.                                                                                       |
+| Settings area          | Configure                                                                                                                                                                                                                           |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Company & availability | Name, IANA zone, currency, services/coverage, hours/days, duration, buffer, horizon, notice, deduplication and brand voice. No overnight schedule.                                                                                  |
+| Qualification          | Question wording/order and required flags; service/location remain required.                                                                                                                                                        |
+| Knowledge & safety     | Approved FAQ answers, matching phrases and topics requiring a person. **Add FAQ** creates a draft; populate and save.                                                                                                               |
+| Assistant replies      | Fixed chat messages: service and area lists, unsupported service/location, repeated question, question for the team, completion, handoff and booking confirmation. `{services}`, `{areas}` and `{time}` must stay in their replies. |
+| Scoring rules          | Weights summing to 100, budget threshold and Hot/Warm cutoffs. Publishing creates an immutable version with current coverage/currency.                                                                                              |
+| Email follow-up        | Three ascending delays per sequence and shared subject/body.                                                                                                                                                                        |
 
 Each form saves independently. Invalid values are rejected; a stale settings revision requires reload. Coverage/currency changes do not publish rules automatically: publish a version and recalculate selected existing leads when needed. Current coverage still gates booking even for an old Hot score. Keep FAQ/question wording aligned with company changes.
 

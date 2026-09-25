@@ -16,6 +16,7 @@ import {
   handoff,
   firstContact,
   emailPayload,
+  reply,
   beginWait,
   remindIfBookable
 } from './lifecycle.mjs';
@@ -48,28 +49,23 @@ export function askNext(ctx, leadId, markFirst = false, prefix = '') {
     ctx.messages.add(
       leadId,
       'AI',
-      `${prefix}${
-        field === 'service_type'
-          ? 'Sorry, that is not a service we offer.'
-          : 'Sorry, that location is outside our service area.'
-      } ${coverage(ctx, l, field)} If your project fits, just tell me and we will continue. Otherwise your enquiry is saved for our team.`
+      `${prefix}${reply(ctx, field === 'service_type' ? 'service_unsupported' : 'area_unsupported')} ${coverage(ctx, l, field)} ${reply(ctx, 'out_of_scope')}`
     );
     ctx.leads.update(leadId, { current_field: field });
   } else if (l.qualification === 'complete') {
     if (BOOKABLE_CATEGORIES.includes(l.category) && !l.email) {
       question = {
         field: 'email',
-        text: 'What email address should we use for your consultation details?'
+        text: reply(ctx, 'email_question')
       };
     } else {
       ctx.messages.add(
         leadId,
         'AI',
-        `${prefix}${
-          BOOKABLE_CATEGORIES.includes(l.category)
-            ? 'Thanks — I have the project details. Use “Choose a consultation time” below to see current availability.'
-            : 'Thank you — your project details are saved. Our team can review the next steps with you.'
-        }`
+        `${prefix}${reply(
+          ctx,
+          BOOKABLE_CATEGORIES.includes(l.category) ? 'ready_to_book' : 'details_saved'
+        )}`
       );
       ctx.leads.update(leadId, { current_field: null });
     }
@@ -79,7 +75,7 @@ export function askNext(ctx, leadId, markFirst = false, prefix = '') {
     const asked = { ...l.asked, [question.field]: (l.asked[question.field] || 0) + 1 };
     // A repeated question admits the miss; service and city questions name the options.
     const parts = [
-      l.current_field === question.field ? "Sorry, I didn't catch that." : '',
+      l.current_field === question.field ? reply(ctx, 'not_understood') : '',
       question.text,
       coverage(ctx, l, question.field)
     ].filter(Boolean);
@@ -94,8 +90,9 @@ export function askNext(ctx, leadId, markFirst = false, prefix = '') {
 function coverage(ctx, lead, field) {
   const rules = ctx.workspace.rules(lead.rule_id).data,
     list = (items) => new Intl.ListFormat('en', { type: 'conjunction' }).format(items);
-  if (field === 'service_type') return `We offer ${list(rules.services)}.`;
-  if (field === 'location') return `We currently work in ${list(rules.areas)}.`;
+  if (field === 'service_type')
+    return reply(ctx, 'service_options', { services: list(rules.services) });
+  if (field === 'location') return reply(ctx, 'area_options', { areas: list(rules.areas) });
   return '';
 }
 
@@ -342,12 +339,12 @@ function continueQualification(ctx, latest, fields, skipped, result) {
   const faq = result.faq_id
       ? ctx.workspace.settings().faq.find((f) => f.id === result.faq_id)
       : null,
-    reply = faq
+    answer = faq
       ? faq.answer
       : result.handoff === 'outside_faq'
-        ? 'I cannot answer that here, so I have passed your question to our team. A team member will reply in this chat.'
+        ? reply(ctx, 'question_for_team')
         : null;
-  if (q && !answered && !reply && (latest.asked[q.field] || 0) >= 3) {
+  if (q && !answered && !answer && (latest.asked[q.field] || 0) >= 3) {
     if (q.required) {
       remindIfBookable(ctx, score(ctx, leadId));
       handoff(ctx, leadId, `required_${q.field}_unknown`);
@@ -360,10 +357,10 @@ function continueQualification(ctx, latest, fields, skipped, result) {
   ctx.leads.bump(leadId);
   remindIfBookable(ctx, score(ctx, leadId));
   // FAQ answers and questions for the team do not spend a clarification attempt or re-ask the current question.
-  if (reply && q && !answered) {
-    ctx.messages.add(leadId, 'AI', reply);
+  if (answer && q && !answered) {
+    ctx.messages.add(leadId, 'AI', answer);
     beginWait(ctx, leadId, 'qualification_abandoned');
-  } else askNext(ctx, leadId, false, reply ? `${reply} ` : '');
+  } else askNext(ctx, leadId, false, answer ? `${answer} ` : '');
   ctx.audit.add(
     leadId,
     'qualification_updated',
