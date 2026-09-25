@@ -121,7 +121,6 @@ export function redact(value) {
     .replace(/\+\d[\d ()-]{6,}\d/g, '[phone]')
     .replace(/(?:Bearer\s+)[A-Za-z0-9._-]+/g, 'Bearer [redacted]');
 }
-export const iso = (ms) => new Date(ms).toISOString();
 export const escapeHtml = (value) =>
   String(value).replace(
     /[&<>"']/g,
