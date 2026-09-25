@@ -1,31 +1,12 @@
 import type { CompanySettings, Replies, ScoringRules } from './types.ts';
+import { REPLIES } from '../../src/domain.mts';
+export { REPLIES };
 import { value, list } from './format.ts';
 
 export const SETTINGS_TABS = ['company', 'questions', 'faq', 'replies', 'followup'] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
 export const WEIGHTS = ['service', 'location', 'budget', 'urgency', 'authority'] as const;
 export const SEQUENCES = ['qualification_abandoned', 'qualified_not_booked'] as const;
-// Label and, where needed, a hint for each chat reply, in the order of a conversation.
-export const REPLIES: Record<keyof Replies, [label: string, hint?: string]> = {
-  service_options: [
-    'Services on offer',
-    'Added to the service question and to the unsupported-service reply. {services} becomes the list.'
-  ],
-  area_options: [
-    'Service area',
-    'Added to the location question and to the outside-area reply. {areas} becomes the list.'
-  ],
-  not_understood: ['Before a repeated question'],
-  service_unsupported: ['Service not offered'],
-  area_unsupported: ['Location outside the service area'],
-  out_of_scope: ['After an unsupported service or location'],
-  question_for_team: ['Question the FAQ cannot answer'],
-  email_question: ['Asking for an email before booking'],
-  ready_to_book: ['Qualification complete, booking available'],
-  details_saved: ['Qualification complete, no automatic booking'],
-  handoff: ['Conversation passed to the team'],
-  booking_confirmed: ['Consultation confirmed', '{time} becomes the date, time and time zone.']
-};
 
 // Reads one settings tab and returns only the settings that tab edits. `shown` is what the
 // form displays, for the question order and FAQ ids.

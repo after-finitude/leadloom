@@ -8,7 +8,7 @@ import type {
   ScoreResult,
   ScoringRules
 } from './types.ts';
-import { BOOKABLE_CATEGORIES, CLOSED_STAGES, NO_AUTOMATION_STAGES } from './domain.mts';
+import { BOOKABLE_CATEGORIES, CLOSED_STAGES, NO_AUTOMATION_STAGES, REPLIES } from './domain.mts';
 
 export const FIELDS: (keyof LeadFields)[] = [
   'service_type',
@@ -294,7 +294,7 @@ export function validateSettings(s: CompanySettings): CompanySettings {
     ensure(
       s.replies[key].includes(token),
       'invalid_replies',
-      `Keep ${token} in the ${key.replaceAll('_', ' ')} reply`
+      `Keep ${token} in “${REPLIES[key][0]}”`
     );
   return s;
 }

@@ -1,3 +1,5 @@
+import type { Replies } from './types.ts';
+
 // Lead vocabulary shared by SQL, rules and the browser.
 export const STAGES = [
   'New',
@@ -23,3 +25,26 @@ export type ListFilter = (typeof LIST_FILTERS)[number];
 
 // For the constants above only: renders them as an SQL `IN (...)` list.
 export const sqlList = (values: readonly string[]) => values.map((v) => `'${v}'`).join(',');
+
+// Label and, where needed, a hint for each configurable chat reply, in the order of a
+// conversation. The settings form shows them and validation errors name the label.
+export const REPLIES: Record<keyof Replies, [label: string, hint?: string]> = {
+  service_options: [
+    'Services on offer',
+    'Added to the service question and to the unsupported-service reply. {services} becomes the list.'
+  ],
+  area_options: [
+    'Service area',
+    'Added to the location question and to the outside-area reply. {areas} becomes the list.'
+  ],
+  not_understood: ['Before a repeated question'],
+  service_unsupported: ['Service not offered'],
+  area_unsupported: ['Location outside the service area'],
+  out_of_scope: ['After an unsupported service or location'],
+  question_for_team: ['Question the FAQ cannot answer'],
+  email_question: ['Asking for an email before booking'],
+  ready_to_book: ['Qualification complete, booking available'],
+  details_saved: ['Qualification complete, no automatic booking'],
+  handoff: ['Conversation passed to the team'],
+  booking_confirmed: ['Consultation confirmed', '{time} becomes the date, time and time zone.']
+};

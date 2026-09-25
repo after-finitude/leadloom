@@ -112,7 +112,7 @@ test('assistant replies keep their placeholders and known keys', () => {
   });
   assert.throws(
     () => validateSettings(replies({ area_options: 'We work nearby.' })),
-    (e) => e.code === 'invalid_replies'
+    (e) => e.code === 'invalid_replies' && e.message === 'Keep {areas} in “Service area”'
   );
   assert.throws(
     () => validateSettings(replies({ greeting: 'Hi' })),
