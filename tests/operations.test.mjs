@@ -316,6 +316,38 @@ test('the model phrases replies, and the planned text is used when it drops a mu
     f.close();
   }
 });
+test('a failed phrasing attempt is retried once before the planned text is used', async () => {
+  let calls = 0;
+  const mock = new MockLLM();
+  const f = fixture({
+    providers: {
+      llm: {
+        name: 'flaky',
+        extract: (input) => mock.extract(input),
+        compose: async () => {
+          if (++calls === 1) throw new AppError('llm_http_503', 'Unavailable', 502);
+          return { reaction: 'Nice.', reply: 'Which city? Demo City A or Demo City B.' };
+        }
+      }
+    }
+  });
+  try {
+    const lid = await f.lead(null);
+    f.app.postMessage(lid, 'Roofing', id());
+    await f.app.tick();
+    assert.equal(calls, 2);
+    assert.equal(
+      f.app.publicState(lid).messages.at(-1).body,
+      'Nice. Which city? Demo City A or Demo City B.'
+    );
+    assert.equal(
+      f.store.get("SELECT id FROM audit_events WHERE action='reply_template_used'"),
+      undefined
+    );
+  } finally {
+    f.close();
+  }
+});
 test('a hidden reply stays out of the chat until published, even after a crash', async () => {
   const f = fixture();
   try {

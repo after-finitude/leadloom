@@ -209,26 +209,32 @@ export async function turn(ctx, leadId) {
 }
 
 // Lets the model phrase this turn's replies in the customer's language and the brand voice.
-// The planned text is published instead whenever the model fails or drops what it must keep.
+// After two failed or invalid attempts the planned text is published instead.
 async function composeReplies(ctx, leadId) {
-  const l = ctx.leads.get(leadId);
+  const l = ctx.leads.get(leadId),
+    { services, areas } = ctx.workspace.rules(l.rule_id).data;
   for (const draft of ctx.messages.pending(l.conversation_id)) {
     let body = draft.body;
-    if (ctx.llm.compose)
-      try {
-        const input = {
-          planned: draft.body,
-          keep: ctx.workspace.rules(l.rule_id).data.areas.filter((a) => draft.body.includes(a)),
-          history: ctx.messages
-            .history(l.conversation_id)
-            .slice(-12)
-            .map(({ author, body }) => ({ author, body })),
-          settings: ctx.workspace.settings()
-        };
-        body = validateReply(await ctx.llm.compose(input), input);
-      } catch (error) {
-        ctx.audit.add(leadId, 'reply_template_used', { code: error.code || 'compose_failed' });
-      }
+    if (ctx.llm.compose) {
+      const input = {
+        planned: draft.body,
+        keep: areas.filter((a) => draft.body.includes(a)),
+        facts: { services, areas },
+        history: ctx.messages
+          .history(l.conversation_id)
+          .slice(-12)
+          .map(({ author, body }) => ({ author, body })),
+        settings: ctx.workspace.settings()
+      };
+      for (let attempt = 0; attempt < 2; attempt++)
+        try {
+          body = validateReply(await ctx.llm.compose(input), input);
+          break;
+        } catch (error) {
+          if (attempt)
+            ctx.audit.add(leadId, 'reply_template_used', { code: error.code || 'compose_failed' });
+        }
+    }
     ctx.messages.publish(draft.id, body);
   }
 }

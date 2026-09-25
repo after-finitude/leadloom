@@ -230,17 +230,30 @@ test('reply composition uses a strict schema and keeps what the plan requires', 
     async (url, options) => {
       body = JSON.parse(options.body);
       return json({
-        output: [{ content: [{ type: 'output_text', text: '{"reply":"Где будут работы?"}' }] }]
+        output: [
+          {
+            content: [{ type: 'output_text', text: '{"reaction":"","reply":"Где будут работы?"}' }]
+          }
+        ]
       });
     }
   );
   const plan = { planned: 'Which city?', keep: [], history: [], settings: DEFAULT_SETTINGS };
-  assert.deepEqual(await llm.compose(plan), { reply: 'Где будут работы?' });
+  assert.deepEqual(await llm.compose(plan), { reaction: '', reply: 'Где будут работы?' });
+  assert.deepEqual(body.text.format.schema.required, ['reaction', 'reply']);
   assert.equal(body.text.format.name, 'assistant_reply');
   assert.equal(body.text.format.strict, true);
   assert.deepEqual(JSON.parse(body.input[1].content[0].text).planned_message, 'Which city?');
   const areas = { ...plan, keep: ['Demo City A'] };
   assert.equal(validateReply({ reply: ' In Demo City A? ' }, areas), 'In Demo City A?');
+  assert.equal(
+    validateReply({ reaction: 'We do not sell beer.', reply: 'In Demo City A?' }, areas),
+    'We do not sell beer. In Demo City A?'
+  );
+  assert.throws(
+    () => validateReply({ reaction: 'Beer?', reply: 'In Demo City A?' }, areas),
+    (e) => e.code === 'reply_reaction'
+  );
   for (const [reply, code] of [
     ['Somewhere nearby?', 'reply_missing'],
     ['Demo City A.', 'reply_question'],
