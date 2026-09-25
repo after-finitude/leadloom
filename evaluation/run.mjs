@@ -56,7 +56,7 @@ for (const scenario of fixtures) {
       await app.tick();
     }
     actual = app.lead(lid);
-    if (actual.category !== scenario.category)
+    if (scenario.category !== undefined && actual.category !== scenario.category)
       failures.push(`Category ${actual.category}; expected ${scenario.category}`);
     if (scenario.handoff !== undefined && !!actual.review_reason !== scenario.handoff)
       failures.push(`Handoff ${!!actual.review_reason}; expected ${scenario.handoff}`);
@@ -126,7 +126,9 @@ for (const scenario of fixtures) {
 mkdirSync('evaluation', { recursive: true });
 const sum = (key) => results.reduce((n, r) => n + (r[key] || 0), 0),
   passed = results.filter((r) => r.passed).length,
-  categoryCorrect = results.filter((r) => r.category === r.expectedCategory).length,
+  categoryCorrect = results.filter(
+    (r) => r.expectedCategory === undefined || r.category === r.expectedCategory
+  ).length,
   expectedBookings = results.filter((r) => r.expectedBooking === true),
   times = results
     .map((r) => r.firstContactMs)

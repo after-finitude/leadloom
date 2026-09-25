@@ -252,3 +252,47 @@ test('reply composition uses a strict schema and keeps what the plan requires', 
       (e) => e.code === code
     );
 });
+test('a prohibited-topic handoff needs a second, narrow confirmation', async () => {
+  const banned = { updates: [], unknown: [], handoff: 'banned_topic', faq_id: null };
+  const text = (value) =>
+    json({ output: [{ content: [{ type: 'output_text', text: JSON.stringify(value) }] }] });
+  for (const [check, handoff] of [
+    [{ topic: 'none' }, null],
+    [{ topic: 'illegal drugs' }, 'banned_topic'],
+    [null, 'banned_topic']
+  ]) {
+    const bodies = [];
+    const llm = new ResponsesLLM(
+      { llmKey: 'test-key', llmModel: 'test-model', llmTimeout: 1000 },
+      async (url, options) => {
+        bodies.push(JSON.parse(options.body));
+        if (bodies.length === 1) return text(banned);
+        return check ? text(check) : json({}, 500);
+      }
+    );
+    const result = await llm.extract({ ...input, body: 'Do you sell beer?' });
+    assert.equal(result.handoff, handoff);
+    assert.equal(bodies[1].text.format.name, 'banned_topic_check');
+    assert.deepEqual(bodies[1].text.format.schema.properties.topic.enum, [
+      ...DEFAULT_SETTINGS.bannedTopics,
+      'none'
+    ]);
+  }
+});
+test('a FAQ match that is also outside the FAQ goes to the team after the repair attempt', async () => {
+  let calls = 0;
+  const llm = new ResponsesLLM(
+    { llmKey: 'test-key', llmModel: 'test-model', llmTimeout: 1000 },
+    async () => {
+      calls++;
+      const answer = { updates: [], unknown: [], handoff: 'outside_faq', faq_id: 'services' };
+      return json({
+        output: [{ content: [{ type: 'output_text', text: JSON.stringify(answer) }] }]
+      });
+    }
+  );
+  const result = await llm.extract({ ...input, body: 'Can you guarantee the resale value?' });
+  assert.equal(calls, 2);
+  assert.equal(result.handoff, 'outside_faq');
+  assert.equal(result.faq_id, null);
+});

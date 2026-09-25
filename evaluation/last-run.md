@@ -1,17 +1,17 @@
 # Leadloom evaluation — real openrouter, controlled mock calendar/email
 
-Date: 2026-09-25T04:39:42.660Z
+Date: 2026-09-25T05:09:40.241Z
 Node: v24.14.1
 Model: google/gemini-2.5-flash-lite
 Prompt: leadloom-extraction-1.2.3
-Fixture SHA-256: 37490d82e44936994ccd455049a8c50ac7406a4b5ce117a9a43a6140b560082b
+Fixture SHA-256: 7b6975d1895643127df674c7b37df34bcb7c35ca0d82fa4e1b9cbc85063ab84f
 Service SHA-256: bdc610096442eb8bed3c52260b2a5853293648cf797a52906e298272570a4f12
 
 ## Results
 
-- Scenario assertions passed: 24/24.
+- Scenario assertions passed: 25/25.
 - Declared field assertions: 38/38. These are selected golden fields, not a population estimate.
-- Category matches: 24/24.
+- Category matches: 25/25.
 - Expected valid bookings: 8/8.
 - False bookings: 0.
 - First chat contact median: 1 ms; p90: 1 ms.
@@ -33,6 +33,7 @@ Only the LLM is live in this run. Email and calendar remain controlled mocks. No
 | negative-sentiment | PASS | Nurture |  |
 | approved-faq | PASS | Hot |  |
 | outside-faq | PASS | Nurture |  |
+| legal-product-not-banned | PASS | Unqualified |  |
 | banned-topic | PASS | Nurture |  |
 | negative-authority | PASS | Hot |  |
 | unknown-timeline | PASS | Hot |  |
