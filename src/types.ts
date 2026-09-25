@@ -218,6 +218,8 @@ export interface PublicChat {
   appointment: Pick<Appointment, 'start_at' | 'end_at' | 'timezone' | 'status'> | null;
   booking_issue: { id: string; message: string } | null;
   messages: Message[];
+  // The assistant has an unanswered visitor message and will reply.
+  typing: boolean;
   demo: boolean;
   providers: Providers;
   csrf: string;

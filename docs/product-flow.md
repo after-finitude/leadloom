@@ -56,7 +56,7 @@ Won/Lost are excluded from active-deal matching; Proposal remains active for thi
 
 ## 2. Qualification and scoring
 
-Default question order is service → location → budget → timeline → decision maker. Service/location are required. The assistant asks one question at a time but can extract several fields from one answer.
+Default question order is service → location → budget → timeline → decision maker. Service/location are required. The assistant asks one question at a time but can extract several fields from one answer. Service and location questions name the covered services and areas; a repeated question says the previous answer was not understood. The customer chat shows a typing indicator while the assistant is replying.
 
 Budget uses known minimum/maximum bounds; timeline is the conservative upper bound in months. Unknown values remain unknown. Optional questions are still asked and must be answered or skipped to complete the normal flow. After repeated unsuccessful clarification, an optional field can be skipped; an unknown required field causes handoff.
 

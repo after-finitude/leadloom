@@ -20,6 +20,14 @@
     slots = null;
     void availability();
   });
+  // While the assistant is replying, check for its answer every second instead of every three.
+  $effect(() => {
+    if (!chat.typing) return;
+    const timer = setInterval(() => {
+      if (!document.hidden) refreshPublic().catch(report);
+    }, 1000);
+    return () => clearInterval(timer);
+  });
   async function send(body: string) {
     await post('/public/chat/messages', { body, key: pendingKey('visitor-message', body) }, true);
     clearPending('visitor-message');
@@ -101,7 +109,17 @@
             : 'Your project assistant is here. You can ask for a person at any time.'}
     </div>
     <Messages messages={chat.messages} name={chat.name} publicView
-      >{#if chat.appointment}<AppointmentCard
+      >{#if chat.typing}<div class="message typing" role="status">
+          <div class="avatar" aria-hidden="true"><Icon name="spark" /></div>
+          <div class="message-content">
+            <div class="message-bubble">
+              <span class="visually-hidden">The assistant is typing</span><span
+                class="typing-dots"
+                aria-hidden="true"><i></i><i></i><i></i></span
+              >
+            </div>
+          </div>
+        </div>{/if}{#if chat.appointment}<AppointmentCard
           appointment={chat.appointment}
           calendar={chat.providers.calendar}
           publicView

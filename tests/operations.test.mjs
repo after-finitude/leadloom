@@ -193,6 +193,29 @@ test('an unsupported free-text service names the offered services', async () => 
     f.close();
   }
 });
+test('questions name the covered options and a repeated question admits the miss', async () => {
+  const f = fixture();
+  try {
+    const lid = await f.lead(null);
+    assert.match(f.app.publicState(lid).messages.at(-1).body, /We offer roofing, extensions/);
+    f.app.postMessage(lid, 'Roofing', id());
+    assert.equal(f.app.publicState(lid).typing, true);
+    await f.app.tick();
+    assert.equal(f.app.publicState(lid).typing, false);
+    assert.match(
+      f.app.publicState(lid).messages.at(-1).body,
+      /^Which city.*We currently work in Demo City A and Demo City B\.$/
+    );
+    f.app.postMessage(lid, '123', id());
+    await f.app.tick();
+    assert.match(
+      f.app.publicState(lid).messages.at(-1).body,
+      /^Sorry, I didn't catch that\. Which city/
+    );
+  } finally {
+    f.close();
+  }
+});
 test('email is required before automatic booking', async () => {
   const f = fixture();
   try {

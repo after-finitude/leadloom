@@ -69,18 +69,16 @@ export function askNext(ctx, leadId, markFirst = false, prefix = '') {
   let question = null;
   if (l.category === 'Unqualified') {
     // Name what we do cover and keep listening, so a corrected answer requalifies the lead.
-    const rules = ctx.workspace.rules(l.rule_id).data,
-      { serviceFit } = scoreLead(l.fields, rules),
-      list = (items) => new Intl.ListFormat('en', { type: 'conjunction' }).format(items),
+    const { serviceFit } = scoreLead(l.fields, ctx.workspace.rules(l.rule_id).data),
       field = serviceFit === false ? 'service_type' : 'location';
     ctx.messages.add(
       leadId,
       'AI',
       `${prefix}${
         field === 'service_type'
-          ? `Sorry, that is not a service we offer. We can help with ${list(rules.services)}.`
-          : `Sorry, that location is outside our service area. We currently work in ${list(rules.areas)}.`
-      } If your project fits, just tell me and we will continue. Otherwise your enquiry is saved for our team.`
+          ? 'Sorry, that is not a service we offer.'
+          : 'Sorry, that location is outside our service area.'
+      } ${coverage(ctx, l, field)} If your project fits, just tell me and we will continue. Otherwise your enquiry is saved for our team.`
     );
     ctx.leads.update(leadId, { current_field: field });
   } else if (l.qualification === 'complete') {
@@ -105,11 +103,26 @@ export function askNext(ctx, leadId, markFirst = false, prefix = '') {
     question = s.questions.find((q) => !known(l.fields, q.field) && !l.skipped.includes(q.field));
   if (question) {
     const asked = { ...l.asked, [question.field]: (l.asked[question.field] || 0) + 1 };
-    ctx.messages.add(leadId, 'AI', `${prefix}${question.text}`);
+    // A repeated question admits the miss; service and city questions name the options.
+    const parts = [
+      l.current_field === question.field ? "Sorry, I didn't catch that." : '',
+      question.text,
+      coverage(ctx, l, question.field)
+    ].filter(Boolean);
+    ctx.messages.add(leadId, 'AI', `${prefix}${parts.join(' ')}`);
     ctx.leads.update(leadId, { current_field: question.field, asked });
   }
   if (markFirst) firstContact(ctx, leadId, 'chat');
   if (question) beginWait(ctx, leadId, 'qualification_abandoned');
+}
+
+// What the company covers for a field, from the lead's own rules version.
+function coverage(ctx, lead, field) {
+  const rules = ctx.workspace.rules(lead.rule_id).data,
+    list = (items) => new Intl.ListFormat('en', { type: 'conjunction' }).format(items);
+  if (field === 'service_type') return `We offer ${list(rules.services)}.`;
+  if (field === 'location') return `We currently work in ${list(rules.areas)}.`;
+  return '';
 }
 
 export function emailPayload(ctx, leadId, subject, body) {
@@ -409,7 +422,8 @@ export function publicState(ctx, leadId) {
     booking = ctx.store.get(
       "SELECT id,state,error_code FROM operations WHERE lead_id=? AND kind='booking' ORDER BY created_at DESC,rowid DESC LIMIT 1",
       leadId
-    );
+    ),
+    messages = ctx.messages.history(l.conversation_id);
   return {
     company: s.company,
     name: l.name,
@@ -431,7 +445,8 @@ export function publicState(ctx, leadId) {
                   : 'We could not confirm your booking. No appointment was created.'
           }
         : null,
-    messages: ctx.messages.history(l.conversation_id),
+    messages,
+    typing: mayAutomate(l) && messages.at(-1)?.author === 'lead',
     demo: ctx.config.mode === 'demo',
     providers: { llm: ctx.llm.name, calendar: ctx.calendar.name, email: ctx.email.name }
   };
