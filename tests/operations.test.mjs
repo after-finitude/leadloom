@@ -227,6 +227,7 @@ test('a question outside the FAQ waits for the team while qualification continue
     assert.equal(l.open_question, 'Do you work on weekends?');
     assert.match(f.app.publicState(lid).messages.at(-1).body, /passed your question to our team/);
     assert.ok(attention().includes(lid));
+    assert.equal(f.app.publicState(lid).question_pending, true);
     f.app.postMessage(lid, 'Roofing', id());
     await f.app.tick();
     l = f.app.lead(lid);
@@ -236,6 +237,7 @@ test('a question outside the FAQ waits for the team while qualification continue
     assert.equal(f.app.lead(lid).open_question, null);
     assert.equal(f.app.lead(lid).owner, 'AI');
     assert.ok(!attention().includes(lid));
+    assert.equal(f.app.publicState(lid).question_pending, false);
     assert.ok(f.store.get("SELECT id FROM actions WHERE lead_id=? AND state='pending'", lid));
     f.app.postMessage(lid, 'Is there a warranty?', id());
     await f.app.tick();

@@ -461,6 +461,7 @@ export function publicState(ctx, leadId) {
         : null,
     messages,
     typing: mayAutomate(l) && messages.at(-1)?.author === 'lead',
+    question_pending: !!l.open_question,
     demo: ctx.config.mode === 'demo',
     providers: { llm: ctx.llm.name, calendar: ctx.calendar.name, email: ctx.email.name }
   };

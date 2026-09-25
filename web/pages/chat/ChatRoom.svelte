@@ -108,6 +108,12 @@
             ? 'Automation is paused. Your messages are saved.'
             : 'Your project assistant is here. You can ask for a person at any time.'}
     </div>
+    {#if chat.demo && !chat.stopped && (chat.owner === 'HUMAN' || chat.question_pending)}<div
+        class="public-status demo-note"
+      >
+        <Icon name="users" />Demo: no one monitors this chat. In a live setup, a team member replies
+        here.
+      </div>{/if}
     <Messages messages={chat.messages} name={chat.name} publicView
       >{#if chat.typing}<div class="message typing" role="status">
           <div class="avatar" aria-hidden="true"><Icon name="spark" /></div>

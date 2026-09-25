@@ -1448,6 +1448,10 @@ tbody tr:last-child td {
   gap: 8px;
   align-items: center;
 }
+.public-status.demo-note {
+  background: var(--notice-surface);
+  color: var(--notice-ink);
+}
 .public-card .composer {
   padding: 18px 25px;
 }

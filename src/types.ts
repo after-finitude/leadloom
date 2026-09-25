@@ -223,6 +223,8 @@ export interface PublicChat {
   messages: Message[];
   // The assistant has an unanswered visitor message and will reply.
   typing: boolean;
+  // A visitor question waits for the team; its text stays internal.
+  question_pending: boolean;
   demo: boolean;
   providers: Providers;
   csrf: string;
