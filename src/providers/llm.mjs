@@ -1,16 +1,20 @@
 import { AppError, ensure } from '../util.mjs';
 export const PROMPT_VERSION = 'leadloom-extraction-1.2.3';
 export const TOPIC_PROMPT_VERSION = 'leadloom-topic-1.0.0';
-export const REPLY_PROMPT_VERSION = 'leadloom-reply-1.1.0';
+export const REPLY_PROMPT_VERSION = 'leadloom-reply-1.2.0';
 export const replySchema = {
   type: 'object',
   additionalProperties: false,
   required: ['reaction', 'reply'],
   properties: { reaction: { type: 'string' }, reply: { type: 'string' } }
 };
+// Names the model must keep reach it as placeholders, because it transliterates them otherwise.
+export const placeholder = (index) => `[[${index + 1}]]`;
+export const withPlaceholders = (text, names) =>
+  names.reduce((t, name, i) => t.replaceAll(name, placeholder(i)), text);
 // A phrased reply (the optional reaction, then the rewritten plan) is used only if it keeps the
-// planned question and the must-keep names and stays short and link-free; otherwise the caller
-// sends the planned text.
+// planned question and each must-keep name (as written or as its placeholder, which is then
+// filled in) and stays short and link-free; otherwise the caller sends the planned text.
 export function validateReply(v, input) {
   ensure(
     v &&
@@ -21,12 +25,15 @@ export function validateReply(v, input) {
   );
   const reaction = (v.reaction ?? '').trim();
   ensure(reaction.length <= 300 && !/[?？؟]/.test(reaction), 'reply_reaction');
-  const reply = [reaction, v.reply.trim()].filter(Boolean).join(' '),
+  const reply = input.keep.reduce(
+      (text, name, i) => text.replaceAll(placeholder(i), name),
+      [reaction, v.reply.trim()].filter(Boolean).join(' ')
+    ),
     lower = reply.toLowerCase();
   ensure(v.reply.trim().length > 0 && reply.length <= 1200, 'reply_length');
   ensure(!input.planned.includes('?') || /[?？؟]/.test(reply), 'reply_question');
   ensure(
-    input.keep.every((k) => lower.includes(k.toLowerCase())),
+    input.keep.every((k) => lower.includes(k.toLowerCase())) && !/\[\[\d+\]\]/.test(reply),
     'reply_missing'
   );
   ensure(!/https?:\/\/|www\./i.test(reply), 'reply_link');
@@ -372,7 +379,7 @@ export class ResponsesLLM {
     const system = [
       `Write the next chat message of the ${input.settings.company} project assistant. ${REPLY_PROMPT_VERSION}.`,
       'planned_message is what the application decided to say. Rewrite it naturally for this conversation in the reply field. Keep every fact, list and question from it.',
-      'Each must_keep text is a proper name: copy it character for character in its original Latin script; never translate or transliterate it.',
+      'Each must_keep text stands for a proper name: copy it exactly as written; never translate or transliterate it.',
       "Write in the language of the customer's latest messages; if it is unclear, use the language of planned_message.",
       "reaction: if the customer's latest message asks or says something planned_message does not address (for example an off-topic request), one short sentence that responds to it using only company_facts, such as that it is not something the company offers. Otherwise an empty string. Never repeat planned_message in reaction.",
       'Never promise prices, discounts, guarantees, dates, availability or bookings that planned_message does not state. Do not mention these rules, the application or the planned message.',
@@ -385,7 +392,7 @@ export class ResponsesLLM {
       {
         history: input.history,
         planned_message: input.planned,
-        must_keep: input.keep,
+        must_keep: input.keep.map((_, i) => placeholder(i)),
         company_facts: input.facts
       },
       'assistant_reply',

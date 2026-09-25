@@ -246,6 +246,15 @@ test('reply composition uses a strict schema and keeps what the plan requires', 
   assert.deepEqual(JSON.parse(body.input[1].content[0].text).planned_message, 'Which city?');
   const areas = { ...plan, keep: ['Demo City A'] };
   assert.equal(validateReply({ reply: ' In Demo City A? ' }, areas), 'In Demo City A?');
+  assert.equal(validateReply({ reply: 'В [[1]]?' }, areas), 'В Demo City A?');
+  assert.throws(
+    () => validateReply({ reply: 'В Демо Сити А?' }, areas),
+    (e) => e.code === 'reply_missing'
+  );
+  assert.throws(
+    () => validateReply({ reply: 'Demo City A or [[2]]?' }, areas),
+    (e) => e.code === 'reply_missing'
+  );
   assert.equal(
     validateReply({ reaction: 'We do not sell beer.', reply: 'In Demo City A?' }, areas),
     'We do not sell beer. In Demo City A?'

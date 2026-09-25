@@ -8,7 +8,7 @@ import {
   maySendAccess,
   scoreLead
 } from './rules.mts';
-import { validateExtraction, validateReply } from './providers/llm.mjs';
+import { validateExtraction, validateReply, withPlaceholders } from './providers/llm.mjs';
 import { BOOKABLE_CATEGORIES } from './domain.mts';
 import { score } from './qualification.mjs';
 import {
@@ -216,9 +216,10 @@ async function composeReplies(ctx, leadId) {
   for (const draft of ctx.messages.pending(l.conversation_id)) {
     let body = draft.body;
     if (ctx.llm.compose) {
+      const keep = areas.filter((a) => draft.body.includes(a));
       const input = {
-        planned: draft.body,
-        keep: areas.filter((a) => draft.body.includes(a)),
+        planned: withPlaceholders(draft.body, keep),
+        keep,
         facts: { services, areas },
         history: ctx.messages
           .history(l.conversation_id)

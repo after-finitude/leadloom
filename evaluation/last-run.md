@@ -1,6 +1,6 @@
 # Leadloom evaluation — real openrouter, controlled mock calendar/email
 
-Date: 2026-09-25T05:21:57.756Z
+Date: 2026-09-25T05:32:44.943Z
 Node: v24.14.1
 Model: google/gemini-2.5-flash-lite
 Prompt: leadloom-extraction-1.2.3

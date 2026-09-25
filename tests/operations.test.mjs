@@ -294,7 +294,7 @@ test('the model phrases replies, and the planned text is used when it drops a mu
     f.app.postMessage(lid, 'Roofing', id());
     await f.app.tick();
     assert.equal(f.app.publicState(lid).messages.at(-1).body, reply);
-    assert.match(plans[0].planned, /^Which city.*Demo City A and Demo City B\.$/);
+    assert.match(plans[0].planned, /^Which city.*\[\[1\]\] and \[\[2\]\]\.$/);
     assert.deepEqual(plans[0].keep, ['Demo City A', 'Demo City B']);
     assert.equal(plans[0].history.at(-1).body, 'Roofing');
     reply = 'Какой у вас бюджет?';
