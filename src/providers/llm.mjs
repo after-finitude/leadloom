@@ -25,12 +25,20 @@ export function validateReply(v, input) {
   );
   const reaction = (v.reaction ?? '').trim();
   ensure(reaction.length <= 300 && !/[?？؟]/.test(reaction), 'reply_reaction');
+  // The reaction and the reply often open with the same apology; it is kept once.
+  const opener = reaction.match(/^[^,.!]+,/)?.[0].toLowerCase();
+  let rest = v.reply.trim();
+  if (opener && rest.toLowerCase().startsWith(opener))
+    rest = rest
+      .slice(opener.length)
+      .trimStart()
+      .replace(/^./, (c) => c.toUpperCase());
   const reply = input.keep.reduce(
       (text, name, i) => text.replaceAll(placeholder(i), name),
-      [reaction, v.reply.trim()].filter(Boolean).join(' ')
+      [reaction, rest].filter(Boolean).join(' ')
     ),
     lower = reply.toLowerCase();
-  ensure(v.reply.trim().length > 0 && reply.length <= 1200, 'reply_length');
+  ensure(rest.length > 0 && reply.length <= 1200, 'reply_length');
   ensure(!input.planned.includes('?') || /[?？؟]/.test(reply), 'reply_question');
   ensure(
     input.keep.every((k) => lower.includes(k.toLowerCase())) && !/\[\[\d+\]\]/.test(reply),

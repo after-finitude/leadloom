@@ -259,6 +259,16 @@ test('reply composition uses a strict schema and keeps what the plan requires', 
     validateReply({ reaction: 'We do not sell beer.', reply: 'In Demo City A?' }, areas),
     'We do not sell beer. In Demo City A?'
   );
+  assert.equal(
+    validateReply(
+      {
+        reaction: 'К сожалению, мы не продаем пиво.',
+        reply: 'К сожалению, Москва вне зоны. Может, [[1]]?'
+      },
+      areas
+    ),
+    'К сожалению, мы не продаем пиво. Москва вне зоны. Может, Demo City A?'
+  );
   assert.throws(
     () => validateReply({ reaction: 'Beer?', reply: 'In Demo City A?' }, areas),
     (e) => e.code === 'reply_reaction'
