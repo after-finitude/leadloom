@@ -1,4 +1,4 @@
-import { id, stable, text, ensure, isStop, escapeHtml } from './util.mjs';
+import { id, stable, text, ensure, isStop } from './util.mjs';
 import {
   normalizeField,
   validateBudget,
@@ -10,29 +10,15 @@ import {
 } from './rules.mts';
 import { validateExtraction } from './providers/llm.mjs';
 import { BOOKABLE_CATEGORIES } from './domain.mts';
-import { score, summary } from './qualification.mjs';
-import { beginWait, remindIfBookable } from './followups.mjs';
-import { cancelPending } from './operations.mjs';
-
-export function handoff(ctx, leadId, reason) {
-  ctx.leads.bump(leadId, { owner: 'HUMAN', review_reason: reason, current_field: null });
-  cancelPending(ctx, leadId, reason);
-  const note = summary(ctx, leadId);
-  ctx.store.run(
-    'INSERT INTO handoffs(id,lead_id,reason,summary,created_at) VALUES(?,?,?,?,?)',
-    id(),
-    leadId,
-    reason,
-    note,
-    ctx.clock()
-  );
-  ctx.messages.add(
-    leadId,
-    'system',
-    'Your conversation has been passed to our team. A team member will continue here during working hours.'
-  );
-  ctx.audit.add(leadId, 'handoff', { reason });
-}
+import { score } from './qualification.mjs';
+import {
+  cancelPending,
+  handoff,
+  firstContact,
+  emailPayload,
+  beginWait,
+  remindIfBookable
+} from './lifecycle.mjs';
 
 // Opt-out covers every enquiry of the contact.
 export function stop(ctx, contactId, source = 'chat') {
@@ -44,18 +30,6 @@ export function stop(ctx, contactId, source = 'chat') {
       ctx.audit.add(leadId, 'opt_out', { source }, { actor: 'visitor' });
     }
     return { unsubscribed: true };
-  });
-}
-
-export function firstContact(ctx, leadId, channel) {
-  const l = ctx.leads.get(leadId);
-  if (l.first_contact_at) return;
-  ctx.leads.update(leadId, {
-    first_contact_at: ctx.clock(),
-    first_contact_channel: channel,
-    first_contact_ms: ctx.clock() - l.created_at,
-    first_contact_status: 'accepted',
-    stage: l.stage === 'New' ? 'Contacted' : l.stage
   });
 }
 
@@ -123,25 +97,6 @@ function coverage(ctx, lead, field) {
   if (field === 'service_type') return `We offer ${list(rules.services)}.`;
   if (field === 'location') return `We currently work in ${list(rules.areas)}.`;
   return '';
-}
-
-export function emailPayload(ctx, leadId, subject, body) {
-  const l = ctx.leads.get(leadId);
-  ensure(l.email, 'no_email');
-  const access = ctx.auth.issue('chat', leadId, l.contact_id),
-    unsubscribe = ctx.auth.issue('unsubscribe', leadId, l.contact_id);
-  const link = `${ctx.config.origin}/chat#token=${access}`,
-    optout = `${ctx.config.origin}/unsubscribe#token=${unsubscribe}`;
-  return {
-    from: ctx.config.emailFrom,
-    to: l.email,
-    reply_to: ctx.config.emailReplyTo,
-    subject,
-    text: `${body}\n\nContinue your conversation: ${link}\n\nUnsubscribe: ${optout}`,
-    html: `<p>${escapeHtml(body)}</p><p><a href="${escapeHtml(
-      link
-    )}">Continue your conversation</a></p><p><a href="${escapeHtml(optout)}">Unsubscribe</a></p>`
-  };
 }
 
 // The first invitation starts outreach; later ones only restore access to the chat.

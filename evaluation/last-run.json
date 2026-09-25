@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-25T04:04:28.917Z",
+  "date": "2026-09-25T04:12:49.381Z",
   "node": "v24.14.1",
   "provider": "mock",
   "model": "deterministic-parser-1.2",
@@ -7,7 +7,7 @@
   "calendar": "mock",
   "email": "mock",
   "fixtureHash": "37490d82e44936994ccd455049a8c50ac7406a4b5ce117a9a43a6140b560082b",
-  "runtimeSourceHash": "1135a0668a3013e4e5f3fc5170bca22bed2242b3f111fbbffbd0910904c8f719",
+  "runtimeSourceHash": "bdc610096442eb8bed3c52260b2a5853293648cf797a52906e298272570a4f12",
   "limits": {
     "fieldAccuracy": 0.95,
     "categoryMatch": 0.95,
@@ -35,8 +35,8 @@
       "booked": true,
       "expectedBooking": true,
       "falseBooking": false,
-      "firstContactMs": 11,
-      "elapsedMs": 88
+      "firstContactMs": 12,
+      "elapsedMs": 84
     },
     {
       "id": "warm-unknown-budget",
@@ -59,8 +59,8 @@
       "booked": true,
       "expectedBooking": true,
       "falseBooking": false,
-      "firstContactMs": 1,
-      "elapsedMs": 66
+      "firstContactMs": 2,
+      "elapsedMs": 64
     },
     {
       "id": "unsupported-service",
@@ -79,7 +79,7 @@
       "expectedBooking": false,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 63
+      "elapsedMs": 60
     },
     {
       "id": "outside-service-area",
@@ -102,8 +102,8 @@
       "booked": false,
       "expectedBooking": false,
       "falseBooking": false,
-      "firstContactMs": 1,
-      "elapsedMs": 67
+      "firstContactMs": 2,
+      "elapsedMs": 62
     },
     {
       "id": "optional-budget-unknown",
@@ -127,7 +127,7 @@
       "expectedBooking": true,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 69
+      "elapsedMs": 64
     },
     {
       "id": "critical-location-unknown",
@@ -146,7 +146,7 @@
       "expectedBooking": false,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 66
+      "elapsedMs": 62
     },
     {
       "id": "multi-field-extraction",
@@ -169,8 +169,8 @@
       "booked": false,
       "expectedBooking": null,
       "falseBooking": false,
-      "firstContactMs": 1,
-      "elapsedMs": 62
+      "firstContactMs": 0,
+      "elapsedMs": 60
     },
     {
       "id": "budget-correction",
@@ -194,7 +194,7 @@
       "expectedBooking": true,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 67
+      "elapsedMs": 63
     },
     {
       "id": "manual-lock-conflict",
@@ -218,7 +218,7 @@
       "expectedBooking": false,
       "falseBooking": false,
       "firstContactMs": 0,
-      "elapsedMs": 67
+      "elapsedMs": 63
     },
     {
       "id": "human-request",
@@ -235,7 +235,7 @@
       "expectedBooking": false,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 64
+      "elapsedMs": 60
     },
     {
       "id": "negative-sentiment",
@@ -252,7 +252,7 @@
       "expectedBooking": false,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 62
+      "elapsedMs": 61
     },
     {
       "id": "approved-faq",
@@ -276,7 +276,7 @@
       "expectedBooking": null,
       "falseBooking": false,
       "firstContactMs": 0,
-      "elapsedMs": 63
+      "elapsedMs": 62
     },
     {
       "id": "outside-faq",
@@ -293,7 +293,7 @@
       "expectedBooking": false,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 64
+      "elapsedMs": 63
     },
     {
       "id": "banned-topic",
@@ -310,7 +310,7 @@
       "expectedBooking": false,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 115
+      "elapsedMs": 60
     },
     {
       "id": "negative-authority",
@@ -333,8 +333,8 @@
       "booked": true,
       "expectedBooking": true,
       "falseBooking": false,
-      "firstContactMs": 0,
-      "elapsedMs": 69
+      "firstContactMs": 1,
+      "elapsedMs": 62
     },
     {
       "id": "unknown-timeline",
@@ -358,7 +358,7 @@
       "expectedBooking": true,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 69
+      "elapsedMs": 62
     },
     {
       "id": "no-repeat-known-fields",
@@ -381,8 +381,8 @@
       "booked": false,
       "expectedBooking": null,
       "falseBooking": false,
-      "firstContactMs": 1,
-      "elapsedMs": 64
+      "firstContactMs": 0,
+      "elapsedMs": 61
     },
     {
       "id": "stop-after-qualification",
@@ -406,7 +406,7 @@
       "expectedBooking": false,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 63
+      "elapsedMs": 61
     },
     {
       "id": "nurture-no-booking",
@@ -430,7 +430,7 @@
       "expectedBooking": false,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 61
+      "elapsedMs": 66
     },
     {
       "id": "email-required",
@@ -454,7 +454,7 @@
       "expectedBooking": false,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 61
+      "elapsedMs": 63
     },
     {
       "id": "prompt-injection-blocked",
@@ -470,8 +470,8 @@
       "booked": false,
       "expectedBooking": false,
       "falseBooking": false,
-      "firstContactMs": 1,
-      "elapsedMs": 61
+      "firstContactMs": 0,
+      "elapsedMs": 62
     },
     {
       "id": "unknown-authority",
@@ -495,7 +495,7 @@
       "expectedBooking": true,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 63
+      "elapsedMs": 64
     },
     {
       "id": "service-correction-hard-reject",
@@ -543,7 +543,7 @@
       "expectedBooking": true,
       "falseBooking": false,
       "firstContactMs": 1,
-      "elapsedMs": 115
+      "elapsedMs": 63
     }
   ]
 }

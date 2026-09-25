@@ -13,8 +13,8 @@ import {
 import { mayAutomate } from './rules.mts';
 import { CLOSED_STAGES, sqlList } from './domain.mts';
 import { score } from './qualification.mjs';
-import { remindIfBookable } from './followups.mjs';
-import { askNext, invite, handoff } from './conversation.mjs';
+import { handoff, remindIfBookable } from './lifecycle.mjs';
+import { askNext, invite } from './conversation.mjs';
 
 // Accepts an enquiry idempotently by (source, event_key). Matches or creates the contact,
 // reuses the open deal or opens a new lead, and starts the chat or email outreach.

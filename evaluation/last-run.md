@@ -1,11 +1,11 @@
 # Leadloom evaluation — MOCK, not real AI
 
-Date: 2026-09-25T04:04:28.917Z
+Date: 2026-09-25T04:12:49.381Z
 Node: v24.14.1
 Model: deterministic-parser-1.2
 Prompt: leadloom-extraction-1.2.3
 Fixture SHA-256: 37490d82e44936994ccd455049a8c50ac7406a4b5ce117a9a43a6140b560082b
-Service SHA-256: 1135a0668a3013e4e5f3fc5170bca22bed2242b3f111fbbffbd0910904c8f719
+Service SHA-256: bdc610096442eb8bed3c52260b2a5853293648cf797a52906e298272570a4f12
 
 ## Results
 
@@ -14,7 +14,7 @@ Service SHA-256: 1135a0668a3013e4e5f3fc5170bca22bed2242b3f111fbbffbd0910904c8f71
 - Category matches: 24/24.
 - Expected valid bookings: 8/8.
 - False bookings: 0.
-- First chat contact median: 1 ms; p90: 1 ms.
+- First chat contact median: 1 ms; p90: 2 ms.
 
 The deterministic parser run does not establish real model accuracy, live email delivery, Google Calendar behavior or production SLA.
 

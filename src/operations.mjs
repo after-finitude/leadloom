@@ -3,41 +3,8 @@ import { mayAutomate, mayBook, maySendAccess, mayReschedule } from './rules.mts'
 import { availableSlots, working, overlaps, timeLabel } from './time.mts';
 import { eventId } from './providers/calendar.mjs';
 import { BOOKABLE_CATEGORIES } from './domain.mts';
-import { handoff, firstContact } from './conversation.mjs';
 import { summary } from './qualification.mjs';
-import { beginWait } from './followups.mjs';
-
-// Stops queued work for a lead. Access links survive everything except an opt-out.
-export function cancelPending(ctx, leadId, reason) {
-  const queued = ctx.store.all("SELECT * FROM actions WHERE lead_id=? AND state='pending'", leadId);
-  for (const a of queued) {
-    const op = a.operation_id ? ctx.operations.get(a.operation_id) : null;
-    if (op?.kind === 'access' && reason !== 'opt_out') continue;
-    ctx.store.run(
-      "UPDATE actions SET state='cancelled',error_code=?,updated_at=? WHERE id=?",
-      reason,
-      ctx.clock(),
-      a.id
-    );
-    if (op?.state === 'pending') {
-      ctx.store.run(
-        "UPDATE operations SET state='cancelled',error_code=?,updated_at=? WHERE id=?",
-        reason,
-        ctx.clock(),
-        op.id
-      );
-      if (op.kind === 'booking')
-        ctx.store.run(
-          "UPDATE appointments SET status='cancelled',updated_at=? WHERE operation_key=?",
-          ctx.clock(),
-          op.op_key
-        );
-      if (['booking', 'reschedule'].includes(op.kind))
-        ctx.store.run("UPDATE reservations SET state='released' WHERE operation_key=?", op.op_key);
-    }
-  }
-  ctx.leads.update(leadId, { waiting_at: null, followup_run: null, followup_type: null });
-}
+import { cancelPending, handoff, firstContact, beginWait } from './lifecycle.mjs';
 
 /** @returns {Promise<import('./types.ts').Availability>} */
 export async function availability(ctx, leadId, reschedule = false) {

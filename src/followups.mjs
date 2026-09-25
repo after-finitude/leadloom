@@ -1,65 +1,9 @@
-import { id, hash, stable, parse } from './util.mjs';
+import { parse } from './util.mjs';
 import { mayAutomate, mayBook } from './rules.mts';
 import { working, nextWorking } from './time.mts';
 import { NO_AUTOMATION_STAGES } from './domain.mts';
-import { emailPayload } from './conversation.mjs';
+import { emailPayload } from './lifecycle.mjs';
 import { executeOperation } from './operations.mjs';
-
-export function beginWait(ctx, leadId, type) {
-  const l = ctx.leads.get(leadId);
-  if (
-    !mayAutomate(l) ||
-    !l.email ||
-    l.followup_suppressed ||
-    l.stage === 'Booked' ||
-    (['Nurture', 'Unqualified'].includes(l.category) && l.qualification === 'complete')
-  )
-    return;
-  if (type === 'qualified_not_booked' && !mayBook(l, ctx.workspace.settings())) return;
-  const counts = ctx.store
-    .all(
-      "SELECT a.data,o.state AS operation_state FROM actions a LEFT JOIN operations o ON a.operation_id=o.id WHERE a.lead_id=? AND a.kind='followup'",
-      leadId
-    )
-    .filter(
-      (a) =>
-        parse(a.data).sequence === type &&
-        ['confirmed', 'unknown', 'running'].includes(a.operation_state)
-    ).length;
-  if (counts >= 3) return;
-  ctx.store.run(
-    "UPDATE actions SET state='cancelled',error_code='new_wait',updated_at=? WHERE lead_id=? AND kind='followup' AND state='pending'",
-    ctx.clock(),
-    leadId
-  );
-  const now = ctx.clock(),
-    run = id(),
-    followup = ctx.workspace.settings().followup;
-  ctx.leads.update(leadId, { waiting_at: now, followup_run: run, followup_type: type });
-  for (let step = counts; step < 3; step++)
-    ctx.actions.enqueue(
-      'followup',
-      leadId,
-      `fu:${leadId}:${run}:${step}`,
-      {
-        sequence: type,
-        run,
-        step,
-        waitingAt: now,
-        lastLeadAt: l.last_lead_at,
-        subject: followup.subject,
-        text: followup.text,
-        templateVersion: hash(stable(followup))
-      },
-      now + followup[type][step] * 60000
-    );
-}
-
-// Starts booking reminders once a lead becomes bookable, unless that sequence already runs.
-export function remindIfBookable(ctx, lead) {
-  if (mayBook(lead, ctx.workspace.settings()) && lead.followup_type !== 'qualified_not_booked')
-    beginWait(ctx, lead.id, 'qualified_not_booked');
-}
 
 export async function followup(ctx, action) {
   const d = parse(action.data),

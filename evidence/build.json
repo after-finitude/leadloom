@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-09-25T03:54:47.857Z",
+  "checkedAt": "2026-09-25T04:12:55.385Z",
   "node": "v24.14.1",
-  "syntaxFiles": 40,
+  "syntaxFiles": 41,
   "files": [
     "src/auth.mjs",
     "src/config.mjs",
@@ -11,6 +11,7 @@
     "src/followups.mjs",
     "src/http.mjs",
     "src/intake.mjs",
+    "src/lifecycle.mjs",
     "src/limits.mjs",
     "src/main.mjs",
     "src/operations.mjs",

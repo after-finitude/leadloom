@@ -10,6 +10,7 @@ import { Worker } from './queue.mjs';
 import * as settings from './settings.mjs';
 import * as intake from './intake.mjs';
 import * as conversation from './conversation.mjs';
+import * as lifecycle from './lifecycle.mjs';
 import * as crm from './crm.mjs';
 import * as operations from './operations.mjs';
 import { followup } from './followups.mjs';
@@ -141,7 +142,7 @@ export class Leadloom {
     return conversation.turn(this.ctx, leadId);
   }
   handoff(leadId, reason) {
-    return conversation.handoff(this.ctx, leadId, reason);
+    return lifecycle.handoff(this.ctx, leadId, reason);
   }
   stop(contactId, source) {
     return conversation.stop(this.ctx, contactId, source);

@@ -4,8 +4,7 @@ import { FIELDS, normalizeField, validateBudget, mayAutomate } from './rules.mts
 import { STAGES, CLOSED_STAGES, NO_AUTOMATION_STAGES, sqlList } from './domain.mts';
 import { LEAD_SELECT, LEAD_FROM, parseLead } from './repos.mjs';
 import { score } from './qualification.mjs';
-import { remindIfBookable } from './followups.mjs';
-import { cancelPending } from './operations.mjs';
+import { cancelPending, remindIfBookable } from './lifecycle.mjs';
 
 /** @returns {LeadList} */
 export function list(ctx, options = {}) {
