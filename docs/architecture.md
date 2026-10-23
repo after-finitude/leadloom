@@ -18,6 +18,8 @@ The frontend is a Svelte 5 SPA built with Vite. `web/App.svelte` selects the exi
 
 `npm run dev` runs Vite on port 5173 and the backend on port 3000 (or `PORT`). Vite proxies `/api` without changing the browser Origin. The child backend uses `APP_ORIGIN=http://localhost:5173`, preserving same-origin session/CSRF behavior. Production serves only built assets and known page routes; source components, environment files and source maps are not exposed.
 
+Versions are pinned in the lockfile. Svelte 5.57.0, Vite 8.3.0 and their tooling were selected on 14 September 2026 from Context7 documentation and npm metadata. TypeScript stays at 6.0.3 because TypeScript 7 is outside the supported peer ranges of `svelte-check` and TypeScript ESLint; Node typings follow Node 24 to match the server.
+
 ## State boundaries
 
 `contacts.opt_out` applies to all enquiries from a contact; `leads.owner`, `paused`, `review_reason`, `qualification`, `stage`, and `category` are independent. Conversation has a one-to-one relationship with Lead. Opportunity is not a separate SQL table in this edition: the stage and assigned manager are stored on Lead. This is an explicitly simplified physical model, not a verbatim implementation of the specification's DDL.

@@ -1,10 +1,35 @@
 # Leadloom
 
-**1.2.0 · standalone edition.** Incoming enquiry → private chat → qualification and explainable scoring → consultation booking → staff follow-through. Built with Svelte 5, TypeScript and Vite on the frontend; Node.js HTTP and SQLite on the backend. The production server has no runtime npm dependencies.
+**Version 1.2.0 · standalone edition**
 
-## Run locally
+Leadloom turns an incoming enquiry into a booked consultation. A customer leaves a request, an AI assistant talks to them in a private chat, collects the facts, scores the lead with explainable rules and offers a meeting slot. Staff see everything in a small CRM and can take over at any point.
 
-Requires Node.js **24+** with `node:sqlite` and native TypeScript type stripping.
+```
+Enquiry → private chat → qualification and scoring → consultation booking → staff follow-through
+```
+
+## Features
+
+- **Customer side:** enquiry form (`/enquire`), private chat with the assistant, slot selection, secure return links, STOP/unsubscribe.
+- **AI qualification:** the model extracts fields and phrases replies; scoring, eligibility, the next question and booking are decided by code, not by the model.
+- **Staff CRM:** Inbox, Leads, lead profile (timeline, data, score, meetings), Activity log, Settings and a demo Outbox.
+- **Roles:** administrator and manager.
+- **Reliable side effects:** calendar and email operations are durable queued actions with retries and reconciliation of uncertain results.
+- **Mock providers by default:** runs fully offline; real OpenAI/OpenRouter, Google Calendar and Resend adapters are opt-in.
+
+## Tech stack
+
+| Layer    | Technology                                                   |
+| -------- | ------------------------------------------------------------ |
+| Frontend | Svelte 5, TypeScript, Vite                                   |
+| Backend  | Node.js 24 (`node:http`, `node:sqlite`), no runtime npm deps |
+| Storage  | SQLite (single file, numbered SQL migrations)                |
+| AI       | Mock parser, OpenAI or OpenRouter (structured output)        |
+| Tooling  | ESLint, Prettier, `svelte-check`, `tsc`, `node --test`       |
+
+## Quick start
+
+Requires **Node.js 24+**.
 
 ```sh
 npm ci --ignore-scripts
@@ -12,61 +37,112 @@ npm run build
 npm start
 ```
 
-Open [localhost:3000](http://localhost:3000); customer form: [/enquire](http://localhost:3000/enquire). Use the exact configured `APP_ORIGIN`, including hostname and port. Build once before starting from source; rebuild after frontend changes. The default first launch creates a local database, staff accounts and eight synthetic leads.
+Open:
 
-| Default local account | Email                  | Password               |
-| --------------------- | ---------------------- | ---------------------- |
-| Administrator         | admin@leadloom.local   | Leadloom-Demo-2026!    |
-| Manager               | manager@leadloom.local | Leadloom-Manager-2026! |
+- Staff app: [localhost:3000](http://localhost:3000) (login at `/login`)
+- Customer form: [localhost:3000/enquire](http://localhost:3000/enquire)
 
-These credentials apply only to a fresh default local demo. The shared VPS uses generated credentials. Changing ENV passwords does not change accounts already stored in the database.
+The first launch creates `data/leadloom.sqlite`, two staff accounts and eight synthetic leads. No `.env` is needed for the local demo.
 
-Providers default to mocks: qualification uses a limited deterministic parser, calendar events stay in SQLite, and emails appear in the administrator's Outbox. Real adapters require explicit configuration.
+| Demo account  | Email                  | Password               |
+| ------------- | ---------------------- | ---------------------- |
+| Administrator | admin@leadloom.local   | Leadloom-Demo-2026!    |
+| Manager       | manager@leadloom.local | Leadloom-Manager-2026! |
 
-The portfolio demo can use **OpenRouter for real AI qualification with simulated calendar and email**. See [portfolio configuration](docs/integrations.md#portfolio-demo-openrouter-with-simulated-calendar-and-email); Google/Resend accounts are not needed for that setup.
+These credentials only exist in a fresh local demo database. Accounts are seeded once: changing the passwords in `.env` later does not change stored accounts.
+
+Notes:
+
+- Rebuild (`npm run build`) after frontend changes when using `npm start`, or use `npm run dev` instead.
+- Open the app at the exact configured `APP_ORIGIN` (default `http://localhost:3000`), including hostname and port: browser writes require an exact Origin match.
+
+### Docker
+
+```sh
+docker compose up --build
+```
+
+Serves on `127.0.0.1:3000` with data in the `leadloom-data` volume.
+
+## Configuration
+
+Copy `.env.example` to `.env` and change what you need. Values already set in the environment take precedence over `.env`.
+
+| Variable                     | Default                                      | Purpose                                                                      |
+| ---------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------- |
+| `APP_MODE`                   | `demo`                                       | `demo` or `live` (live requires HTTPS, strong secrets and an encryption key) |
+| `PORT`, `HOST`, `APP_ORIGIN` | `3000`, `127.0.0.1`, `http://localhost:3000` | Where the server listens and the exact browser origin                        |
+| `DATABASE_PATH`              | `./data/leadloom.sqlite`                     | SQLite file                                                                  |
+| `WORKER_ENABLED`             | `true`                                       | Run the background worker inside the server                                  |
+| `LLM_PROVIDER`               | `mock`                                       | `mock`, `openai` or `openrouter`                                             |
+| `CALENDAR_PROVIDER`          | `mock`                                       | `mock` or `google`                                                           |
+| `EMAIL_PROVIDER`             | `mock`                                       | `mock` (emails appear in the admin Outbox) or `resend`                       |
+| `ENCRYPTION_KEY`             | empty                                        | Blank creates a local key; live needs 64 hex                                 |
+
+The full list with comments is in [`.env.example`](.env.example). For real AI with simulated calendar and email (the portfolio setup), see [Integrations → OpenRouter](docs/integrations.md#portfolio-demo-openrouter-with-simulated-calendar-and-email).
+
+## Development
+
+```sh
+npm run dev
+```
+
+Starts Vite on [localhost:5173](http://localhost:5173) and the API/worker on port 3000 with auto-restart. Use port 5173 in the browser; API requests are proxied. Stop any other backend on port 3000 first.
+
+| Command                                   | What it does                                                      |
+| ----------------------------------------- | ----------------------------------------------------------------- |
+| `npm run dev`                             | Frontend dev server + backend in watch mode                       |
+| `npm start`                               | Production-style server with embedded worker (needs a build)      |
+| `npm run worker`                          | Run the worker as a separate process                              |
+| `npm run build`                           | Type checks, Vite bundle and release files in `dist/`             |
+| `npm run typecheck`                       | Backend `tsc` and `svelte-check`, no output files                 |
+| `npm test`                                | Unit, integration, HTTP and provider contract tests (build first) |
+| `npm run eval -- --mock`                  | Deterministic qualification evaluation, no paid requests          |
+| `npm run lint` / `npm run lint:fix`       | ESLint check / auto-fix                                           |
+| `npm run format` / `npm run format:check` | Prettier write / check                                            |
+| `npm run check`                           | Everything CI runs: lint, format, build, tests, mock evaluation   |
+| `npm run seed`                            | Add the synthetic demo data                                       |
+| `npm run backup`                          | Consistent SQLite snapshot                                        |
+| `npm run demo:reset -- --confirm-stopped` | Delete the demo database (server must be stopped)                 |
+| `npm run live:smoke -- --confirm`         | Optional smoke test against real providers                        |
+
+Before pushing, run `npm run check`. It does not overwrite saved reports (`evidence/build.json`, `evaluation/last-run.*`); run `npm run build` or `npm run eval` directly to record new ones. An optional native browser scenario is `python tests/browser_e2e.py` against a running demo with mock providers.
+
+## Project structure
+
+```
+src/                 Backend: HTTP API, domain logic, worker, providers
+  migrations/        Numbered SQL migrations (never edit a released one)
+  providers/         LLM, calendar and email adapters
+web/                 Svelte frontend
+  pages/             Screens
+  components/        Shared UI and dialogs
+  lib/               Typed API client and state
+tests/               Automated tests and browser scenario
+scripts/             Dev, build, seed, backup, reset, deploy
+evaluation/          Qualification evaluation runner, scenarios, results
+evidence/            Dated verification reports and screenshots
+docs/                Documentation (see below)
+data/                Local SQLite database and key (git-ignored)
+```
 
 ## Documentation
 
-| Document                                 | Read it for                                                                    |
-| ---------------------------------------- | ------------------------------------------------------------------------------ |
-| [Product flow](docs/product-flow.md)     | Customer/staff journeys, controls, booking, follow-ups and a demo walkthrough. |
-| [Runbook](docs/runbook.md)               | Startup, shared VPS, proxy configuration, backups and operational recovery.    |
-| [Integrations](docs/integrations.md)     | OpenAI, Google Calendar, Resend and live smoke setup.                          |
-| [API](docs/api.md)                       | Routes, authentication, search/pagination and response semantics.              |
-| [Architecture](docs/architecture.md)     | Components, state boundaries, durable actions and storage.                     |
-| [Status and limitations](docs/status.md) | Dated verification evidence, deployment boundary and unsupported capabilities. |
+| Document                                 | Read it for                                                      |
+| ---------------------------------------- | ---------------------------------------------------------------- |
+| [Product flow](docs/product-flow.md)     | Customer and staff journeys, controls, booking, demo walkthrough |
+| [Architecture](docs/architecture.md)     | Components, state boundaries, durable actions, security          |
+| [API](docs/api.md)                       | Routes, authentication, pagination, responses                    |
+| [Integrations](docs/integrations.md)     | OpenRouter, OpenAI, Google Calendar, Resend, live smoke test     |
+| [Runbook](docs/runbook.md)               | VPS deployment, reverse proxy, backups, recovery                 |
+| [Status and limitations](docs/status.md) | What has been verified, what has not, known limits               |
 
-Historical design/acceptance material is indexed in [status](docs/status.md#historical-design). It describes an earlier target stack, not the current implementation.
+`docs/archive/` holds the original specification and plan. They describe an earlier target stack (Postgres/Redis/Nest/Next), not this implementation.
 
-## Commands
+## Deployment
 
-Install dependencies with `npm ci --ignore-scripts`. ESLint checks JavaScript, TypeScript and Svelte with recommended rules and separate Node/browser globals. Prettier includes `prettier-plugin-svelte`; `.editorconfig` keeps editor whitespace consistent. Runtime release archives already contain compiled browser assets, so the server needs no npm installation.
+Pushes to `main` run `npm run check` in GitHub Actions and deploy to the VPS. See the [runbook](docs/runbook.md) for the setup and for the checklist before real operation.
 
-The frontend uses Svelte 5 components and TypeScript throughout, with strict checking in `web/tsconfig.json`. `svelte-check` checks components and browser modules; backend `tsc` checks migrated `.mts` modules and shared contracts in `src/types.ts`. Backend JavaScript is checked by `tsconfig.js.json` (`checkJs`, strict except implicit `any` parameters); API response types in `src/types.ts` are annotated on the functions that build them and shared with the browser app. Node.js 24 runs `.mts` directly; Vite compiles the frontend into hashed JS/CSS under `dist/web/assets/`. Runtime HTTP/LLM validation remains necessary.
+## License
 
-Versions are pinned in the lockfile. Svelte 5.57.0, Vite 8.3.0 and their latest stable tooling were selected on 14 September 2026 using Context7 documentation and npm metadata. TypeScript stays at 6.0.3: the latest TypeScript 7 is outside the supported peer ranges of `svelte-check` and TypeScript ESLint. Node typings stay on the latest Node 24 version to match the server.
-
-| Command                                   | Purpose                                                                      |
-| ----------------------------------------- | ---------------------------------------------------------------------------- |
-| `npm run dev`                             | Vite at localhost:5173 plus the API/worker on port 3000 (or `PORT`).         |
-| `npm start`                               | Server with embedded worker; serves the previously built frontend.           |
-| `npm run typecheck`                       | Strict backend TypeScript and Svelte component checks; no output files.      |
-| `npm run build`                           | Type checks, server syntax checks, Vite bundle and release files in `dist/`. |
-| `npm test`                                | Unit, integration, HTTP and provider contract tests.                         |
-| `npm run eval -- --mock`                  | Deterministic evaluation without paid requests.                              |
-| `npm run lint` / `npm run lint:fix`       | Check JS, TS and Svelte / apply available automatic lint fixes.              |
-| `npm run format` / `npm run format:check` | Format files / check formatting without changing files.                      |
-| `npm run check`                           | Lint, formatting check, build (including types), tests and mock evaluation.  |
-| `docker compose up --build`               | Build and start the base local Docker configuration.                         |
-
-Development uses `http://localhost:5173`; API requests are proxied to the backend. The dev script overrides `APP_ORIGIN` for its child process to keep cookies and CSRF on that browser origin, without changing `.env`. Stop another backend on the same port before using `npm run dev`. Production/local preview uses the configured `APP_ORIGIN` (normally `http://localhost:3000`).
-
-HTTP tests that load pages require `npm run build` first. The optional native browser scenario is `python tests/browser_e2e.py`, against an already running isolated demo with mock providers. Old scripts that injected the vanilla renderer into a simulated page have been removed.
-
-These are available commands, not a statement that they were just run. Backup, separate-worker and real-provider procedures are documented in the runbook/integration guide.
-
-Generated output, saved evidence/evaluation reports and archived documentation are excluded from formatting. `npm run check` passes `--no-save` to the build and the mock evaluation, so it does not rewrite `evidence/build.json` or `evaluation/last-run.*`; run `npm run build` or `npm run eval` directly to record new ones. GitHub Actions runs `npm run check` for pull requests and before deployment from `main`. Run formatting and address lint findings when changing code. No Git hooks run commands during commits.
-
-## Source layout
-
-`src/` — service, schema, worker and providers; `web/pages/` — Svelte screens; `web/components/` — shared UI; `web/lib/` — typed API and Svelte state; `web/public/` — static assets; `scripts/` — operating commands; `tests/` — automated/browser scenarios; `evaluation/` and `evidence/` — dated results; `docs/` — documentation.
+[MIT](LICENSE)
